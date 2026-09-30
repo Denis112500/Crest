@@ -2,7 +2,7 @@
 
 ## Current state
 - **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
-- **In progress:** user's visual check of (b); then milestone (c), Rust reading the media session.
+- **In progress:** milestone (c), Rust reading the media session.
 - **Broken:** nothing known.
 
 ---
@@ -32,7 +32,8 @@
   - `tsc`: "Cannot find module or type declarations for side-effect import of './styles/designTokens.css'". Cause: TypeScript 6 checks side-effect imports and didn't know `.css`. Fix: `src/vite-env.d.ts` with `/// <reference types="vite/client" />`.
   - `cargo`: "cannot find `__cmd__reveal_pill_window` in `pill_window`". Cause: `#[tauri::command]` generates hidden helpers next to the function, and `generate_handler!` looks for them at the path you write; a `pub use` re-export doesn't carry them. Fix: `pub mod pill_window_commands` and full paths in `generate_handler!`.
   - Port 1420 in use when the user ran `tauri dev`. Cause: the preview server started for them was still running. Fix: stop it; always stop our servers before handing over.
-- **Open questions (user checks visually):** is the capsule cleanly rounded with no white/black corners or border? Any white flash at startup? Is it absent from the taskbar and Alt+Tab? Hover and clicks in a `WS_EX_NOACTIVATE` window are untested until (e).
+- **Open questions:** hover events in a `WS_EX_NOACTIVATE` window are untested until (e).
+- **Verified by testing (user, visually):** clean black rounded capsule with no border or corner artifacts; no taskbar icon; not in Alt+Tab; clicking it keeps typing focus in Notepad; stays above other windows.
 - **Next:** milestone (c), the `MediaSource` trait + SMTC implementation printing snapshots to the console.
 
 ## 2026-09-30 — Milestone (a): empty Tauri app runs
