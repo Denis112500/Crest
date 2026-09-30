@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the pill window's frontend may call. Anything touching the OS goes through Crest's own Rust commands.",
+  "windows": ["pill"],
+  "permissions": ["core:default"]
+}
