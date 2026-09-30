@@ -38,11 +38,6 @@
   --playback-bar-width: 3px;
   --playback-bar-gap: 2px;
   --playback-bars-height: 14px;
-  --playback-bar-resting-scale: 0.3;
-  --playback-bar-first-duration: 0.9s;
-  --playback-bar-second-duration: 0.7s;
-  --playback-bar-third-duration: 1.05s;
-  --playback-bar-fourth-duration: 0.8s;
 
   /* Progress bar */
   --progress-track-color: rgba(255, 255, 255, 0.22);

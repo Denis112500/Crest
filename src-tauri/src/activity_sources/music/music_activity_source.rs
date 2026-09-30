@@ -1,11 +1,14 @@
 use crate::activity_core::{ActivityPublisher, ActivitySource, ActivityUpdate};
 use crate::activity_sources::music::session_loss_grace_period::SessionLossGracePeriod;
 use crate::backend_constants::{MUSIC_ACTIVITY_DISPLAY_PRIORITY, MUSIC_SESSION_LOSS_GRACE_PERIOD};
-use crate::ipc_channel_names::MUSIC_ACTIVITY_KIND;
-use crate::media::{MediaPlaybackState, MediaSessionSnapshot, MediaSource};
+use crate::ipc_channel_names::{
+    MUSIC_ACTIVITY_KIND, MUSIC_NEXT_TRACK_ACTION, MUSIC_PREVIOUS_TRACK_ACTION, MUSIC_TOGGLE_PLAY_PAUSE_ACTION,
+};
+use crate::media::{MediaPlaybackState, MediaSessionSnapshot, MediaSource, MediaTransportCommand};
 
-/// The music plugin: turns what the OS media source sees into pill activity.
-/// It doesn't know which OS it runs on; that's the `MediaSource`'s job.
+/// The music plugin: turns what the OS media source sees into pill activity, and the
+/// pill's buttons into player commands. It doesn't know which OS it runs on; that's the
+/// `MediaSource`'s job.
 pub struct MusicActivitySource {
     media_source: Box<dyn MediaSource>,
 }
@@ -38,6 +41,21 @@ impl ActivitySource for MusicActivitySource {
             }
         }))
     }
+
+    fn perform_activity_action(&self, activity_action: &str) -> Result<(), String> {
+        let media_transport_command = media_transport_command_for_action(activity_action)
+            .ok_or_else(|| format!("the music activity has no action \"{activity_action}\""))?;
+        self.media_source.send_media_transport_command(media_transport_command)
+    }
+}
+
+fn media_transport_command_for_action(activity_action: &str) -> Option<MediaTransportCommand> {
+    match activity_action {
+        MUSIC_TOGGLE_PLAY_PAUSE_ACTION => Some(MediaTransportCommand::TogglePlayPause),
+        MUSIC_NEXT_TRACK_ACTION => Some(MediaTransportCommand::NextTrack),
+        MUSIC_PREVIOUS_TRACK_ACTION => Some(MediaTransportCommand::PreviousTrack),
+        _ => None,
+    }
 }
 
 fn convert_to_music_activity_update(media_snapshot: &MediaSessionSnapshot) -> Option<ActivityUpdate> {
@@ -51,4 +69,23 @@ fn convert_to_music_activity_update(media_snapshot: &MediaSessionSnapshot) -> Op
         attention_key: format!("{}\n{}", media_snapshot.track_title, media_snapshot.track_artist),
         activity_payload,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_every_button_action_to_a_player_command() {
+        assert_eq!(
+            media_transport_command_for_action(MUSIC_TOGGLE_PLAY_PAUSE_ACTION),
+            Some(MediaTransportCommand::TogglePlayPause)
+        );
+        assert_eq!(media_transport_command_for_action(MUSIC_NEXT_TRACK_ACTION), Some(MediaTransportCommand::NextTrack));
+        assert_eq!(
+            media_transport_command_for_action(MUSIC_PREVIOUS_TRACK_ACTION),
+            Some(MediaTransportCommand::PreviousTrack)
+        );
+        assert_eq!(media_transport_command_for_action("dance"), None);
+    }
 }

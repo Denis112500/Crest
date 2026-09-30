@@ -1,5 +1,12 @@
 import "../../styles/musicControlButtons.css";
 
+import {
+  MUSIC_ACTIVITY_KIND,
+  MUSIC_NEXT_TRACK_ACTION,
+  MUSIC_PREVIOUS_TRACK_ACTION,
+  MUSIC_TOGGLE_PLAY_PAUSE_ACTION,
+} from "../../ipc/ipcChannelNames";
+import { requestActivityAction } from "../../ipc/requestActivityAction";
 import { createSvgIconElement } from "../createSvgIconElement";
 
 // Simple shapes on a 24×24 grid: a bar plus a triangle for skipping, a triangle for play,
@@ -15,24 +22,39 @@ export interface MusicControlButtons {
   showIsPlaying(isPlaying: boolean): void;
 }
 
-// Previous / play-pause / next. Milestone (f) connects them to the player.
+// Previous / play-pause / next. Each press becomes an action for the Rust music source;
+// the icons change only when the player confirms, through the next presentation update.
 export function createMusicControlButtons(): MusicControlButtons {
   const controlButtonsElement = document.createElement("div");
   controlButtonsElement.className = "music-control-buttons";
 
-  const createControlButton = (accessibleLabel: string, ...iconPaths: string[]): HTMLButtonElement => {
+  const createControlButton = (
+    accessibleLabel: string,
+    musicAction: string,
+    ...iconPaths: string[]
+  ): HTMLButtonElement => {
     const controlButtonElement = document.createElement("button");
     controlButtonElement.type = "button";
     controlButtonElement.className = "music-control-button";
     controlButtonElement.setAttribute("aria-label", accessibleLabel);
     controlButtonElement.append(...iconPaths.map((iconPath) => createSvgIconElement(iconPath)));
+    controlButtonElement.addEventListener("click", () => {
+      requestActivityAction(MUSIC_ACTIVITY_KIND, musicAction).catch((actionError: unknown) => {
+        console.error(`Crest could not send "${musicAction}" to the player:`, actionError);
+      });
+    });
     return controlButtonElement;
   };
-  const previousTrackButton = createControlButton("Previous track", PREVIOUS_TRACK_ICON_PATH);
+  const previousTrackButton = createControlButton("Previous track", MUSIC_PREVIOUS_TRACK_ACTION, PREVIOUS_TRACK_ICON_PATH);
   // Both icons live in the button; CSS shows the one matching the playback state.
-  const playPauseButton = createControlButton("Play or pause", PLAY_ICON_PATH, PAUSE_ICON_PATH);
+  const playPauseButton = createControlButton(
+    "Play or pause",
+    MUSIC_TOGGLE_PLAY_PAUSE_ACTION,
+    PLAY_ICON_PATH,
+    PAUSE_ICON_PATH,
+  );
   playPauseButton.classList.add("music-play-pause-button");
-  const nextTrackButton = createControlButton("Next track", NEXT_TRACK_ICON_PATH);
+  const nextTrackButton = createControlButton("Next track", MUSIC_NEXT_TRACK_ACTION, NEXT_TRACK_ICON_PATH);
   controlButtonsElement.append(previousTrackButton, playPauseButton, nextTrackButton);
 
   return {

@@ -7,12 +7,7 @@ use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSessionManager as SmtcSessionManager,
 };
 
-/// What SMTC event handlers tell the worker thread. Handlers run on Windows thread-pool
-/// threads, so they only send a message; all reading happens on the worker thread.
-pub enum SmtcWorkerMessage {
-    SessionListChanged,
-    SessionActivity { source_app_identifier: String },
-}
+use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
 
 /// The manager lives as long as the app, so this subscription is never removed.
 pub fn subscribe_to_session_list_changes(

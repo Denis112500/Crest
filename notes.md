@@ -2,11 +2,36 @@
 
 ## Current state
 - **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
-- **Works:** milestone (e). Compact pill (tiny art, title, bars) and expanded pill (large art, title, artist, live progress, buttons) with a spring animation on hover/click; 4 s peek on track change; clicks beside the pill reach the app below.
-- **In progress:** milestone (f), making the buttons control the player. The buttons are drawn but do nothing yet.
-- **Broken:** nothing known. Not yet checked by the user by hand: the feel of the animation, and the peek on a real track change.
+- **Works:** milestone (f). Everything from (e), plus the previous / play-pause / next buttons control YouTube Music. CPU: 0% idle or paused, about 4.7% of one core while music plays (bars bouncing).
+- **In progress:** milestone (g): hide/show rules (hide 30 s after pause, 3 s after the session closes) and the tray icon with Quit.
+- **Broken:** nothing known.
 
 ---
+
+## 2026-09-30 — Milestone (f): control buttons + CPU fix for animations
+- **Done:**
+  - Rust media: `media_source.rs` adds `MediaTransportCommand` and `send_media_transport_command` (and `MediaSource: Send`); `windows_smtc/smtc_worker_message.rs` (moved the message enum out of `smtc_event_subscriptions.rs`, adds `TransportCommandRequested`); `windows_smtc/smtc_transport_commands.rs` (`TryTogglePlayPauseAsync` / `TrySkipNextAsync` / `TrySkipPreviousAsync`); `smtc_media_source.rs` now creates the channel and keeps a sender; `smtc_worker_thread.rs` handles commands; `smtc_session_tracker.rs` remembers the shown session and sends commands to it.
+  - Rust core: `activity_source.rs` adds `perform_activity_action` (and `ActivitySource: Send`); new `activity_source_registry.rs` (kind → running source; starts sources; 2 tests); new `activity_action_command.rs` (`perform_activity_action` command). `music_activity_source.rs` maps action names to commands (1 test). `ipc_channel_names.rs` adds the three action names. `lib.rs` uses the registry.
+  - Frontend: `ipc/requestActivityAction.ts`; `ipcChannelNames.ts` adds the command + action names; `musicControlButtons.ts` sends actions on click.
+  - CPU fix: `playbackBarsIndicator.ts` drives the bars with a 15 fps timer (cosine bounce per bar) instead of a CSS animation; `playbackProgressBar.ts` redraws 4×/s with a timer instead of `requestAnimationFrame`; constants in `frontendConstants.ts`; the bar keyframes and duration tokens are gone from the CSS.
+  - Verified by testing: 18/18 Rust tests, tsc, clippy clean. The user confirmed play/pause, next and previous all control YouTube Music and the pill follows. CPU of Crest + WebView2 while playing, compact: **34.7% of one core before the fix → 4.7% after** (GPU process 2.8%, renderer 1.9%, Rust 0%); paused: about 0%.
+- **Learned:**
+  - **Routing by name:** the frontend sends `(activityKind, activityAction)`; the core looks up the source by kind and hands it the action string. The core never knows what "next-track" means, so new sources bring their own actions without core changes.
+  - **Never block Tauri's thread:** the command only drops a message into the SMTC worker's channel; the worker does the blocking `.join()` on the WinRT call.
+  - **One-way state flow:** a button doesn't change the pill directly. The player changes, SMTC reports it, and the pill updates. So the pill always shows the truth (if the player refuses, nothing lies).
+  - **Refresh rate matters:** endless CSS animations and `requestAnimationFrame` run at the monitor's refresh rate (**239 Hz** here). In a transparent WebView2 window, each frame is composited by the GPU process. A slow fixed-rate timer means the page only produces a frame when something actually changes.
+  - **Measure per process:** WebView2 splits into browser, renderer (JS, style, layout), GPU (drawing/compositing) and utility processes; the command line's `--type=` tells which is which.
+  - **`tauri dev` watches files:** Rust edits rebuild and restart the app; frontend edits hot-reload. That's why the user's running copy already had the new buttons.
+- **Decisions:**
+  - Buttons don't update the UI optimistically; they wait for the player's confirmation (about 100 ms, feels immediate). Rejected: optimistic toggle, which could show the wrong state if the player declines.
+  - Bars at 15 fps, progress at 4 redraws/s. Trade-off: slightly less fluid bars for 7× less CPU. 10 fps would be about 3%, if the user wants less.
+  - The spring morph stays a CSS transition (600 ms, then idle).
+  - Control availability flags from SMTC (e.g. "next" disabled) aren't used yet; YouTube Music enables all three.
+- **Problems:**
+  - My end-to-end test run failed with "Port 1420 is already in use". Cause: the user was running `tauri dev`, which had already rebuilt with the new code. Fix: tested in the user's running copy instead (the user pressed the buttons).
+  - 35% CPU while playing (see Learned). Fixed as above.
+- **Open questions:** should the bars stop when a fullscreen app or game is in front (the pill isn't visible there anyway)? Candidate for (g) or later.
+- **Next:** milestone (g): visibility policy (hide after 30 s paused / 3 s without session, reappear on track change), tray icon with Quit, own app icon, edge-case pass.
 
 ## 2026-09-30 — Milestone (e): compact and expanded states with animation
 - **Done:**
@@ -33,6 +58,7 @@
   - Icons are my own simple shapes on a 24×24 grid (no copied icon set).
 - **Problems:** none during implementation; everything compiled and worked on the first run. The user rejected a multi-question checklist, so verification used scripted DOM events + screenshots + Win32 inspection instead.
 - **Open questions:** CPU while playing (the bars animate continuously): measure in (f). Feel of the spring (duration 600 ms, 2.8% overshoot) is a taste call for the user. The peek on a real track change isn't verified yet.
+  - **Correction (milestone f):** CPU while playing was 34.7% of one core with the CSS-animated bars (239 Hz monitor). Fixed in (f) with timer-driven bars at 15 fps → 4.7%. The user confirmed (e) works ("Ok it works").
 - **Next:** milestone (f): buttons send play/pause/next/previous to the player through Rust.
 
 ## 2026-09-30 — Milestone (d): live data reaches the frontend

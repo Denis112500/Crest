@@ -6,7 +6,7 @@ mod media_source;
 mod windows_smtc;
 
 pub use media_session_snapshot::{MediaPlaybackState, MediaSessionSnapshot};
-pub use media_source::MediaSource;
+pub use media_source::{MediaSource, MediaTransportCommand};
 
 #[cfg(target_os = "windows")]
 pub use windows_smtc::SmtcMediaSource as CurrentPlatformMediaSource;

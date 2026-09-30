@@ -4,7 +4,7 @@ A small pill at the top center of the screen, in the spirit of the iPhone's Dyna
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no network calls, no telemetry, no API keys.
 
-> Status: milestone (e) — a compact pill (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, buttons) on hover, click, or a new track. The buttons don't control the player yet. See `notes.md` for the running log.
+> Status: milestone (f) — a compact pill (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track. The buttons control YouTube Music. See `notes.md` for the running log.
 
 ## How it works, in plain language
 
@@ -19,7 +19,7 @@ They talk through **Tauri events** (backend → frontend: "here's what to show n
 
 The pill always shows one **activity**: right now, "music is playing". Activities come from **sources**. Music is the first source; a timer or Claude Code events could be others later.
 
-- Every source implements the same small Rust trait, `ActivitySource`. It reports updates ("this is what I'd show, this is how important it is, is it still ongoing?") and handles actions (like "next track").
+- Every source implements the same small Rust trait, `ActivitySource`. It reports updates ("this is what I'd show, this is how important it is, is it still ongoing?") and handles actions (like "next-track"). A button press travels as `(activity kind, action name)`; the `ActivitySourceRegistry` hands it to the source of that kind, and the result comes back as an ordinary update.
 - The **core** (`activity_core/`) keeps the latest update from each source and decides what the pill shows and whether it's visible. It never looks inside a source's content, so adding a new source doesn't change the core.
 - On the frontend, a small registry maps each activity kind (like `"music"`) to the views that draw it.
 
@@ -34,7 +34,7 @@ The music source doesn't talk to Windows directly. It uses a trait, `MediaSource
 
 The native window is always as big as the expanded pill (plus a little room for the spring's overshoot) and never moves. What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. Growing: the area widens first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
 
-On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (hover, leave, click, a new track), and `pillMorphController.ts` carries it out. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
+On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (hover, leave, click, a new track), and `pillMorphController.ts` carries it out. Endless animations (the playing bars, the progress bar) run on slow timers (15 and 4 updates per second) rather than at the monitor's refresh rate; on a 240 Hz screen that is the difference between about 35% and 5% of a CPU core while music plays. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
 
 ### Platform traits
 
@@ -64,7 +64,8 @@ Dynamic Island/
 │  │  ├─ listenForPillPresentation.ts   receives "what to show" (asks once, then listens)
 │  │  ├─ requestPillWindowPlacement.ts  asks Rust to size the window and center it at the top
 │  │  ├─ requestPillInteractiveArea.ts  asks Rust which rectangle takes the mouse
-│  │  └─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
+│  │  ├─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
+│  │  └─ requestActivityAction.ts       sends a button press to the activity's Rust source
 │  ├─ pill/
 │  │  ├─ pillShellElements.ts          the black capsule and its compact/expanded layers
 │  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
@@ -110,6 +111,8 @@ Dynamic Island/
       │  ├─ activity_update.rs         what a source reports (priority, ongoing, attention key, payload)
       │  ├─ activity_publisher.rs      a source's handle for reporting to the core
       │  ├─ activity_arbiter.rs        picks what the pill shows and notifies the frontend (unit-tested)
+      │  ├─ activity_source_registry.rs   running sources by kind; routes actions (unit-tested)
+      │  ├─ activity_action_command.rs    command: a button press for some activity kind
       │  └─ pill_presentation_command.rs  lets the frontend ask what's showing right now
       ├─ activity_sources/
       │  ├─ mod.rs
@@ -119,14 +122,16 @@ Dynamic Island/
       │     └─ session_loss_grace_period.rs ignores the short session gap on track change (unit-tested)
       ├─ media/
       │  ├─ mod.rs              declares the module; picks this OS's implementation
-      │  ├─ media_source.rs     trait: "watch media sessions and tell me what changed"
+      │  ├─ media_source.rs     trait: watch media sessions + send play/pause/next/previous
       │  ├─ media_session_snapshot.rs  title, artist, album, art, play state, timeline
       │  ├─ media_session_selector.rs  app-ID filter + which session to show (unit-tested)
       │  └─ windows_smtc/
       │     ├─ mod.rs
       │     ├─ smtc_media_source.rs        Windows MediaSource: starts the worker thread
       │     ├─ smtc_worker_thread.rs       WinRT setup + the event loop
+      │     ├─ smtc_worker_message.rs      what can wake the worker (events, button presses)
       │     ├─ smtc_event_subscriptions.rs SMTC events → messages to the worker
+      │     ├─ smtc_transport_commands.rs  play/pause, next, previous on a session
       │     ├─ smtc_session_tracker.rs     known sessions, last activity, what was sent
       │     ├─ smtc_snapshot_reader.rs     WinRT properties → snapshot
       │     └─ smtc_thumbnail_reader.rs    album art → data URL, cached per track

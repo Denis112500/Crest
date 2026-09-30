@@ -1,5 +1,6 @@
 import "../../styles/playbackProgressBar.css";
 
+import { PLAYBACK_PROGRESS_REDRAWS_PER_SECOND } from "../../frontendConstants";
 import type { NowPlayingTimeline } from "./nowPlayingTypes";
 
 const MILLISECONDS_PER_SECOND = 1000;
@@ -33,7 +34,9 @@ export function createPlaybackProgressBar(): PlaybackProgressBar {
   let currentTimeline: NowPlayingTimeline | null = null;
   let isTrackPlaying = false;
   let isProgressAnimationActive = false;
-  let pendingAnimationFrame: number | undefined;
+  // A slow timer, not requestAnimationFrame: rAF runs at the monitor's refresh rate
+  // (239 Hz here), far more often than a bar moving 2 px per second needs.
+  let progressRedrawTimer: number | undefined;
 
   const calculateCurrentPositionMilliseconds = (timeline: NowPlayingTimeline): number => {
     const millisecondsSinceReport = isTrackPlaying ? Date.now() - timeline.positionReportedAtUnixMilliseconds : 0;
@@ -53,16 +56,12 @@ export function createPlaybackProgressBar(): PlaybackProgressBar {
     if (elapsedLabelElement.textContent !== elapsedText) elapsedLabelElement.textContent = elapsedText;
     if (remainingLabelElement.textContent !== remainingText) remainingLabelElement.textContent = remainingText;
   };
-  const drawProgressEveryFrame = (): void => {
-    drawProgress();
-    pendingAnimationFrame = requestAnimationFrame(drawProgressEveryFrame);
-  };
   const restartProgressDrawing = (): void => {
-    if (pendingAnimationFrame !== undefined) cancelAnimationFrame(pendingAnimationFrame);
-    pendingAnimationFrame = undefined;
+    window.clearInterval(progressRedrawTimer);
+    progressRedrawTimer = undefined;
     drawProgress();
     if (isProgressAnimationActive && isTrackPlaying && currentTimeline) {
-      pendingAnimationFrame = requestAnimationFrame(drawProgressEveryFrame);
+      progressRedrawTimer = window.setInterval(drawProgress, MILLISECONDS_PER_SECOND / PLAYBACK_PROGRESS_REDRAWS_PER_SECOND);
     }
   };
 

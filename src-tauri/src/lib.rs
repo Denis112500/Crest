@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use tauri::{Emitter, Manager};
 
-use activity_core::{ActivityArbiter, ActivityPublisher, ActivitySource, SharedActivityArbiter};
+use activity_core::{ActivityArbiter, ActivitySourceRegistry, SharedActivityArbiter};
 use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
 use ipc_channel_names::PILL_PRESENTATION_CHANGED_EVENT;
@@ -40,13 +40,10 @@ pub fn run_crest_app() {
             let crest_user_settings = load_crest_user_settings(&crest_app.path().app_config_dir()?);
             let media_source =
                 CurrentPlatformMediaSource::new(crest_user_settings.allowed_media_app_identifier_fragments);
-            let mut activity_sources: Vec<Box<dyn ActivitySource>> =
-                vec![Box::new(MusicActivitySource::new(Box::new(media_source)))];
-            for activity_source in &mut activity_sources {
-                let activity_publisher =
-                    ActivityPublisher::new(activity_source.activity_kind(), Arc::clone(&shared_activity_arbiter));
-                activity_source.start_publishing(activity_publisher)?;
-            }
+            let mut activity_source_registry = ActivitySourceRegistry::default();
+            activity_source_registry
+                .start_and_register(Box::new(MusicActivitySource::new(Box::new(media_source))), &shared_activity_arbiter)?;
+            crest_app.manage(Mutex::new(activity_source_registry));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -54,6 +51,7 @@ pub fn run_crest_app() {
             pill_window::pill_window_commands::reveal_pill_window,
             pill_window::pill_window_commands::set_pill_interactive_area,
             activity_core::pill_presentation_command::get_current_pill_presentation,
+            activity_core::activity_action_command::perform_activity_action,
         ])
         .run(tauri::generate_context!())
         .expect("Crest failed to start the Tauri application");

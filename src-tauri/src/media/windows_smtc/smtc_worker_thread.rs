@@ -1,4 +1,4 @@
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{Receiver, Sender};
 use std::time::Instant;
 
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as SmtcSessionManager;
@@ -6,14 +6,17 @@ use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
 
 use crate::backend_constants::SMTC_EVENT_COALESCING_WINDOW;
 use crate::media::media_source::MediaSnapshotListener;
-use crate::media::windows_smtc::smtc_event_subscriptions::{subscribe_to_session_list_changes, SmtcWorkerMessage};
+use crate::media::windows_smtc::smtc_event_subscriptions::subscribe_to_session_list_changes;
 use crate::media::windows_smtc::smtc_session_tracker::SmtcSessionTracker;
+use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
 
 /// Runs for the whole life of the app on its own thread. It sleeps in `recv()` until an
-/// SMTC event arrives, so it costs no CPU while nothing changes.
+/// SMTC event or a button press arrives, so it costs no CPU while nothing changes.
 pub fn run_smtc_worker_thread(
     allowed_app_identifier_fragments: Vec<String>,
     media_snapshot_listener: MediaSnapshotListener,
+    worker_message_sender: Sender<SmtcWorkerMessage>,
+    worker_message_receiver: Receiver<SmtcWorkerMessage>,
 ) {
     // The multithreaded apartment lets SMTC deliver updates without a window message loop;
     // in the default single-threaded apartment the session values went stale (tested).
@@ -29,8 +32,6 @@ pub fn run_smtc_worker_thread(
             return;
         }
     };
-
-    let (worker_message_sender, worker_message_receiver) = mpsc::channel();
     if let Err(subscribe_error) = subscribe_to_session_list_changes(&session_manager, worker_message_sender.clone()) {
         eprintln!("Crest media: could not watch for new media sessions: {subscribe_error}");
         return;
@@ -52,6 +53,9 @@ pub fn run_smtc_worker_thread(
                 SmtcWorkerMessage::SessionListChanged => session_tracker.refresh_session_list(),
                 SmtcWorkerMessage::SessionActivity { source_app_identifier } => {
                     session_tracker.record_session_activity(source_app_identifier)
+                }
+                SmtcWorkerMessage::TransportCommandRequested(media_transport_command) => {
+                    session_tracker.send_transport_command_to_shown_session(media_transport_command)
                 }
             }
         }

@@ -24,3 +24,14 @@ export const PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS = 100;
 export const PILL_HOVER_EXPAND_DELAY_MILLISECONDS = 150;
 export const PILL_COLLAPSE_DELAY_AFTER_POINTER_LEAVES_MILLISECONDS = 350;
 export const PILL_ATTENTION_PEEK_DURATION_MILLISECONDS = 4000;
+
+// Endless animations are driven by timers at a low, fixed rate instead of running at the
+// monitor's refresh rate: at 239 Hz, CSS-animated bars cost about 35% of a CPU core.
+export const PLAYBACK_BARS_FRAMES_PER_SECOND = 15;
+// The progress bar moves about 2 px per second; a few redraws per second look continuous.
+export const PLAYBACK_PROGRESS_REDRAWS_PER_SECOND = 4;
+
+// Each bar rises and falls with its own period, so they never move in step.
+export const PLAYBACK_BAR_BOUNCE_PERIODS_MILLISECONDS = [1800, 1400, 2100, 1600];
+// A resting (paused) bar is this fraction of its full height.
+export const PLAYBACK_BAR_RESTING_SCALE = 0.3;

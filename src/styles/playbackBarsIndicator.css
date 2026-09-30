@@ -6,30 +6,11 @@
   height: var(--playback-bars-height);
 }
 
+/* Heights are set from playbackBarsIndicator.ts with transform: scaleY(), which the
+   browser can apply without re-laying out the page. */
 .playback-bar {
   width: var(--playback-bar-width);
   height: 100%;
   border-radius: var(--playback-bar-width);
   background: var(--playback-bar-color);
-  transform: scaleY(var(--playback-bar-resting-scale));
-}
-
-/* Only transform is animated, which the browser can run on the GPU without layout work. */
-.playback-bars.is-playing .playback-bar {
-  animation: playback-bar-bounce ease-in-out infinite alternate;
-}
-
-/* Different speeds keep the bars out of step, like a real level meter. */
-.playback-bars.is-playing .playback-bar:nth-child(1) { animation-duration: var(--playback-bar-first-duration); }
-.playback-bars.is-playing .playback-bar:nth-child(2) { animation-duration: var(--playback-bar-second-duration); }
-.playback-bars.is-playing .playback-bar:nth-child(3) { animation-duration: var(--playback-bar-third-duration); }
-.playback-bars.is-playing .playback-bar:nth-child(4) { animation-duration: var(--playback-bar-fourth-duration); }
-
-@keyframes playback-bar-bounce {
-  from {
-    transform: scaleY(var(--playback-bar-resting-scale));
-  }
-  to {
-    transform: scaleY(1);
-  }
 }
