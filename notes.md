@@ -2,10 +2,38 @@
 
 ## Current state
 - **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
-- **In progress:** milestone (c), Rust reading the media session.
+- **In progress:** milestone (d), live data from Rust to the frontend. Milestone (c) works: Rust reads YouTube Music through SMTC and prints every change in the terminal.
 - **Broken:** nothing known.
 
 ---
+
+## 2026-09-30 — Milestone (c): Rust reads the media session
+- **Done:**
+  - Platform-neutral: `media/media_session_snapshot.rs` (what the pill needs to know), `media/media_source.rs` (`MediaSource` trait + listener type), `media/media_session_selector.rs` (app-ID filter + choose playing / most recently active, 4 tests), `user_settings_file.rs` (optional `settings.json`).
+  - Windows: `media/windows_smtc/` with `smtc_media_source.rs` (starts the worker thread), `smtc_worker_thread.rs` (MTA init + message loop with 50 ms coalescing), `smtc_event_subscriptions.rs` (event handlers → channel messages; unsubscribe on drop), `smtc_session_tracker.rs` (sessions, last activity, dedup), `smtc_snapshot_reader.rs` (WinRT → snapshot, 2 tests), `smtc_thumbnail_reader.rs` (album art → base64 data URL, cached per track, 1 test).
+  - Temporary `media_console_preview.rs` prints each snapshot (removed in d). `lib.rs` loads settings and starts the media source. `Cargo.toml`: serde, serde_json, base64, more `windows` features.
+  - Verified by testing: 9/9 tests, clippy and tsc clean. Live run with YouTube Music (Brave PWA): title/artist/album/app ID correct; album art PNG, 26 KB; pause, play and seeks all arrive, about 60 ms after the browser's timestamp; no errors. Rust process: **0 ms CPU in 10 s** idle, 35 MB, 11 threads.
+- **Learned:**
+  - **Threads and channels:** the SMTC work runs on its own thread; event handlers (called by Windows on its thread pool) only `send` a message into an `mpsc` channel (multi-producer, single-consumer). The worker blocks in `recv()` → zero CPU until something happens.
+  - **Coalescing:** after the first message, the worker collects everything else arriving within 50 ms and handles it once, so a seek burst becomes one update.
+  - **`Drop`:** Rust runs `drop()` automatically when a value goes away. `SmtcSessionEventSubscription` unsubscribes there, so replacing the session list cleans up closed sessions by itself (the RAII pattern).
+  - **COM apartments:** confirmed in Rust. With `RoInitialize(RO_INIT_MULTITHREADED)` the values update live without a message loop.
+  - **`.join()`** blocks the current thread until an `IAsyncOperation` finishes. That's fine on our worker thread, never on the UI thread.
+  - **Data URLs:** `data:image/png;base64,....` embeds the image bytes in text, so the webview can show album art without file or network access (our CSP allows `img-src data:`).
+  - **Magic numbers (file signatures):** a PNG starts with `\x89PNG`, a JPEG with `FF D8 FF`. We use them when a player doesn't say what format the art is.
+  - **Idle cost of a web UI:** the Rust side is tiny; WebView2 (Chromium) is 6 processes, about 325 MB.
+- **Decisions:**
+  - On a session-list change, unsubscribe from all sessions and subscribe again (simple and always correct; list changes are rare). Rejected: diffing sessions, since WinRT session objects have no reliable identity to compare.
+  - Snapshots are compared to the previous one and only sent when something changed.
+  - Album art is cached per (title, artist, album) and re-read while missing, because browsers often publish the art after the title.
+  - The OS implementation is picked with a `cfg`-gated alias `CurrentPlatformMediaSource` in `media/mod.rs`, like the window. So `platform_media_source_factory.rs` from the approved tree isn't needed.
+  - Windows-only constants in `backend_constants.rs` are `#[cfg(target_os = "windows")]` so a Linux build has no unused-constant warnings.
+- **Problems:**
+  - The first snapshot said the position was "reported 4625018 ms ago". Cause: the track had been **paused** since an hour earlier (our PowerShell probe); a paused position doesn't move, so the old timestamp is correct. Rule for (e): extrapolate the position only while playing, and clamp it to the duration.
+  - My own verification script picked "the newest log file", which was its own output, and fed itself into a 512 KB loop. Stopped and deleted; not project code.
+  - At first I found no YouTube Music window by title (only "New Tab - Brave"): a PWA window can live in a Brave process whose main window is another one. SMTC doesn't care.
+- **Open questions:** can WebView2's memory be reduced (for example with browser arguments or by suspending the webview when hidden)? Look at in (g). Behavior with several allowed sessions at once is only unit-tested.
+- **Next:** milestone (d): core + music activity source, emit updates to the frontend as Tauri events, show plain text in the pill.
 
 ## 2026-09-30 — Milestone (b): pill window behavior with fake content
 - **Done:**
@@ -129,12 +157,15 @@ Setup: YouTube Music installed as a PWA in **Brave**. Probe: PowerShell 5.1 call
 - **Present:** Title; Artist (joined, e.g. "Azahriah and DESH"); AlbumTitle; PlaybackType = Music; PlaybackStatus (Playing/Paused); Timeline Start/End/Position/LastUpdated/MinSeek/MaxSeek (End = duration); Controls flags (pause, toggle, next, previous, seek enabled; play disabled while playing).
 - **Missing/empty:** AlbumArtist, Subtitle, TrackNumber (0), AlbumTrackCount (0), Genres, Shuffle, Repeat.
 - **Thumbnail:** reference present. Bytes, format and pixel size **unverified**: PowerShell 5.1 can't pass WinRT stream interfaces to .NET. Verify in Rust in milestone (c).
+  - **Correction (milestone c, verified by testing in Rust):** the thumbnail is a PNG, about 26 KB, read with `OpenReadAsync` + `DataReader`. Pixel size not measured yet.
 - **Update behavior:**
   - Play/pause shows up within about 100 ms (limited by the probe's 100 ms sampling).
   - Timeline Position is **not** pushed continuously during steady playback, only on play/pause/seek/track change → the UI must extrapolate: `position + (now − LastUpdatedTime) × rate` while playing.
   - Dragging the seek bar causes bursts of about 10 updates/s → coalesce updates before emitting.
   - On track change the session **disappears for about 0.4 s** and comes back → don't hide on "no session" immediately; use a grace period.
 - **Learned (strongly indicated, confirm in Rust):** in the default single-threaded COM apartment (STA) with no message pump, session values went stale (1 change in 60 s); in MTA they updated live. → SMTC must run on an MTA thread.
+  - **Correction (milestone c):** confirmed working in Rust on an MTA thread with events (verified by testing). The STA failure itself wasn't retested in Rust.
+  - **Also learned (milestone c):** when a session is paused, `LastUpdatedTime` can be very old (an hour, in our test). That's correct for a paused position, but the UI must not extrapolate from it.
 - **Learned:** docs list the `globalMediaControl` capability, but an unpackaged desktop process (the probe) reads sessions without it.
 
 ## 2026-09-30 — Research: calling SMTC from Rust (verified from docs)
