@@ -1,24 +1,23 @@
 import "./styles/designTokens.css";
 import "./styles/pillShell.css";
 
+import type { PillPresentation } from "./activities/pillPresentationTypes";
 import { PILL_WINDOW_LOGICAL_HEIGHT, PILL_WINDOW_LOGICAL_WIDTH } from "./frontendConstants";
-import { listenForPillPresentation } from "./ipc/listenForPillPresentation";
+import {
+  GET_CURRENT_PILL_PRESENTATION_COMMAND,
+  GET_CURRENT_PILL_VISIBILITY_COMMAND,
+  PILL_PRESENTATION_CHANGED_EVENT,
+  PILL_VISIBILITY_CHANGED_EVENT,
+} from "./ipc/ipcChannelNames";
+import { listenForRustStateChanges } from "./ipc/listenForRustStateChanges";
 import { requestPillWindowPlacement } from "./ipc/requestPillWindowPlacement";
-import { requestPillWindowReveal } from "./ipc/requestPillWindowReveal";
 import { PillContentPresenter } from "./pill/pillContentPresenter";
 import { applyPillDimensionCssVariables } from "./pill/pillDimensionCssVariables";
 import { PillMorphController } from "./pill/pillMorphController";
 import { connectPillPointerInput } from "./pill/pillPointerInput";
 import { createPillShellElements } from "./pill/pillShellElements";
 import { PillStateMachine } from "./pill/pillStateMachine";
-
-// A requestAnimationFrame callback runs just *before* a paint, so waiting for two of
-// them guarantees at least one frame with our content has actually been painted.
-function waitUntilNextFrameIsPainted(): Promise<void> {
-  return new Promise((resolveAfterPaint) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolveAfterPaint())),
-  );
-}
+import { PillVisibilityController } from "./pill/pillVisibilityController";
 
 async function startPill(): Promise<void> {
   const pillRootElement = document.querySelector<HTMLElement>("#pill-root");
@@ -36,7 +35,10 @@ async function startPill(): Promise<void> {
   const pillStateMachine = new PillStateMachine((expansionState) =>
     pillMorphController.showExpansionState(expansionState),
   );
+  // Before the visibility controller: its "pointer left" handler relies on the state
+  // machine having seen the same event first.
   connectPillPointerInput(pillShellElements.pillShellElement, pillStateMachine);
+  const pillVisibilityController = new PillVisibilityController(pillShellElements.pillShellElement, pillStateMachine);
 
   // Window and interactive area first: a track already playing at startup makes the
   // pill peek, which changes the interactive area and must not be overwritten after.
@@ -44,17 +46,24 @@ async function startPill(): Promise<void> {
   await pillMorphController.applyCompactInteractiveArea();
 
   let lastAttentionKey: string | null = null;
-  await listenForPillPresentation((pillPresentation) => {
-    pillContentPresenter.showPillPresentation(pillPresentation);
-    const attentionKey = pillPresentation?.attentionKey ?? null;
-    if (attentionKey !== null && attentionKey !== lastAttentionKey) {
-      pillStateMachine.handleAttentionRequested();
-    }
-    lastAttentionKey = attentionKey;
-  });
-
-  await waitUntilNextFrameIsPainted();
-  await requestPillWindowReveal();
+  await listenForRustStateChanges<PillPresentation | null>(
+    PILL_PRESENTATION_CHANGED_EVENT,
+    GET_CURRENT_PILL_PRESENTATION_COMMAND,
+    (pillPresentation) => {
+      pillContentPresenter.showPillPresentation(pillPresentation);
+      const attentionKey = pillPresentation?.attentionKey ?? null;
+      if (attentionKey !== null && attentionKey !== lastAttentionKey) {
+        pillStateMachine.handleAttentionRequested();
+      }
+      lastAttentionKey = attentionKey;
+    },
+  );
+  // Rust decides whether the pill is on screen; the window stays hidden until it says so.
+  await listenForRustStateChanges<boolean>(
+    PILL_VISIBILITY_CHANGED_EVENT,
+    GET_CURRENT_PILL_VISIBILITY_COMMAND,
+    (isPillVisible) => pillVisibilityController.showPillVisibility(isPillVisible),
+  );
 }
 
 startPill().catch((startupError: unknown) => {

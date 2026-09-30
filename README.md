@@ -4,7 +4,9 @@ A small pill at the top center of the screen, in the spirit of the iPhone's Dyna
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no network calls, no telemetry, no API keys.
 
-> Status: milestone (f) — a compact pill (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track. The buttons control YouTube Music. See `notes.md` for the running log.
+> Status: version 1 complete. A compact pill (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s or the player closes; tray icon with Quit. See `notes.md` for the running log.
+
+To quit Crest, use the tray icon (notification area, possibly behind the ^ arrow) → **Quit Crest**.
 
 ## How it works, in plain language
 
@@ -22,6 +24,16 @@ The pill always shows one **activity**: right now, "music is playing". Activitie
 - Every source implements the same small Rust trait, `ActivitySource`. It reports updates ("this is what I'd show, this is how important it is, is it still ongoing?") and handles actions (like "next-track"). A button press travels as `(activity kind, action name)`; the `ActivitySourceRegistry` hands it to the source of that kind, and the result comes back as an ordinary update.
 - The **core** (`activity_core/`) keeps the latest update from each source and decides what the pill shows and whether it's visible. It never looks inside a source's content, so adding a new source doesn't change the core.
 - On the frontend, a small registry maps each activity kind (like `"music"`) to the views that draw it.
+
+### When the pill is on screen
+
+The core also decides visibility, with rules in one small pure function (`pill_visibility_policy.rs`, unit-tested):
+
+- something **ongoing** (music playing) → visible, and it stays visible;
+- something **lingering** (music paused) → hidden after 30 seconds; a new track shows it again first;
+- **nothing** (the player closed) → hidden after 3 seconds.
+
+`pill_visibility_controller.rs` runs those countdowns and tells the frontend, which plays a short fade/shrink animation and then asks Rust to hide the native window (or shows the window first, then animates the pill in). A hide never happens while the mouse is over the pill.
 
 ### Media: one trait, one implementation per operating system
 
@@ -61,10 +73,11 @@ Dynamic Island/
 │  ├─ vite-env.d.ts             lets TypeScript understand Vite imports such as CSS files
 │  ├─ ipc/
 │  │  ├─ ipcChannelNames.ts     command, event and activity-kind names shared with Rust
-│  │  ├─ listenForPillPresentation.ts   receives "what to show" (asks once, then listens)
+│  │  ├─ listenForRustStateChanges.ts   receives Rust-owned state (listens, then asks once)
 │  │  ├─ requestPillWindowPlacement.ts  asks Rust to size the window and center it at the top
 │  │  ├─ requestPillInteractiveArea.ts  asks Rust which rectangle takes the mouse
 │  │  ├─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
+│  │  ├─ requestPillWindowConceal.ts    asks Rust to hide the window
 │  │  └─ requestActivityAction.ts       sends a button press to the activity's Rust source
 │  ├─ pill/
 │  │  ├─ pillShellElements.ts          the black capsule and its compact/expanded layers
@@ -72,6 +85,8 @@ Dynamic Island/
 │  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek)
 │  │  ├─ pillPointerInput.ts           mouse events → state machine
 │  │  ├─ pillMorphController.ts        animates a state change and keeps the interactive area in step
+│  │  ├─ pillVisibilityController.ts   animates showing/hiding and shows/hides the native window
+│  │  ├─ waitUntilNextFrameIsPainted.ts  resolves once the current content is on screen
 │  │  └─ pillContentPresenter.ts       puts the current activity's views into the layers
 │  ├─ activities/
 │  │  ├─ pillPresentationTypes.ts    the shape of what Rust sends
@@ -98,13 +113,14 @@ Dynamic Island/
    ├─ build.rs                  Tauri's build step (reads tauri.conf.json at compile time)
    ├─ tauri.conf.json           app name, pill window flags, content security policy, bundling
    ├─ capabilities/default.json what the frontend is allowed to call
-   ├─ icons/                    app icons (Tauri defaults for now; our own icon comes later)
+   ├─ icons/                    app icons generated from crest-icon-source.svg (`npx tauri icon ...`)
    └─ src/
       ├─ main.rs                program entry; calls run_crest_app
       ├─ lib.rs                 wires the app: pill window, core, activity sources, commands
       ├─ backend_constants.rs   every Rust constant (window, settings, priorities, timings)
-      ├─ ipc_channel_names.rs   event and activity-kind names shared with the frontend
+      ├─ ipc_channel_names.rs   event, activity-kind and action names shared with the frontend
       ├─ user_settings_file.rs  reads the optional settings.json
+      ├─ system_tray.rs         tray icon with "Quit Crest"
       ├─ activity_core/
       │  ├─ mod.rs
       │  ├─ activity_source.rs         trait every activity plugin implements
@@ -113,7 +129,10 @@ Dynamic Island/
       │  ├─ activity_arbiter.rs        picks what the pill shows and notifies the frontend (unit-tested)
       │  ├─ activity_source_registry.rs   running sources by kind; routes actions (unit-tested)
       │  ├─ activity_action_command.rs    command: a button press for some activity kind
-      │  └─ pill_presentation_command.rs  lets the frontend ask what's showing right now
+      │  ├─ pill_presentation_command.rs  lets the frontend ask what's showing right now
+      │  ├─ pill_visibility_policy.rs     the show/hide rules as a pure function (unit-tested)
+      │  ├─ pill_visibility_controller.rs runs the hide countdowns, reports visibility changes
+      │  └─ pill_visibility_command.rs    lets the frontend ask whether the pill is visible
       ├─ activity_sources/
       │  ├─ mod.rs
       │  └─ music/
@@ -143,7 +162,7 @@ Dynamic Island/
          ├─ pill_window_commands.rs    the commands the frontend calls
          └─ windows_native/
             ├─ mod.rs
-            └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus, window region
+            └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus, hide, window region
 ```
 
 ## Running it

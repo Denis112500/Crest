@@ -10,6 +10,7 @@
   --pill-title-font-weight: 600;
   --pill-expanded-corner-radius: 30px;
   --pill-content-fade-duration: 180ms;
+  --pill-concealed-scale: 0.6;
   /* A damped spring (damping ratio 0.75, about 3% overshoot), sampled into CSS linear(). */
   --pill-spring-easing: linear(0, 0.036, 0.123, 0.239, 0.365, 0.489, 0.604, 0.705, 0.79, 0.86, 0.914, 0.955, 0.985, 1.005, 1.018, 1.025, 1.028, 1.028, 1.026, 1.023, 1.02, 1.016, 1.013, 1.01, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 0.999, 1);
 

@@ -1,6 +1,7 @@
 import {
   PILL_COMPACT_LOGICAL_HEIGHT,
   PILL_COMPACT_LOGICAL_WIDTH,
+  PILL_CONCEAL_DURATION_MILLISECONDS,
   PILL_EXPANDED_LOGICAL_HEIGHT,
   PILL_EXPANDED_LOGICAL_WIDTH,
   PILL_MORPH_DURATION_MILLISECONDS,
@@ -14,4 +15,5 @@ export function applyPillDimensionCssVariables(): void {
   rootStyle.setProperty("--pill-expanded-width", `${PILL_EXPANDED_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-expanded-height", `${PILL_EXPANDED_LOGICAL_HEIGHT}px`);
   rootStyle.setProperty("--pill-morph-duration", `${PILL_MORPH_DURATION_MILLISECONDS}ms`);
+  rootStyle.setProperty("--pill-conceal-duration", `${PILL_CONCEAL_DURATION_MILLISECONDS}ms`);
 }

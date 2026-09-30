@@ -2,11 +2,45 @@
 
 ## Current state
 - **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
-- **Works:** milestone (f). Everything from (e), plus the previous / play-pause / next buttons control YouTube Music. CPU: 0% idle or paused, about 4.7% of one core while music plays (bars bouncing).
-- **In progress:** milestone (g): hide/show rules (hide 30 s after pause, 3 s after the session closes) and the tray icon with Quit.
-- **Broken:** nothing known.
+- **Works:** **version 1 complete (milestones a–g).** A pill at the top center shows YouTube Music (art, title, bars); it springs open on hover/click/new track (art, title, artist, progress, working buttons), hides 30 s after pausing or about 4.5 s after the player closes, comes back on play or a new track, and has a tray icon with Quit and its own app icon. CPU: 0% idle/paused/hidden, about 4.7% of one core while playing.
+- **In progress:** nothing. Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, installer build, Linux).
+- **Broken:** nothing known. One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
 
 ---
+
+## 2026-09-30 — Milestone (g): hide/show logic, tray icon, app icon, edge cases
+- **Done:**
+  - Rust core: `pill_visibility_policy.rs` (pure rules; 5 tests), `pill_visibility_controller.rs` (hide countdowns on sleeping threads with a generation counter; emits `pill-visibility-changed`), `pill_visibility_command.rs` (`get_current_pill_visibility`). The arbiter's listener in `lib.rs` now also feeds the visibility controller.
+  - Rust window: `hide_pill_window` in the platform trait + Windows `ShowWindow(SW_HIDE)`; command `conceal_pill_window`.
+  - `system_tray.rs`: tray icon (app icon, tooltip "Crest") with "Quit Crest"; Cargo feature `tray-icon`.
+  - Constants: 30 s hide after pause, 3 s after the activity ends.
+  - Frontend: `pill/pillVisibilityController.ts` (show: window first, then grow in; hide: fade/shrink first, then hide the window; never hides under the pointer), `pill/waitUntilNextFrameIsPainted.ts` (moved out of `main.ts`), `ipc/listenForRustStateChanges.ts` (generic listen-then-ask; replaces `listenForPillPresentation.ts`), `ipc/requestPillWindowConceal.ts`; `pillStateMachine.ts` gets `isPointerOverPill` and `handlePillConcealed()`; hide animation in `pillShell.css`; `main.ts` no longer reveals the window itself.
+  - App icon: own design `src-tauri/icons/crest-icon-source.svg` (indigo rounded square, black capsule, warm "album" square, three bars); all sizes generated with `npx tauri icon`; the generated Android/iOS folders were deleted (desktop only).
+  - Verified by testing: tsc, vite build, 23/23 Rust tests, clippy clean. User confirmed: tray icon + Quit, hides 30 s after pause, comes back on play, hides when YouTube Music closes. Edge cases via injected fake events: very long title/artist → "…" in both views; missing art → music-note placeholder; no duration → progress row hidden; unknown activity kind → "Nothing to show"; hide → native window really hidden and interactive area back to compact. CPU hidden: 0%. Memory of all Crest processes: about 388 MB (mostly WebView2).
+- **Learned:**
+  - **Pure decision + thin executor:** `decide_pill_visibility(previous, current)` has no timers or threads, so every rule has a unit test; the controller only runs the countdowns. Same split as the frontend state machine and morph controller.
+  - **Generation counter for cancellable timers:** every schedule change bumps a number; a sleeping timer only acts if the number is still the one it started with. Nothing needs to be "cancelled" explicitly.
+  - **Rust decides, the frontend animates:** Rust says "hide"; the page plays the hide animation and only then asks Rust to hide the native window (and the reverse for showing).
+  - **Tray icons in Tauri 2:** `TrayIconBuilder` + a `Menu` of `MenuItem`s with IDs; `on_menu_event` matches the ID; `app.exit(0)` quits. Needs the `tray-icon` Cargo feature.
+  - **App icons:** one square source (SVG/PNG) → `tauri icon` generates `.ico` (Windows), `.icns` (macOS) and PNG sizes; the icon is embedded at compile time, so it needs a rebuild.
+  - **Hidden ≠ paused:** WebView2 keeps `document.visibilityState === "visible"` when the native window is hidden, so page timers keep running. Our only endless timer (the bars) runs only while music plays, which is exactly when the pill is visible.
+  - **Testing with injected events:** the frontend can emit Tauri events to itself (`__TAURI_INTERNALS__.invoke('plugin:event|emit', …)`), which makes rare cases (huge titles, no art, unknown kinds) testable on demand.
+- **Decisions:**
+  - Visibility rules live in the Rust core (as planned), the animation in the frontend.
+  - A pending hide waits while the pointer is over the pill.
+  - A paused pill that's hidden reappears on a new track or on play; there's no "hover the top edge to reveal" strip (not in the v1 scope).
+  - Tray menu has only "Quit Crest" (spec). Rejected for now: "Show pill", settings.
+- **Problems:**
+  - A getter named like its private field (`isPointerOverPill`) doesn't compile in TypeScript → field renamed to `isPointerCurrentlyOverPill`.
+  - A Crest process from the user's `tauri dev` stayed alive after its Vite server was gone; closed with the user's permission.
+  - **Unexplained, not reproduced:** in the first edge-case run, 1.5 s after a hide the shell still had `is-expanded` and the full interactive area (it went compact 4 s later). Two controlled replays of the same sequence (logged with a MutationObserver) behaved correctly. Most likely cause: my injected fake events mixed with real events from the live session, since Rust doesn't know about the fakes. Watch for a pill that stays expanded after reappearing.
+- **Open questions / ideas for later:**
+  - Hide (or stop the bars) while a fullscreen app or game is in front.
+  - WebView2 memory (about 330 MB of the 388 MB): try browser arguments, or suspending the webview while hidden.
+  - Build an installer (`npm run tauri build`, NSIS) and start with Windows (autostart); not in the v1 scope.
+  - Use SMTC's "control enabled" flags to grey out buttons the player doesn't support.
+  - Linux (KDE Plasma, Wayland): `media/linux_mpris/` (MPRIS over D-Bus) and `pill_window/linux_layer_shell/` (layer-shell for position, always-on-top and input region).
+- **Next:** v1 is done. Pick from the ideas above, or start the Linux port.
 
 ## 2026-09-30 — Milestone (f): control buttons + CPU fix for animations
 - **Done:**

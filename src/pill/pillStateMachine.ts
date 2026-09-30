@@ -10,15 +10,19 @@ export type PillExpansionState = "compact" | "expanded";
 // nothing about the DOM or Tauri, so the rules are all in one readable place.
 export class PillStateMachine {
   private currentExpansionState: PillExpansionState = "compact";
-  private isPointerOverPill = false;
+  private isPointerCurrentlyOverPill = false;
   private pendingHoverExpandTimer: number | undefined;
   private pendingCollapseTimer: number | undefined;
   private attentionPeekEndTimer: number | undefined;
 
   constructor(private readonly onExpansionStateChange: (expansionState: PillExpansionState) => void) {}
 
+  get isPointerOverPill(): boolean {
+    return this.isPointerCurrentlyOverPill;
+  }
+
   handlePointerEntered(): void {
-    this.isPointerOverPill = true;
+    this.isPointerCurrentlyOverPill = true;
     window.clearTimeout(this.pendingCollapseTimer);
     // While hovered, a running peek must not close the pill under the pointer.
     window.clearTimeout(this.attentionPeekEndTimer);
@@ -32,7 +36,7 @@ export class PillStateMachine {
   }
 
   handlePointerLeft(): void {
-    this.isPointerOverPill = false;
+    this.isPointerCurrentlyOverPill = false;
     window.clearTimeout(this.pendingHoverExpandTimer);
     if (this.currentExpansionState === "expanded") {
       window.clearTimeout(this.pendingCollapseTimer);
@@ -54,10 +58,19 @@ export class PillStateMachine {
     window.clearTimeout(this.attentionPeekEndTimer);
     this.transitionTo("expanded");
     this.attentionPeekEndTimer = window.setTimeout(() => {
-      if (!this.isPointerOverPill) {
+      if (!this.isPointerCurrentlyOverPill) {
         this.transitionTo("compact");
       }
     }, PILL_ATTENTION_PEEK_DURATION_MILLISECONDS);
+  }
+
+  /** The window was hidden: no pointer can be over it, and it must come back compact. */
+  handlePillConcealed(): void {
+    window.clearTimeout(this.pendingHoverExpandTimer);
+    window.clearTimeout(this.pendingCollapseTimer);
+    window.clearTimeout(this.attentionPeekEndTimer);
+    this.isPointerCurrentlyOverPill = false;
+    this.transitionTo("compact");
   }
 
   private transitionTo(nextExpansionState: PillExpansionState): void {

@@ -7,7 +7,7 @@
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
 use windows::Win32::Graphics::Gdi::{CreateRectRgn, DeleteObject, SetWindowRgn};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrW, SetWindowLongPtrW, ShowWindow, GWL_EXSTYLE, SW_SHOWNOACTIVATE,
+    GetWindowLongPtrW, SetWindowLongPtrW, ShowWindow, GWL_EXSTYLE, SW_HIDE, SW_SHOWNOACTIVATE,
     WS_EX_APPWINDOW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
 };
 
@@ -41,6 +41,16 @@ impl PillWindowPlatform for WindowsPillWindowPlatform {
         // says whether the window was visible before, so there is no error to handle.
         unsafe {
             let _ = ShowWindow(pill_window_native_handle, SW_SHOWNOACTIVATE);
+        }
+        Ok(())
+    }
+
+    fn hide_pill_window(pill_window: &WebviewWindow) -> Result<(), String> {
+        let pill_window_native_handle = pill_window.hwnd().map_err(|error| error.to_string())?;
+        // SAFETY: same live, same-thread window handle as above; the return value only
+        // says whether the window was visible before.
+        unsafe {
+            let _ = ShowWindow(pill_window_native_handle, SW_HIDE);
         }
         Ok(())
     }

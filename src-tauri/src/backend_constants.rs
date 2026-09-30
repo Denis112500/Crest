@@ -17,6 +17,12 @@ pub const DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT: &str = "_crx_cinhimbnkk
 /// or below it (a background status).
 pub const MUSIC_ACTIVITY_DISPLAY_PRIORITY: u8 = 50;
 
+/// A paused activity (music on pause) keeps the pill on screen this long, then it hides.
+pub const PILL_HIDE_DELAY_AFTER_ACTIVITY_PAUSES: Duration = Duration::from_secs(30);
+
+/// When no activity is left (the player closed), the pill hides after this long.
+pub const PILL_HIDE_DELAY_AFTER_ACTIVITY_ENDS: Duration = Duration::from_secs(3);
+
 /// How long a vanished media session may stay away before the music activity is withdrawn.
 /// Browsers drop the session for about 0.4 s on every track change (measured).
 pub const MUSIC_SESSION_LOSS_GRACE_PERIOD: Duration = Duration::from_millis(1500);

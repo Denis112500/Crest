@@ -33,9 +33,19 @@ body {
   color: var(--pill-text-color);
   font-size: var(--pill-font-size);
   overflow: hidden;
-  transition-property: width, height, border-radius;
-  transition-duration: var(--pill-morph-duration);
-  transition-timing-function: var(--pill-spring-easing);
+  transform-origin: top center;
+  transition:
+    width var(--pill-morph-duration) var(--pill-spring-easing),
+    height var(--pill-morph-duration) var(--pill-spring-easing),
+    border-radius var(--pill-morph-duration) var(--pill-spring-easing),
+    opacity var(--pill-conceal-duration) ease,
+    transform var(--pill-conceal-duration) var(--pill-spring-easing);
+}
+
+/* Hidden: shrunk toward the top edge and faded out; the native window is hidden after. */
+.pill-shell.is-concealed {
+  opacity: 0;
+  transform: scale(var(--pill-concealed-scale));
 }
 
 .pill-shell.is-expanded {

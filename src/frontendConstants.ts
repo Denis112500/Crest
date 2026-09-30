@@ -16,8 +16,10 @@ export const PILL_WINDOW_LOGICAL_WIDTH = PILL_EXPANDED_LOGICAL_WIDTH + 2 * PILL_
 export const PILL_WINDOW_LOGICAL_HEIGHT = PILL_EXPANDED_LOGICAL_HEIGHT + PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN;
 
 export const PILL_MORPH_DURATION_MILLISECONDS = 600;
+// Fade-and-shrink when the pill hides, and the reverse when it appears.
+export const PILL_CONCEAL_DURATION_MILLISECONDS = 260;
 // If the browser skips the transitionend event (e.g. nothing actually changed), the
-// collapse is finished by a timer this long after the animation should have ended.
+// collapse or hide is finished by a timer this long after the animation should have ended.
 export const PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS = 100;
 
 // The pointer must rest this long before the pill opens, so moving the mouse past it doesn't.

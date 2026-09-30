@@ -3,6 +3,9 @@
 /// Event carrying what the pill should show now (`null` when there is nothing).
 pub const PILL_PRESENTATION_CHANGED_EVENT: &str = "pill-presentation-changed";
 
+/// Event carrying whether the pill should be on screen (`true`) or hidden (`false`).
+pub const PILL_VISIBILITY_CHANGED_EVENT: &str = "pill-visibility-changed";
+
 /// Activity kind of the music source; the frontend picks its views by this name.
 pub const MUSIC_ACTIVITY_KIND: &str = "music";
 

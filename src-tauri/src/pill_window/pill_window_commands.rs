@@ -22,6 +22,12 @@ pub fn reveal_pill_window(pill_window: WebviewWindow) -> Result<(), String> {
     CurrentPlatformPillWindow::show_pill_window_without_activating(&pill_window)
 }
 
+/// Called by the frontend after its hide animation has finished.
+#[tauri::command]
+pub fn conceal_pill_window(pill_window: WebviewWindow) -> Result<(), String> {
+    CurrentPlatformPillWindow::hide_pill_window(&pill_window)
+}
+
 /// The frontend tells Rust where the pill currently is inside the window (CSS pixels);
 /// only that part takes the mouse.
 #[tauri::command]
