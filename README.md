@@ -4,7 +4,7 @@ A small pill at the top center of the screen, in the spirit of the iPhone's Dyna
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no network calls, no telemetry, no API keys.
 
-> Status: milestone (d) — the pill shows the song playing in YouTube Music, live, as plain text. See `notes.md` for the running log.
+> Status: milestone (e) — a compact pill (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, buttons) on hover, click, or a new track. The buttons don't control the player yet. See `notes.md` for the running log.
 
 ## How it works, in plain language
 
@@ -30,7 +30,15 @@ The music source doesn't talk to Windows directly. It uses a trait, `MediaSource
 - **Windows** (`media/windows_smtc/`): uses the System Media Transport Controls (SMTC), the same system that feeds the media flyout next to the volume slider. Browsers publish what a web page plays there through the Media Session API, which is how we see YouTube Music without any unofficial API. A dedicated background thread waits for SMTC events (no polling), so it uses no CPU while nothing changes.
 - **Linux, later** (`media/linux_mpris/`): a second struct implementing the same `MediaSource` trait over MPRIS, the D-Bus standard that Linux media players and browsers use. A small factory picks the implementation for the current OS at compile time (`#[cfg(target_os = ...)]`), so nothing else in the app changes.
 
-Window behavior works the same way: a small trait, `PillWindowPlatform`, for "stay out of the taskbar and Alt+Tab" and "show without taking focus". `pill_window/mod.rs` picks the implementation for the current OS with `#[cfg(target_os = ...)]`. The Windows implementation sets Win32 window styles itself and shows the window with `SW_SHOWNOACTIVATE`, because Tauri's own `show()` would take focus. On Wayland a normal window can't place itself or stay on top, so KDE will get its own implementation (layer-shell) in `pill_window/linux_layer_shell/`.
+### The window and the animation
+
+The native window is always as big as the expanded pill (plus a little room for the spring's overshoot) and never moves. What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. Growing: the area widens first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
+
+On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (hover, leave, click, a new track), and `pillMorphController.ts` carries it out. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
+
+### Platform traits
+
+Window behavior works the same way as media: a small trait, `PillWindowPlatform`, for "stay out of the taskbar and Alt+Tab", "show without taking focus" and "only this rectangle takes the mouse". `pill_window/mod.rs` picks the implementation for the current OS with `#[cfg(target_os = ...)]`. The Windows implementation sets Win32 window styles itself and shows the window with `SW_SHOWNOACTIVATE`, because Tauri's own `show()` would take focus. On Wayland a normal window can't place itself or stay on top, so KDE will get its own implementation (layer-shell) in `pill_window/linux_layer_shell/`.
 
 ## Current file tree
 
@@ -48,26 +56,42 @@ Dynamic Island/
 ├─ vite.config.ts               Vite dev server settings Tauri expects (fixed port 1420)
 ├─ index.html                   the page loaded into the pill window
 ├─ src/
-│  ├─ main.ts                   frontend entry: builds the pill, listens for Rust, sizes and reveals the window
-│  ├─ frontendConstants.ts      the pill's size (single source of truth, Rust sizes the window from it)
+│  ├─ main.ts                   frontend entry: wires the pill together, then reveals the window
+│  ├─ frontendConstants.ts      every size and delay (single source of truth; sent to Rust and CSS)
 │  ├─ vite-env.d.ts             lets TypeScript understand Vite imports such as CSS files
 │  ├─ ipc/
 │  │  ├─ ipcChannelNames.ts     command, event and activity-kind names shared with Rust
 │  │  ├─ listenForPillPresentation.ts   receives "what to show" (asks once, then listens)
 │  │  ├─ requestPillWindowPlacement.ts  asks Rust to size the window and center it at the top
+│  │  ├─ requestPillInteractiveArea.ts  asks Rust which rectangle takes the mouse
 │  │  └─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
+│  ├─ pill/
+│  │  ├─ pillShellElements.ts          the black capsule and its compact/expanded layers
+│  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
+│  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek)
+│  │  ├─ pillPointerInput.ts           mouse events → state machine
+│  │  ├─ pillMorphController.ts        animates a state change and keeps the interactive area in step
+│  │  └─ pillContentPresenter.ts       puts the current activity's views into the layers
 │  ├─ activities/
 │  │  ├─ pillPresentationTypes.ts    the shape of what Rust sends
-│  │  ├─ activityViewRegistry.ts     activity kind → the view that draws it (plugin point)
+│  │  ├─ activityViewSet.ts          what an activity's views must provide
+│  │  ├─ activityViewRegistry.ts     activity kind → its view set (plugin point)
+│  │  ├─ nothingToShowViewSet.ts     shown when no activity has anything
+│  │  ├─ createSvgIconElement.ts     builds an inline SVG icon
 │  │  └─ music/
 │  │     ├─ nowPlayingTypes.ts       the music payload's shape
-│  │     └─ compactMusicView.ts      "Title · Artist" in the pill
-│  ├─ pill/
-│  │  └─ pillShellElement.ts    creates the black capsule element
+│  │     ├─ musicViewSet.ts          the music activity's compact + expanded views
+│  │     ├─ compactMusicView.ts      tiny art, title, bars
+│  │     ├─ expandedMusicView.ts     large art, title, artist, progress, buttons
+│  │     ├─ albumArtImage.ts         album art with a placeholder when missing
+│  │     ├─ playbackBarsIndicator.ts bouncing bars while playing
+│  │     ├─ playbackProgressBar.ts   position computed between updates; animates only when visible
+│  │     └─ musicControlButtons.ts   previous / play-pause / next
 │  └─ styles/
-│     ├─ designTokens.css       colors, font, radius, opacity
-│     ├─ pillShell.css          transparent page + capsule shape
-│     └─ musicViews.css         music text layout (ellipsis for long titles)
+│     ├─ designTokens.css       every color, spacing, duration and the spring curve
+│     ├─ pillShell.css          transparent page, capsule shape, the morph animation
+│     └─ albumArtImage.css, compactMusicView.css, expandedMusicView.css,
+│        playbackBarsIndicator.css, playbackProgressBar.css, musicControlButtons.css
 └─ src-tauri/
    ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step (reads tauri.conf.json at compile time)
@@ -110,10 +134,11 @@ Dynamic Island/
          ├─ mod.rs              declares the module; picks this OS's implementation
          ├─ pill_window_platform.rs    trait: the OS-specific overlay behavior
          ├─ pill_window_placement.rs   top-center math in physical pixels (unit-tested)
+         ├─ pill_interactive_area.rs   CSS pixels → physical pixels for the interactive area (unit-tested)
          ├─ pill_window_commands.rs    the commands the frontend calls
          └─ windows_native/
             ├─ mod.rs
-            └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus
+            └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus, window region
 ```
 
 ## Running it

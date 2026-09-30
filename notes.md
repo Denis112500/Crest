@@ -2,11 +2,38 @@
 
 ## Current state
 - **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
-- **Works:** milestone (d). The pill shows the real song ("Title · Artist", "(paused)" when paused), live from YouTube Music, with no flicker on track change. Pill window behavior from (b) unchanged.
-- **In progress:** milestone (e), compact and expanded views with animation.
-- **Broken:** nothing known.
+- **Works:** milestone (e). Compact pill (tiny art, title, bars) and expanded pill (large art, title, artist, live progress, buttons) with a spring animation on hover/click; 4 s peek on track change; clicks beside the pill reach the app below.
+- **In progress:** milestone (f), making the buttons control the player. The buttons are drawn but do nothing yet.
+- **Broken:** nothing known. Not yet checked by the user by hand: the feel of the animation, and the peek on a real track change.
 
 ---
+
+## 2026-09-30 — Milestone (e): compact and expanded states with animation
+- **Done:**
+  - Rust: `pill_window_platform.rs` gets `set_pill_window_interactive_area`; Windows implementation with `CreateRectRgn` + `SetWindowRgn` (`Win32_Graphics_Gdi` feature); `pill_interactive_area.rs` (CSS px → physical px, rounded outward, 1 test); command `set_pill_interactive_area`.
+  - Frontend pill: `pillStateMachine.ts` (hover 150 ms → expand, leave 350 ms → collapse, click → expand, attention → 4 s peek), `pillPointerInput.ts`, `pillMorphController.ts` (order of class change vs interactive area), `pillContentPresenter.ts` (mounts one view set per activity kind), `pillShellElements.ts` (renamed from `pillShellElement.ts`: shell + compact/expanded layers), `pillDimensionCssVariables.ts`.
+  - Frontend activities: `activityViewSet.ts` (interface), `activityViewRegistry.ts` (kind → view-set factory), `nothingToShowViewSet.ts`, `createSvgIconElement.ts`; music: `musicViewSet.ts`, `compactMusicView.ts`, `expandedMusicView.ts`, `albumArtImage.ts`, `playbackBarsIndicator.ts`, `playbackProgressBar.ts`, `musicControlButtons.ts`.
+  - Styles: `designTokens.css` (all visual numbers incl. the spring curve), `pillShell.css`, `albumArtImage.css`, `compactMusicView.css`, `expandedMusicView.css`, `playbackBarsIndicator.css`, `playbackProgressBar.css`, `musicControlButtons.css`. Removed `musicViews.css`.
+  - `ipc/requestPillInteractiveArea.ts`; `frontendConstants.ts` has every size and delay; `main.ts` wires it all up.
+  - Verified by testing: tsc, `vite build` (11 KB JS / 7 KB CSS), 15/15 Rust tests, clippy clean. Running app: window 396×184 centered, region 220×36 while compact; a simulated `mouseenter` (sent inside the page over the DevTools protocol) expanded the pill to 380×176 and the region to the full window; `mouseleave` kept the region until the animation ended, then went back to 220×36. Screenshots of compact and expanded match the design. CPU of Crest + 6 WebView2 processes, compact and paused: 0 ms in 10 s.
+- **Learned:**
+  - **Window regions (`SetWindowRgn`):** a window can be limited to a shape; outside it, the mouse reaches the windows below and nothing is drawn. The OS does the hit-testing, so no polling. The region's edges are hard pixels, so we use a rectangle and let CSS draw the rounded corners.
+  - **Why not resize the window during animation:** Windows moves and resizes the window immediately, but the web content re-lays itself out a frame or two later, so the pill would jump sideways. A fixed window with a changing region avoids that.
+  - **State machine:** all rules ("hover → wait 150 ms → expand") live in one small class with no DOM; the controller only carries out states.
+  - **CSS transitions + `linear()`:** a transition animates between two values; `linear(0, 0.036, …, 1)` is a custom easing made of sampled points, here a damped spring (slight overshoot, then settle). A `transitionend` event tells us when it finished; a timer backs it up in case it never fires.
+  - **GPU-friendly animation:** animating `transform` (bars, progress fill) doesn't trigger layout; width/height (the capsule) do, which is fine for a short animation of a tiny page.
+  - **`requestAnimationFrame` loop only while visible:** the progress bar redraws every frame only while expanded and playing; otherwise zero work.
+  - **Build once, update in place:** views keep their elements and only change text/classes, so running animations don't restart on every update.
+  - **Chrome DevTools Protocol:** WebView2 started with `--remote-debugging-port` can be scripted (evaluate JS, read DOM). Useful for testing UI without moving the real mouse.
+- **Decisions:**
+  - **Changed (was: resize the native window between compact and expanded):** the window is always expanded-size plus 8 px spring-overshoot room; only the interactive region changes. Reason: avoids the relayout jump described above. Trade-off: while expanded, the 8 px margin around the pill also catches clicks.
+  - Compact shows album art + **title** + bars (the spec mentions art and bars; the title uses the space a notch would take on a phone).
+  - Hover expands after 150 ms (prevents opening when the mouse just passes by); leaving collapses after 350 ms.
+  - Peek also happens at startup when a track is already playing (acts as a "hello").
+  - Icons are my own simple shapes on a 24×24 grid (no copied icon set).
+- **Problems:** none during implementation; everything compiled and worked on the first run. The user rejected a multi-question checklist, so verification used scripted DOM events + screenshots + Win32 inspection instead.
+- **Open questions:** CPU while playing (the bars animate continuously): measure in (f). Feel of the spring (duration 600 ms, 2.8% overshoot) is a taste call for the user. The peek on a real track change isn't verified yet.
+- **Next:** milestone (f): buttons send play/pause/next/previous to the player through Rust.
 
 ## 2026-09-30 — Milestone (d): live data reaches the frontend
 - **Done:**
@@ -235,6 +262,10 @@ npm run tauri dev
 npx tsc --noEmit                       # type-check the frontend
 cd src-tauri; cargo build; cd ..       # compile the Rust side only
 git status                             # what changed since the last commit
+
+# Debug the pill's page from outside (DevTools protocol on a local-only port), then open
+# http://127.0.0.1:9223/json to find it. Only for testing; don't leave it on.
+$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--remote-debugging-port=9223"; npm run tauri dev
 
 # "Port 1420 is already in use": find out which process holds it
 Get-NetTCPConnection -LocalPort 1420 -State Listen | ForEach-Object { Get-Process -Id $_.OwningProcess }

@@ -1,8 +1,0 @@
-/* Long titles end in "…" instead of overflowing the pill. min-width: 0 lets a flex
-   child shrink below its text width, which ellipsis needs. */
-.compact-music-text {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}

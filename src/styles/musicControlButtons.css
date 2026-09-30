@@ -1,0 +1,49 @@
+.music-control-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--control-button-gap);
+}
+
+.music-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-button-size);
+  height: var(--control-button-size);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pill-text-color);
+  cursor: default;
+}
+
+.music-control-button:hover {
+  background: var(--control-button-hover-background);
+}
+
+.music-control-button .svg-icon {
+  width: var(--control-button-icon-size);
+  height: var(--control-button-icon-size);
+}
+
+.music-play-pause-button {
+  width: var(--control-play-pause-button-size);
+  height: var(--control-play-pause-button-size);
+}
+
+.music-play-pause-button .svg-icon {
+  width: var(--control-play-pause-icon-size);
+  height: var(--control-play-pause-icon-size);
+}
+
+/* The button holds both icons: play first, pause second. */
+.music-play-pause-button .svg-icon:last-child,
+.music-play-pause-button.is-playing .svg-icon:first-child {
+  display: none;
+}
+
+.music-play-pause-button.is-playing .svg-icon:last-child {
+  display: block;
+}

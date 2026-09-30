@@ -1,28 +1,13 @@
 import { MUSIC_ACTIVITY_KIND } from "../ipc/ipcChannelNames";
-import { renderCompactMusicView } from "./music/compactMusicView";
-import type { PillPresentation } from "./pillPresentationTypes";
+import type { ActivityViewSet } from "./activityViewSet";
+import { createMusicViewSet } from "./music/musicViewSet";
 
-type ActivityViewRenderer = (pillShellElement: HTMLElement, activityPayload: unknown) => void;
-
-// The frontend's plugin point: a new activity source adds one line here for its view.
-const ACTIVITY_VIEW_RENDERERS_BY_KIND: Record<string, ActivityViewRenderer> = {
-  [MUSIC_ACTIVITY_KIND]: renderCompactMusicView,
+// The frontend's plugin point: a new activity source adds one line here for its views.
+const ACTIVITY_VIEW_SET_FACTORIES_BY_KIND: Record<string, () => ActivityViewSet> = {
+  [MUSIC_ACTIVITY_KIND]: createMusicViewSet,
 };
 
-const NOTHING_TO_SHOW_TEXT = "Nothing to show";
-
-export function renderPillPresentation(
-  pillShellElement: HTMLElement,
-  pillPresentation: PillPresentation | null,
-): void {
-  const renderActivityView =
-    pillPresentation && ACTIVITY_VIEW_RENDERERS_BY_KIND[pillPresentation.activityKind];
-  if (pillPresentation && renderActivityView) {
-    renderActivityView(pillShellElement, pillPresentation.activityPayload);
-    return;
-  }
-  const nothingToShowElement = document.createElement("span");
-  nothingToShowElement.className = "pill-nothing-to-show";
-  nothingToShowElement.textContent = NOTHING_TO_SHOW_TEXT;
-  pillShellElement.replaceChildren(nothingToShowElement);
+export function createActivityViewSetForKind(activityKind: string): ActivityViewSet | null {
+  const createViewSetForKind = ACTIVITY_VIEW_SET_FACTORIES_BY_KIND[activityKind];
+  return createViewSetForKind ? createViewSetForKind() : null;
 }

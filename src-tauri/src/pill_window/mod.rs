@@ -2,6 +2,7 @@
 // `#[tauri::command]` is defined: the macro generates hidden helpers next to it.
 pub mod pill_window_commands;
 
+mod pill_interactive_area;
 mod pill_window_placement;
 mod pill_window_platform;
 

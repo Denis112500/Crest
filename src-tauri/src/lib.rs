@@ -52,6 +52,7 @@ pub fn run_crest_app() {
         .invoke_handler(tauri::generate_handler![
             pill_window::pill_window_commands::place_pill_window_at_top_center,
             pill_window::pill_window_commands::reveal_pill_window,
+            pill_window::pill_window_commands::set_pill_interactive_area,
             activity_core::pill_presentation_command::get_current_pill_presentation,
         ])
         .run(tauri::generate_context!())

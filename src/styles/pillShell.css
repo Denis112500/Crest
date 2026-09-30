@@ -14,27 +14,76 @@ body {
   user-select: none;
 }
 
+/* The window is wider than the pill; the pill hangs from the top, centered. */
 #pill-root {
   width: 100%;
   height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-/* The native window is exactly the pill's size, so the capsule fills it. */
 .pill-shell {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  padding: 0 var(--pill-horizontal-padding);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--pill-fully-rounded-radius);
+  position: relative;
+  flex: none;
+  width: var(--pill-compact-width);
+  height: var(--pill-compact-height);
+  border-radius: calc(var(--pill-compact-height) / 2);
   background: var(--pill-background-color);
   color: var(--pill-text-color);
   font-size: var(--pill-font-size);
   overflow: hidden;
+  transition-property: width, height, border-radius;
+  transition-duration: var(--pill-morph-duration);
+  transition-timing-function: var(--pill-spring-easing);
+}
+
+.pill-shell.is-expanded {
+  width: var(--pill-expanded-width);
+  height: var(--pill-expanded-height);
+  border-radius: var(--pill-expanded-corner-radius);
+}
+
+/* Both layers stay centered while the capsule grows around them, so the expanded content
+   is revealed from the middle outward instead of sliding. */
+.pill-compact-layer,
+.pill-expanded-layer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: opacity var(--pill-content-fade-duration) ease;
+}
+
+.pill-compact-layer {
+  width: var(--pill-compact-width);
+  height: var(--pill-compact-height);
+}
+
+.pill-expanded-layer {
+  width: var(--pill-expanded-width);
+  height: var(--pill-expanded-height);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pill-shell.is-expanded .pill-compact-layer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The expanded content fades in once the capsule has started growing. */
+.pill-shell.is-expanded .pill-expanded-layer {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: calc(var(--pill-content-fade-duration) / 2);
 }
 
 .pill-nothing-to-show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   opacity: var(--pill-secondary-text-opacity);
 }

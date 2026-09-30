@@ -1,0 +1,39 @@
+.playback-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--expanded-music-section-gap);
+}
+
+/* Live streams and players without a duration: keep the row's space, hide its content. */
+.playback-progress.is-without-timeline {
+  visibility: hidden;
+}
+
+.playback-progress-label {
+  flex: none;
+  width: var(--progress-label-width);
+  font-size: var(--progress-label-font-size);
+  opacity: var(--pill-secondary-text-opacity);
+  /* Equal-width digits, so the time doesn't jiggle as it counts. */
+  font-variant-numeric: tabular-nums;
+}
+
+.playback-progress-label:last-child {
+  text-align: right;
+}
+
+.playback-progress-track {
+  flex: 1;
+  height: var(--progress-track-height);
+  border-radius: var(--progress-track-height);
+  background: var(--progress-track-color);
+  overflow: hidden;
+}
+
+.playback-progress-fill {
+  width: 100%;
+  height: 100%;
+  background: var(--progress-fill-color);
+  transform-origin: left center;
+  transform: scaleX(0);
+}

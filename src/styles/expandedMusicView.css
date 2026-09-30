@@ -1,0 +1,37 @@
+.expanded-music-view {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--expanded-music-section-gap);
+  width: 100%;
+  height: 100%;
+  padding: var(--expanded-music-padding);
+}
+
+.expanded-music-header {
+  display: flex;
+  align-items: center;
+  gap: var(--expanded-music-header-gap);
+}
+
+.expanded-music-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.expanded-music-title,
+.expanded-music-artist {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.expanded-music-title {
+  font-size: var(--expanded-music-title-font-size);
+  font-weight: var(--pill-title-font-weight);
+}
+
+.expanded-music-artist {
+  font-size: var(--expanded-music-artist-font-size);
+  opacity: var(--pill-secondary-text-opacity);
+}

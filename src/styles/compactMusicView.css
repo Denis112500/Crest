@@ -1,0 +1,18 @@
+.compact-music-view {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--compact-music-gap);
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--compact-music-padding-end) 0 var(--compact-music-padding-start);
+}
+
+/* Long titles end in "…". min-width: 0 lets a flex child shrink below its text width. */
+.compact-music-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
