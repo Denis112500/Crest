@@ -32,7 +32,9 @@ body {
   background: var(--pill-background-color);
   color: var(--pill-text-color);
   font-size: var(--pill-font-size);
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.pill-nothing-to-show {
+  opacity: var(--pill-secondary-text-opacity);
 }

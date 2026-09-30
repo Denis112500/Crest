@@ -1,4 +1,3 @@
-#[cfg(target_os = "windows")]
 use std::time::Duration;
 
 /// Must match the window `label` in `tauri.conf.json`.
@@ -13,6 +12,14 @@ pub const USER_SETTINGS_FILE_NAME: &str = "settings.json";
 /// The YouTube Music web app ID. Chromium browsers report the installed app as
 /// "<Browser>._crx_cinhimbnkkghhklpknlkffjgod" (verified with Brave).
 pub const DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT: &str = "_crx_cinhimbnkkghhklpknlkffjgod";
+
+/// Music sits in the middle, so future sources can rank above it (a finished timer)
+/// or below it (a background status).
+pub const MUSIC_ACTIVITY_DISPLAY_PRIORITY: u8 = 50;
+
+/// How long a vanished media session may stay away before the music activity is withdrawn.
+/// Browsers drop the session for about 0.4 s on every track change (measured).
+pub const MUSIC_SESSION_LOSS_GRACE_PERIOD: Duration = Duration::from_millis(1500);
 
 /// SMTC events arrive in bursts (dragging the seek bar fires about 10 per second), so
 /// everything that arrives within this window after the first event is handled once.

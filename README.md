@@ -4,7 +4,7 @@ A small pill at the top center of the screen, in the spirit of the iPhone's Dyna
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no network calls, no telemetry, no API keys.
 
-> Status: milestone (c) — the pill window behaves right and shows fake content; the Rust side reads YouTube Music through Windows SMTC and prints every change in the terminal. See `notes.md` for the running log.
+> Status: milestone (d) — the pill shows the song playing in YouTube Music, live, as plain text. See `notes.md` for the running log.
 
 ## How it works, in plain language
 
@@ -48,18 +48,26 @@ Dynamic Island/
 ├─ vite.config.ts               Vite dev server settings Tauri expects (fixed port 1420)
 ├─ index.html                   the page loaded into the pill window
 ├─ src/
-│  ├─ main.ts                   frontend entry: builds the pill, sizes the window, then reveals it
+│  ├─ main.ts                   frontend entry: builds the pill, listens for Rust, sizes and reveals the window
 │  ├─ frontendConstants.ts      the pill's size (single source of truth, Rust sizes the window from it)
 │  ├─ vite-env.d.ts             lets TypeScript understand Vite imports such as CSS files
 │  ├─ ipc/
-│  │  ├─ ipcChannelNames.ts     names of the Rust commands the frontend calls
+│  │  ├─ ipcChannelNames.ts     command, event and activity-kind names shared with Rust
+│  │  ├─ listenForPillPresentation.ts   receives "what to show" (asks once, then listens)
 │  │  ├─ requestPillWindowPlacement.ts  asks Rust to size the window and center it at the top
 │  │  └─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
+│  ├─ activities/
+│  │  ├─ pillPresentationTypes.ts    the shape of what Rust sends
+│  │  ├─ activityViewRegistry.ts     activity kind → the view that draws it (plugin point)
+│  │  └─ music/
+│  │     ├─ nowPlayingTypes.ts       the music payload's shape
+│  │     └─ compactMusicView.ts      "Title · Artist" in the pill
 │  ├─ pill/
 │  │  └─ pillShellElement.ts    creates the black capsule element
 │  └─ styles/
-│     ├─ designTokens.css       colors, font, radius
-│     └─ pillShell.css          transparent page + capsule shape
+│     ├─ designTokens.css       colors, font, radius, opacity
+│     ├─ pillShell.css          transparent page + capsule shape
+│     └─ musicViews.css         music text layout (ellipsis for long titles)
 └─ src-tauri/
    ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step (reads tauri.conf.json at compile time)
@@ -68,10 +76,23 @@ Dynamic Island/
    ├─ icons/                    app icons (Tauri defaults for now; our own icon comes later)
    └─ src/
       ├─ main.rs                program entry; calls run_crest_app
-      ├─ lib.rs                 wires the app: pill window, settings, media source, commands
-      ├─ backend_constants.rs   every Rust constant (window, settings file, app filter, SMTC timing)
+      ├─ lib.rs                 wires the app: pill window, core, activity sources, commands
+      ├─ backend_constants.rs   every Rust constant (window, settings, priorities, timings)
+      ├─ ipc_channel_names.rs   event and activity-kind names shared with the frontend
       ├─ user_settings_file.rs  reads the optional settings.json
-      ├─ media_console_preview.rs  milestone (c) only: prints media snapshots in the terminal
+      ├─ activity_core/
+      │  ├─ mod.rs
+      │  ├─ activity_source.rs         trait every activity plugin implements
+      │  ├─ activity_update.rs         what a source reports (priority, ongoing, attention key, payload)
+      │  ├─ activity_publisher.rs      a source's handle for reporting to the core
+      │  ├─ activity_arbiter.rs        picks what the pill shows and notifies the frontend (unit-tested)
+      │  └─ pill_presentation_command.rs  lets the frontend ask what's showing right now
+      ├─ activity_sources/
+      │  ├─ mod.rs
+      │  └─ music/
+      │     ├─ mod.rs
+      │     ├─ music_activity_source.rs     media snapshots → music activity
+      │     └─ session_loss_grace_period.rs ignores the short session gap on track change (unit-tested)
       ├─ media/
       │  ├─ mod.rs              declares the module; picks this OS's implementation
       │  ├─ media_source.rs     trait: "watch media sessions and tell me what changed"

@@ -2,10 +2,37 @@
 
 ## Current state
 - **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
-- **In progress:** milestone (d), live data from Rust to the frontend. Milestone (c) works: Rust reads YouTube Music through SMTC and prints every change in the terminal.
+- **Works:** milestone (d). The pill shows the real song ("Title · Artist", "(paused)" when paused), live from YouTube Music, with no flicker on track change. Pill window behavior from (b) unchanged.
+- **In progress:** milestone (e), compact and expanded views with animation.
 - **Broken:** nothing known.
 
 ---
+
+## 2026-09-30 — Milestone (d): live data reaches the frontend
+- **Done:**
+  - Core (`activity_core/`): `activity_update.rs` (what a source reports: priority, is-ongoing, attention key, JSON payload), `activity_source.rs` (plugin trait), `activity_publisher.rs` (a source's handle to the core), `activity_arbiter.rs` (keeps the latest update per source, picks the winner, notifies only on change; 3 tests), `pill_presentation_command.rs` (`get_current_pill_presentation`).
+  - Music plugin (`activity_sources/music/`): `music_activity_source.rs` (snapshot → activity update; attention key = title + artist), `session_loss_grace_period.rs` (ignores a session gap shorter than 1.5 s; 2 tests).
+  - `ipc_channel_names.rs`: event name + activity kind shared with TS. `media_session_snapshot.rs` now serializes to camelCase JSON. `lib.rs` creates the arbiter (emits `pill-presentation-changed` to the pill window), shares it with `manage()`, and starts every activity source in a loop. Removed `media_console_preview.rs`.
+  - Frontend: `activities/pillPresentationTypes.ts`, `activities/activityViewRegistry.ts` (kind → view; "Nothing to show" fallback), `activities/music/nowPlayingTypes.ts`, `activities/music/compactMusicView.ts` (text with ellipsis), `ipc/listenForPillPresentation.ts`, `styles/musicViews.css`; `main.ts` renders presentations instead of fake text.
+  - Verified by testing: tsc clean, 14/14 Rust tests, clippy clean. User confirmed: the pill shows the playing song; pause adds "(paused)"; play removes it; next track updates without flashing "Nothing to show".
+- **Learned:**
+  - **Tauri events** (Rust → frontend, many times: `emit_to(window, name, payload)` / `listen(name, callback)`) vs **commands** (frontend → Rust, request/response: `invoke`). Payloads cross as JSON; serde's `rename_all = "camelCase"` turns `track_title` into `trackTitle`.
+  - **Events sent before anyone listens are lost.** The page starts after Rust, so it listens first, then asks for the current state with a command, and ignores that answer if an event already arrived (it could be older).
+  - **Shared state across threads:** `Arc<Mutex<T>>`. `Arc` = several owners (the media thread and a Tauri command both use the arbiter); `Mutex` = one at a time. `app.manage(value)` + a `State<'_, T>` command parameter hands shared state to commands.
+  - **Plugin design via a trait:** `lib.rs` holds `Vec<Box<dyn ActivitySource>>` and starts each with its own publisher. The core never knows it's music; only the frontend view does.
+  - **`#[serde(flatten)]`** merges a nested struct's fields into the parent's JSON (PillPresentation = kind + ActivityUpdate fields).
+  - **`textContent` vs `innerHTML`:** song titles come from the web; `textContent` can never inject markup.
+  - **Vite dependency optimizing:** the first time the code imports a new package (`@tauri-apps/api/event`), Vite pre-bundles it and reloads the page once (dev only).
+- **Decisions:**
+  - The frontend picks its view by `activityKind`; the payload stays `unknown` in the core types and is cast by the activity's own view.
+  - Arbiter tie-break: equal priority → most recent update wins.
+  - Grace period with a generation counter under a mutex, so a returning session and a pending withdrawal can't race. Rejected: acting in the SMTC worker with timeouts (would put music-specific logic in the Windows code).
+  - Idle text is generic ("Nothing to show"), since the core doesn't know which kind is missing. It'll mostly be hidden once (g) hides the pill.
+- **Problems:**
+  - Unused re-export warning for `PillPresentation` → removed.
+  - First run logged "IPC custom protocol failed … Failed to fetch" and repeated "Couldn't find callback id …". Cause: Vite optimized `@tauri-apps/api/event` and reloaded the page; the first page's in-flight call was cut off, and its event listener stayed registered in Rust. Fix: none needed. Verified by testing that a second start has no reload and no warnings; production builds have no Vite server.
+- **Open questions:** none new.
+- **Next:** milestone (e): compact view with tiny album art + animated bars, expanded view on hover/click, 4 s peek on track change, spring animations, window resize between the two sizes.
 
 ## 2026-09-30 — Milestone (c): Rust reads the media session
 - **Done:**

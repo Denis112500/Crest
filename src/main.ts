@@ -1,13 +1,12 @@
 import "./styles/designTokens.css";
 import "./styles/pillShell.css";
 
+import { renderPillPresentation } from "./activities/activityViewRegistry";
 import { PILL_COMPACT_LOGICAL_HEIGHT, PILL_COMPACT_LOGICAL_WIDTH } from "./frontendConstants";
+import { listenForPillPresentation } from "./ipc/listenForPillPresentation";
 import { requestPillWindowPlacement } from "./ipc/requestPillWindowPlacement";
 import { requestPillWindowReveal } from "./ipc/requestPillWindowReveal";
 import { createPillShellElement } from "./pill/pillShellElement";
-
-// Milestone (b) placeholder: replaced by live media data in milestone (d).
-const FAKE_NOW_PLAYING_TEXT = "Fake Song · Fake Artist";
 
 // A requestAnimationFrame callback runs just *before* a paint, so waiting for two of
 // them guarantees at least one frame with our content has actually been painted.
@@ -23,9 +22,12 @@ async function startPill(): Promise<void> {
     throw new Error("index.html has no #pill-root element");
   }
   const pillShellElement = createPillShellElement();
-  pillShellElement.textContent = FAKE_NOW_PLAYING_TEXT;
   pillRootElement.append(pillShellElement);
 
+  // Content first, so the very first frame the user sees is already the real one.
+  await listenForPillPresentation((pillPresentation) =>
+    renderPillPresentation(pillShellElement, pillPresentation),
+  );
   await requestPillWindowPlacement(PILL_COMPACT_LOGICAL_WIDTH, PILL_COMPACT_LOGICAL_HEIGHT);
   await waitUntilNextFrameIsPainted();
   await requestPillWindowReveal();

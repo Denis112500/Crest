@@ -1,5 +1,9 @@
+use serde::Serialize;
+
 /// Everything the pill needs to know about the media that is playing, independent of the OS.
-#[derive(Clone, Debug, PartialEq)]
+/// Sent to the frontend as JSON (field names in camelCase, like TypeScript).
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaSessionSnapshot {
     pub source_app_identifier: String,
     pub track_title: String,
@@ -12,7 +16,8 @@ pub struct MediaSessionSnapshot {
     pub timeline: Option<MediaTimeline>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub enum MediaPlaybackState {
     Playing,
     Paused,
@@ -24,7 +29,8 @@ pub enum MediaPlaybackState {
 /// Players don't push the position continuously (verified with YouTube Music: only on
 /// play, pause, seek and track change), so the current position is extrapolated from
 /// the last reported position and the moment it was reported.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaTimeline {
     pub track_duration_milliseconds: i64,
     pub reported_position_milliseconds: i64,
