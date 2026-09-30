@@ -1,11 +1,39 @@
 # Project notes
 
 ## Current state
-- **Works:** milestone (a). `npm run tauri dev` opens a normal window titled "Crest".
-- **In progress:** milestone (b), the pill window. Milestone (a) is committed as the first commit on `main`.
+- **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
+- **In progress:** user's visual check of (b); then milestone (c), Rust reading the media session.
 - **Broken:** nothing known.
 
 ---
+
+## 2026-09-30 — Milestone (b): pill window behavior with fake content
+- **Done:**
+  - Rust: `backend_constants.rs`; `pill_window/` with `pill_window_platform.rs` (trait), `pill_window_placement.rs` (top-center math + 2 unit tests), `pill_window_commands.rs` (`place_pill_window_at_top_center`, `reveal_pill_window`), `windows_native/windows_pill_window_platform.rs`; `lib.rs` prepares the window in `setup` and registers the commands.
+  - Config: `tauri.conf.json` window is hidden at start, frameless, transparent, no shadow, always on top, skipTaskbar, not focusable, not resizable. `Cargo.toml` adds `windows` 0.62 for Windows only.
+  - Frontend: `frontendConstants.ts` (pill size), `ipc/ipcChannelNames.ts`, `ipc/requestPillWindowPlacement.ts`, `ipc/requestPillWindowReveal.ts`, `pill/pillShellElement.ts`, `styles/designTokens.css`, `styles/pillShell.css`, `vite-env.d.ts`; `main.ts` builds the pill, asks Rust to size and place it, waits for a painted frame, then asks Rust to show it.
+  - Repo: `.gitattributes` (LF everywhere).
+  - Verified by testing: `tsc` clean, `cargo test` 2/2, `cargo clippy` no warnings. Win32 inspection of the running window: visible, `WS_EX_TOPMOST` + `WS_EX_TOOLWINDOW` + `WS_EX_NOACTIVATE`, no `WS_EX_APPWINDOW`, 220×36 at left 1170 on a 2560-wide screen (exactly centered), top 8. The foreground window stayed the user's game.
+- **Learned:**
+  - **Logical vs physical pixels:** CSS and Tauri configs use logical pixels; Windows places windows in physical pixels = logical × scale factor (1.5 at 150% scaling). We convert using the monitor's scale factor.
+  - **Extended window styles** are bit flags on every Win32 window: `WS_EX_TOPMOST` (above normal windows), `WS_EX_TOOLWINDOW` (no taskbar button, not in Alt+Tab), `WS_EX_NOACTIVATE` (clicking never takes keyboard focus), `WS_EX_APPWINDOW` (forces a taskbar button). Read and written with `GetWindowLongPtrW` / `SetWindowLongPtrW`; checking one flag = `style & FLAG != 0`.
+  - **Activation vs showing:** `ShowWindow(SW_SHOW)` shows *and activates* (takes focus); `SW_SHOWNOACTIVATE` only shows.
+  - **Why the frontend waits for a painted frame before reveal:** a `requestAnimationFrame` callback runs just before a paint, so after two of them at least one frame with our content has been painted → no empty or white window.
+  - **Tauri commands:** a `#[tauri::command]` Rust function becomes callable from TS with `invoke("function_name", { camelCaseArgs })`; Tauri converts camelCase keys to snake_case parameters. Parameters like `WebviewWindow` are filled in by Tauri (the calling window). Returning `Result<_, String>` turns an `Err` into a rejected promise in TS.
+  - **`#[cfg(target_os = "windows")]`** compiles code only on that OS; `[target.'cfg(windows)'.dependencies]` does the same for dependencies. That's how the Linux version will slot in.
+  - **`unsafe`** in Rust marks code the compiler can't check (here: raw Win32 calls). Keep it tiny and write a `SAFETY:` comment saying why it's fine.
+- **Decisions:**
+  - Show/hide the pill only through our platform trait (Win32 `ShowWindow`), never Tauri's `show()`/`hide()` or flag-changing setters. Why: see Problems. Rejected: a window subclass that re-adds `WS_EX_TOOLWINDOW` on every style change (more robust but more complex; revisit if styles get lost in testing).
+  - The OS implementation is picked with a `cfg`-gated `pub use ... as CurrentPlatformPillWindow` in `pill_window/mod.rs`. No factory file or trait object is needed, since the choice is made at compile time.
+  - Sizes live only in `frontendConstants.ts`; no width/height in `tauri.conf.json`.
+  - Placement is split into a pure function (`calculate_top_center_bounds`, unit-tested) and the part that talks to the window.
+  - Small deviations from the approved tree: `ipcEventNames.ts` → `ipcChannelNames.ts` (it holds command names; events come in (d)); `windows_pill_window_styles.rs` → `windows_pill_window_platform.rs` (it also shows the window).
+- **Problems:**
+  - `tsc`: "Cannot find module or type declarations for side-effect import of './styles/designTokens.css'". Cause: TypeScript 6 checks side-effect imports and didn't know `.css`. Fix: `src/vite-env.d.ts` with `/// <reference types="vite/client" />`.
+  - `cargo`: "cannot find `__cmd__reveal_pill_window` in `pill_window`". Cause: `#[tauri::command]` generates hidden helpers next to the function, and `generate_handler!` looks for them at the path you write; a `pub use` re-export doesn't carry them. Fix: `pub mod pill_window_commands` and full paths in `generate_handler!`.
+  - Port 1420 in use when the user ran `tauri dev`. Cause: the preview server started for them was still running. Fix: stop it; always stop our servers before handing over.
+- **Open questions (user checks visually):** is the capsule cleanly rounded with no white/black corners or border? Any white flash at startup? Is it absent from the taskbar and Alt+Tab? Hover and clicks in a `WS_EX_NOACTIVATE` window are untested until (e).
+- **Next:** milestone (c), the `MediaSource` trait + SMTC implementation printing snapshots to the console.
 
 ## 2026-09-30 — Milestone (a): empty Tauri app runs
 - **Done:**
@@ -88,6 +116,11 @@
   - Ghost titlebar on transparent windows on focus change: tauri#14764, closed 2026-01-24.
 - **Unverified (test in milestone b):** DOM `mouseenter`/`mouseleave` and clicks work in a `WS_EX_NOACTIVATE` window; resizing a transparent WebView2 window doesn't flicker; the pill over borderless-fullscreen games.
 - **Learned:** on Linux Wayland a normal app cannot position itself or stay on top; KDE needs the layer-shell protocol. This is why window behavior sits behind a small trait.
+- **Correction (milestone b, verified by reading tao 0.37.1 source, `platform_impl/windows/window_state.rs` and `window.rs`):**
+  - `focusable: false` sets `WS_EX_NOACTIVATE`, and tao keeps it.
+  - `focus: false` only affects creation: tao clears its "don't focus" marker right after creating the window, so every later `show()` uses `SW_SHOW` and activates the window.
+  - On any flag change (show, hide, always-on-top, ignore-cursor, ...) tao rewrites the whole extended style from its own flags, which never include `WS_EX_TOOLWINDOW`.
+  - Consequence: add `WS_EX_TOOLWINDOW` ourselves while hidden, and show with our own `ShowWindow(SW_SHOWNOACTIVATE)`.
 
 ## 2026-09-30 — Research: what YouTube Music exposes through SMTC (verified by testing)
 Setup: YouTube Music installed as a PWA in **Brave**. Probe: PowerShell 5.1 calling the same WinRT API, script in the session scratchpad.

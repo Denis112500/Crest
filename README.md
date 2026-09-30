@@ -4,7 +4,7 @@ A small pill at the top center of the screen, in the spirit of the iPhone's Dyna
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no network calls, no telemetry, no API keys.
 
-> Status: milestone (a) — an empty app that opens a window. See `notes.md` for the running log.
+> Status: milestone (b) — the pill window behaves right (transparent, on top, top-center, never takes focus, not in the taskbar or Alt+Tab) and shows fake content. See `notes.md` for the running log.
 
 ## How it works, in plain language
 
@@ -30,7 +30,7 @@ The music source doesn't talk to Windows directly. It uses a trait, `MediaSource
 - **Windows** (`media/windows_smtc/`): uses the System Media Transport Controls (SMTC), the same system that feeds the media flyout next to the volume slider. Browsers publish what a web page plays there through the Media Session API, which is how we see YouTube Music without any unofficial API.
 - **Linux, later** (`media/linux_mpris/`): a second struct implementing the same `MediaSource` trait over MPRIS, the D-Bus standard that Linux media players and browsers use. A small factory picks the implementation for the current OS at compile time (`#[cfg(target_os = ...)]`), so nothing else in the app changes.
 
-Window behavior works the same way: a small trait for "don't take focus, don't show in Alt+Tab". The Windows implementation sets Win32 window styles; on Wayland a normal window can't place itself or stay on top, so KDE will need its own implementation (layer-shell).
+Window behavior works the same way: a small trait, `PillWindowPlatform`, for "stay out of the taskbar and Alt+Tab" and "show without taking focus". `pill_window/mod.rs` picks the implementation for the current OS with `#[cfg(target_os = ...)]`. The Windows implementation sets Win32 window styles itself and shows the window with `SW_SHOWNOACTIVATE`, because Tauri's own `show()` would take focus. On Wayland a normal window can't place itself or stay on top, so KDE will get its own implementation (layer-shell) in `pill_window/linux_layer_shell/`.
 
 ## Current file tree
 
@@ -40,22 +40,44 @@ Dynamic Island/
 ├─ README.md                    this file
 ├─ notes.md                     running project log
 ├─ .gitignore                   ignores node_modules, dist, build output
+├─ .gitattributes               LF line endings everywhere (Windows and Linux)
+├─ .claude/launch.json          dev-server config for Claude's preview pane (port 1420)
 ├─ .vscode/extensions.json      recommends the Tauri and rust-analyzer VS Code extensions
 ├─ package.json                 npm scripts and frontend dependencies
 ├─ tsconfig.json                strict TypeScript settings
 ├─ vite.config.ts               Vite dev server settings Tauri expects (fixed port 1420)
 ├─ index.html                   the page loaded into the pill window
 ├─ src/
-│  └─ main.ts                   frontend entry (placeholder text for now)
+│  ├─ main.ts                   frontend entry: builds the pill, sizes the window, then reveals it
+│  ├─ frontendConstants.ts      the pill's size (single source of truth, Rust sizes the window from it)
+│  ├─ vite-env.d.ts             lets TypeScript understand Vite imports such as CSS files
+│  ├─ ipc/
+│  │  ├─ ipcChannelNames.ts     names of the Rust commands the frontend calls
+│  │  ├─ requestPillWindowPlacement.ts  asks Rust to size the window and center it at the top
+│  │  └─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
+│  ├─ pill/
+│  │  └─ pillShellElement.ts    creates the black capsule element
+│  └─ styles/
+│     ├─ designTokens.css       colors, font, radius
+│     └─ pillShell.css          transparent page + capsule shape
 └─ src-tauri/
-   ├─ Cargo.toml                Rust package and dependencies
+   ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step (reads tauri.conf.json at compile time)
-   ├─ tauri.conf.json           app name, window settings, content security policy, bundling
+   ├─ tauri.conf.json           app name, pill window flags, content security policy, bundling
    ├─ capabilities/default.json what the frontend is allowed to call
    ├─ icons/                    app icons (Tauri defaults for now; our own icon comes later)
    └─ src/
       ├─ main.rs                program entry; calls run_crest_app
-      └─ lib.rs                 builds and runs the Tauri app
+      ├─ lib.rs                 wires the app: prepares the pill window, registers commands
+      ├─ backend_constants.rs   window label, top margin
+      └─ pill_window/
+         ├─ mod.rs              declares the module; picks this OS's implementation
+         ├─ pill_window_platform.rs    trait: the OS-specific overlay behavior
+         ├─ pill_window_placement.rs   top-center math in physical pixels (unit-tested)
+         ├─ pill_window_commands.rs    the commands the frontend calls
+         └─ windows_native/
+            ├─ mod.rs
+            └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus
 ```
 
 ## Running it

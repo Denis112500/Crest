@@ -1,0 +1,6 @@
+# One line-ending policy for Windows and Linux: text files use LF everywhere.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.icns binary

@@ -15,9 +15,17 @@
       {
         "label": "pill",
         "title": "Crest",
-        "width": 400,
-        "height": 200,
-        "center": true
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": false,
+        "focusable": false,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false
       }
     ],
     "security": {

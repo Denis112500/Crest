@@ -16,6 +16,13 @@ tauri-build = { version = "2.7", features = [] }
 [dependencies]
 tauri = { version = "2.12", features = [] }
 
+# Same major version Tauri uses, so its HWND type is ours and only one copy compiles.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
 [profile.release]
 codegen-units = 1
 lto = true

@@ -1,0 +1,3 @@
+mod windows_pill_window_platform;
+
+pub use windows_pill_window_platform::WindowsPillWindowPlatform;

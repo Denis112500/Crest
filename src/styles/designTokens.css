@@ -1,0 +1,10 @@
+/* Every color and visual constant of the pill. Sizes live in frontendConstants.ts. */
+:root {
+  --pill-background-color: #000000;
+  --pill-text-color: #f5f5f7;
+  --pill-font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --pill-font-size: 13px;
+  --pill-horizontal-padding: 16px;
+  /* Any radius at least half the height turns a rectangle into a capsule. */
+  --pill-fully-rounded-radius: 9999px;
+}
