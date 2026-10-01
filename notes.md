@@ -3,8 +3,25 @@
 ## Current state
 - **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
 - **Works:** **version 1 complete (milestones a–g).** A pill at the top center shows YouTube Music (art, title, bars); it springs open on hover/click/new track (art, title, artist, progress, working buttons), hides 30 s after pausing or about 4.5 s after the player closes, comes back on play or a new track, and has a tray icon with Quit and its own app icon. CPU: 0% idle/paused/hidden, about 4.7% of one core while playing.
-- **In progress:** nothing. Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, installer build, Linux).
+- **In progress:** nothing. Version 0.1.1 is built as an installer (see the release build entry). Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
 - **Broken:** nothing known. One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-01 — First release build (version 0.1.1)
+- **Done:**
+  - Version raised from 0.1.0 to 0.1.1 in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
+  - `npm run tauri build`: Rust release compile took 4 min 59 s; the result is `crest.exe` (4.4 MB) and the installer `Crest_0.1.1_x64-setup.exe` (1.34 MB).
+  - Verified by testing: the release exe starts, its page loads from `http://tauri.localhost/` under the production CSP, and the pill shell is built (hidden, since nothing was playing).
+- **Learned:**
+  - **Dev vs release:** `tauri dev` loads the page from Vite (`localhost:1420`) with hot reload and `devCsp`; `tauri build` bakes `dist/` into the exe, which serves it as `tauri.localhost` with the strict `csp`. The release profile (LTO, `codegen-units=1`) is slow to compile but makes a small, fast exe.
+  - **The exe is a snapshot:** to change the app, edit the code, raise the version, rebuild, quit the installed Crest from the tray, and run the new installer over the old one (same identifier `dev.crest.pill`, so it upgrades in place). Settings in `%APPDATA%\dev.crest.pill\` are untouched.
+  - **The installer is NSIS** (`bundle.targets = ["nsis"]`); the installer is smaller than the exe because it's compressed. WebView2 is already part of Windows 11, so it isn't bundled.
+  - **Unsigned app:** Windows SmartScreen warns on first run ("More info" → "Run anyway"). Code signing costs money; not worth it for a personal app.
+- **Problems:**
+  - On its first bundle, the Tauri CLI downloaded NSIS 3.11 and `nsis_tauri_utils.dll` from Tauri's GitHub releases into its own tools cache (`%LOCALAPPDATA%\tauri\`). It's build-time tooling only, nothing in the app itself, but it happened without asking first. Next time it's already there.
+  - My CDP test script only looked for the dev URL; the release page is `tauri.localhost`.
+- **Next:** install it and use it day to day; autostart with Windows is still an open idea.
 
 ---
 
@@ -317,6 +334,12 @@ rustup update
 
 # Run the app (hot reload). Close the window or press Ctrl+C to stop.
 npm run tauri dev
+
+# Release build: exe + installer (first build about 5-10 min). Raise "version" in package.json,
+# src-tauri/tauri.conf.json and src-tauri/Cargo.toml first; quit the installed Crest (tray) before installing.
+npm run tauri build
+#   standalone exe: src-tauri\target\release\crest.exe
+#   installer:      src-tauri\target\release\bundle\nsis\Crest_<version>_x64-setup.exe
 
 # Checks
 npx tsc --noEmit                       # type-check the frontend

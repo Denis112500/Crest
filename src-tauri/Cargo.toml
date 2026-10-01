@@ -1,6 +1,6 @@
 [package]
 name = "crest"
-version = "0.1.0"
+version = "0.1.1"
 description = "A pill at the top of the screen that shows what's playing"
 edition = "2021"
 
