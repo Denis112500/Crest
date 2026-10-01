@@ -11,6 +11,8 @@ pub struct MediaSessionSnapshot {
     pub album_title: String,
     /// A `data:image/...;base64,...` URL, so the webview can show it without file or network access.
     pub album_art_data_url: Option<String>,
+    /// The track just started and its art is held back for a moment (see `AlbumArtSettleGate`).
+    pub is_album_art_loading: bool,
     pub playback_state: MediaPlaybackState,
     /// `None` when the player doesn't report a track duration.
     pub timeline: Option<MediaTimeline>,

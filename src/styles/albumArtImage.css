@@ -34,8 +34,33 @@
   opacity: var(--album-art-placeholder-icon-opacity);
 }
 
-.album-art.is-missing-art .album-art-picture {
+/* A ring with one bright quarter, turning. Only rendered while loading (display: none
+   otherwise), so the animation costs nothing the rest of the time. */
+.album-art-loading-spinner {
   display: none;
+  width: var(--album-art-spinner-size);
+  height: var(--album-art-spinner-size);
+  box-sizing: border-box;
+  border: var(--album-art-spinner-stroke-width) solid var(--album-art-spinner-track-color);
+  border-top-color: var(--album-art-spinner-color);
+  border-radius: 50%;
+  animation: album-art-spinner-rotation var(--album-art-spinner-rotation-duration) linear infinite;
+}
+
+@keyframes album-art-spinner-rotation {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.album-art.is-missing-art .album-art-picture,
+.album-art.is-loading-art .album-art-picture,
+.album-art.is-loading-art .album-art-placeholder {
+  display: none;
+}
+
+.album-art.is-loading-art .album-art-loading-spinner {
+  display: block;
 }
 
 .album-art:not(.is-missing-art) .album-art-placeholder {

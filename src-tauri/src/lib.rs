@@ -22,6 +22,11 @@ use user_settings_file::load_crest_user_settings;
 
 pub fn run_crest_app() {
     tauri::Builder::default()
+        // Registered first, as the plugin requires, so a second copy exits before it creates
+        // its own pill and tray icon. Two copies would stack two pills in the same spot. The
+        // running copy has nothing to bring forward (the pill appears only with music), so
+        // the second launch is simply ignored.
+        .plugin(tauri_plugin_single_instance::init(|_running_crest_app, _second_launch_arguments, _second_launch_directory| {}))
         .setup(|crest_app| {
             let pill_window = crest_app
                 .get_webview_window(PILL_WINDOW_LABEL)

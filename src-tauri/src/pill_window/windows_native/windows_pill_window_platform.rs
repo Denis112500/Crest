@@ -7,11 +7,14 @@
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
 use windows::Win32::Graphics::Gdi::{CreateRectRgn, DeleteObject, SetWindowRgn};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrW, SetWindowLongPtrW, ShowWindow, GWL_EXSTYLE, SW_HIDE, SW_SHOWNOACTIVATE,
-    WS_EX_APPWINDOW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+    GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE,
+    SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SW_HIDE,
+    SW_SHOWNOACTIVATE, WS_CAPTION, WS_EX_APPWINDOW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
+    WS_SYSMENU,
 };
 
 use crate::pill_window::pill_window_platform::PillWindowPlatform;
+use crate::pill_window::windows_native::classic_frame_painting_blocker::block_classic_frame_painting;
 
 pub struct WindowsPillWindowPlatform;
 
@@ -24,6 +27,10 @@ impl PillWindowPlatform for WindowsPillWindowPlatform {
         // by `focusable: false`; it's repeated so this function alone guarantees the result.
         let extended_style_bits_to_add = (WS_EX_TOOLWINDOW.0 | WS_EX_NOACTIVATE.0) as isize;
         let extended_style_bits_to_remove = WS_EX_APPWINDOW.0 as isize;
+        // Tauri hides the title bar of an undecorated window by giving its frame zero size,
+        // but leaves the caption styles set. Removing them leaves Windows less frame to
+        // paint; the repaints it still attempts are blocked by `block_classic_frame_painting`.
+        let window_style_bits_to_remove = (WS_CAPTION.0 | WS_SYSMENU.0) as isize;
         // SAFETY: the handle belongs to a live window owned by this process, and Tauri
         // runs setup and synchronous commands on the thread that created the window.
         unsafe {
@@ -31,8 +38,25 @@ impl PillWindowPlatform for WindowsPillWindowPlatform {
             let overlay_extended_style =
                 (current_extended_style | extended_style_bits_to_add) & !extended_style_bits_to_remove;
             SetWindowLongPtrW(pill_window_native_handle, GWL_EXSTYLE, overlay_extended_style);
+            let current_window_style = GetWindowLongPtrW(pill_window_native_handle, GWL_STYLE);
+            SetWindowLongPtrW(
+                pill_window_native_handle,
+                GWL_STYLE,
+                current_window_style & !window_style_bits_to_remove,
+            );
+            // Windows caches the frame; it only re-reads the new styles after FRAMECHANGED.
+            SetWindowPos(
+                pill_window_native_handle,
+                None,
+                0,
+                0,
+                0,
+                0,
+                SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
+            )
+            .map_err(|error| error.to_string())?;
         }
-        Ok(())
+        block_classic_frame_painting(pill_window_native_handle)
     }
 
     fn show_pill_window_without_activating(pill_window: &WebviewWindow) -> Result<(), String> {

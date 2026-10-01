@@ -1,3 +1,4 @@
+mod classic_frame_painting_blocker;
 mod windows_pill_window_platform;
 
 pub use windows_pill_window_platform::WindowsPillWindowPlatform;

@@ -2,37 +2,11 @@ use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
 use windows::Storage::Streams::{DataReader, IRandomAccessStreamReference};
 
-/// Title, artist and album: identifies a track well enough to reuse its album art.
-pub type AlbumArtTrackKey = (String, String, String);
-
-/// Reading and encoding album art costs a few milliseconds, and position or play/pause
-/// updates happen far more often than track changes, so the last result is kept.
-#[derive(Default)]
-pub struct SmtcAlbumArtCache {
-    cached_track_key: Option<AlbumArtTrackKey>,
-    cached_album_art_data_url: Option<String>,
-}
-
-impl SmtcAlbumArtCache {
-    /// A missing result is read again next time: browsers often publish the title first
-    /// and the artwork a moment later.
-    pub fn album_art_for_track(
-        &mut self,
-        track_key: AlbumArtTrackKey,
-        thumbnail_reference: Option<IRandomAccessStreamReference>,
-    ) -> Option<String> {
-        let is_cached_art_usable =
-            self.cached_track_key.as_ref() == Some(&track_key) && self.cached_album_art_data_url.is_some();
-        if !is_cached_art_usable {
-            self.cached_album_art_data_url =
-                thumbnail_reference.and_then(|reference| read_thumbnail_as_data_url(&reference));
-            self.cached_track_key = Some(track_key);
-        }
-        self.cached_album_art_data_url.clone()
-    }
-}
-
-fn read_thumbnail_as_data_url(thumbnail_reference: &IRandomAccessStreamReference) -> Option<String> {
+/// Read fresh on every snapshot, never cached per track: on a track change Brave first
+/// publishes its own logo as the thumbnail and the real cover a moment later, under the same
+/// title. Snapshots are only read when the player reports a change, so this costs a few
+/// milliseconds a handful of times per song.
+pub fn read_thumbnail_as_data_url(thumbnail_reference: &IRandomAccessStreamReference) -> Option<String> {
     let thumbnail_bytes_and_type = || -> windows::core::Result<(Vec<u8>, String)> {
         let thumbnail_stream = thumbnail_reference.OpenReadAsync()?.join()?;
         let thumbnail_byte_count = u32::try_from(thumbnail_stream.Size()?).unwrap_or(u32::MAX);

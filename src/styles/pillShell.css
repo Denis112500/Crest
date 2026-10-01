@@ -65,9 +65,12 @@ body {
   transition: opacity var(--pill-content-fade-duration) ease;
 }
 
+/* The two layers take turns, never fading at the same time: the outgoing one fades out,
+   then the incoming one fades in. Overlapping fades showed two songs on top of each other. */
 .pill-compact-layer {
   width: var(--pill-compact-width);
   height: var(--pill-compact-height);
+  transition-delay: var(--pill-content-fade-duration);
 }
 
 .pill-expanded-layer {
@@ -80,13 +83,13 @@ body {
 .pill-shell.is-expanded .pill-compact-layer {
   opacity: 0;
   pointer-events: none;
+  transition-delay: 0s;
 }
 
-/* The expanded content fades in once the capsule has started growing. */
 .pill-shell.is-expanded .pill-expanded-layer {
   opacity: 1;
   pointer-events: auto;
-  transition-delay: calc(var(--pill-content-fade-duration) / 2);
+  transition-delay: var(--pill-content-fade-duration);
 }
 
 .pill-nothing-to-show {

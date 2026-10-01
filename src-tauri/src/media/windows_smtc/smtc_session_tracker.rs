@@ -4,12 +4,12 @@ use std::time::Instant;
 
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as SmtcSessionManager;
 
+use crate::media::album_art_settle_gate::AlbumArtSettleGate;
 use crate::media::media_session_selector::{select_preferred_media_session, MediaSessionCandidate};
 use crate::media::media_session_snapshot::{MediaPlaybackState, MediaSessionSnapshot};
 use crate::media::media_source::{MediaSnapshotListener, MediaTransportCommand};
 use crate::media::windows_smtc::smtc_event_subscriptions::SmtcSessionEventSubscription;
 use crate::media::windows_smtc::smtc_snapshot_reader::{read_media_session_snapshot, read_playback_state};
-use crate::media::windows_smtc::smtc_thumbnail_reader::SmtcAlbumArtCache;
 use crate::media::windows_smtc::smtc_transport_commands::send_smtc_transport_command;
 use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
 
@@ -26,7 +26,7 @@ pub struct SmtcSessionTracker {
     allowed_app_identifier_fragments: Vec<String>,
     tracked_sessions: Vec<TrackedSmtcSession>,
     last_activity_by_source_app: HashMap<String, Instant>,
-    album_art_cache: SmtcAlbumArtCache,
+    album_art_settle_gate: AlbumArtSettleGate,
     last_published_snapshot: Option<Option<MediaSessionSnapshot>>,
     /// The session the pill currently shows; the buttons control this one.
     shown_source_app_identifier: Option<String>,
@@ -46,7 +46,7 @@ impl SmtcSessionTracker {
             allowed_app_identifier_fragments,
             tracked_sessions: Vec::new(),
             last_activity_by_source_app: HashMap::new(),
-            album_art_cache: SmtcAlbumArtCache::default(),
+            album_art_settle_gate: AlbumArtSettleGate::default(),
             last_published_snapshot: None,
             shown_source_app_identifier: None,
             media_snapshot_listener,
@@ -91,13 +91,20 @@ impl SmtcSessionTracker {
     }
 
     pub fn publish_preferred_session_if_changed(&mut self) {
-        let preferred_snapshot = self.read_preferred_session_snapshot();
+        let mut preferred_snapshot = self.read_preferred_session_snapshot();
+        if let Some(snapshot) = preferred_snapshot.as_mut() {
+            self.album_art_settle_gate.hold_back_unsettled_album_art(snapshot, Instant::now());
+        }
         self.shown_source_app_identifier =
             preferred_snapshot.as_ref().map(|snapshot| snapshot.source_app_identifier.clone());
         if self.last_published_snapshot.as_ref() != Some(&preferred_snapshot) {
             (self.media_snapshot_listener)(preferred_snapshot.clone());
             self.last_published_snapshot = Some(preferred_snapshot);
         }
+    }
+
+    pub fn pending_album_art_settle_deadline(&self) -> Option<Instant> {
+        self.album_art_settle_gate.pending_settle_deadline()
     }
 
     pub fn send_transport_command_to_shown_session(&self, media_transport_command: MediaTransportCommand) {
@@ -116,7 +123,7 @@ impl SmtcSessionTracker {
         }
     }
 
-    fn read_preferred_session_snapshot(&mut self) -> Option<MediaSessionSnapshot> {
+    fn read_preferred_session_snapshot(&self) -> Option<MediaSessionSnapshot> {
         let candidates: Vec<MediaSessionCandidate> = self
             .tracked_sessions
             .iter()
@@ -133,7 +140,6 @@ impl SmtcSessionTracker {
         read_media_session_snapshot(
             preferred_session.event_subscription.session(),
             &preferred_session.source_app_identifier,
-            &mut self.album_art_cache,
         )
         .inspect_err(|read_error| eprintln!("Crest media: could not read the media session: {read_error}"))
         .ok()

@@ -1,3 +1,4 @@
+mod album_art_settle_gate;
 mod media_session_selector;
 mod media_session_snapshot;
 mod media_source;

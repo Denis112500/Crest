@@ -22,7 +22,7 @@ export function createCompactMusicView(): CompactMusicView {
   return {
     compactViewElement,
     showNowPlaying(nowPlaying) {
-      compactAlbumArt.showAlbumArt(nowPlaying.albumArtDataUrl);
+      compactAlbumArt.showAlbumArt(nowPlaying.albumArtDataUrl, nowPlaying.isAlbumArtLoading);
       // textContent, never innerHTML: a track title must not be able to inject markup.
       compactTitleElement.textContent = nowPlaying.trackTitle;
       playbackBars.showIsPlaying(nowPlaying.playbackState === "playing");

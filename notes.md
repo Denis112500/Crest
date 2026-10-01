@@ -1,10 +1,67 @@
 # Project notes
 
 ## Current state
-- **Works:** milestone (b). A black 220×36 pill with fake text, centered 8 px below the top of the primary screen: always on top, never takes focus, not in the taskbar or Alt+Tab. Checked through Win32 (flags and position). No tray yet: quit with Ctrl+C in the terminal.
-- **Works:** **version 1 complete (milestones a–g).** A pill at the top center shows YouTube Music (art, title, bars); it springs open on hover/click/new track (art, title, artist, progress, working buttons), hides 30 s after pausing or about 4.5 s after the player closes, comes back on play or a new track, and has a tray icon with Quit and its own app icon. CPU: 0% idle/paused/hidden, about 4.7% of one core while playing.
-- **In progress:** nothing. Version 0.1.1 is built as an installer (see the release build entry). Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
-- **Broken:** nothing known. One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+- **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
+- **In progress:** nothing. The published installer (0.1.1) predates these fixes; a 0.1.2 build is needed for them. Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
+- **Broken:** button presses during a track change (about 0.4 s) are dropped. One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-01 — Loading ring instead of Brave's logo on skip
+- **Problem (user):** after the cache fix, Brave's logo still flashed briefly on every skip. User's idea: show a loading wheel while it's the logo.
+- **Measured (verified by testing, 6 skips, throwaway Rust probe reading SMTC every 60 ms):** on every skip the session disappears for ~0.5 s, comes back with the **same** 18 844-byte 256×256 PNG (Brave's logo) and the real cover (150×84 PNG) arrives **60–130 ms** later.
+- **Done:**
+  - `media/album_art_settle_gate.rs` (platform-independent, 3 tests): when the track identity (app, title, artist, album) changes, the art is held back for `ALBUM_ART_SETTLE_WINDOW` (300 ms, about 2× the slowest measured case) and the snapshot says `is_album_art_loading: true`. Doesn't recognize any specific logo, so it survives Brave changing its icon.
+  - `smtc_worker_thread.rs`: waits with `recv_timeout` until the settle deadline, then publishes again (the player sends nothing new at that moment). Still no polling: it sleeps until a message or that one deadline.
+  - `MediaSessionSnapshot` / `NowPlayingPayload`: new `isAlbumArtLoading`.
+  - `albumArtImage.ts` + `albumArtImage.css`: a CSS ring spinner shown while loading (`display: none` otherwise, so its animation costs nothing then); new tokens `--album-art-spinner-*`.
+  - clippy clean, 26/26 tests, tsc clean.
+- **Learned:**
+  - **Measure before guessing:** a 60-line probe showed the placeholder is byte-identical every time and how long it stays; that picked the design and the 300 ms value.
+  - **PowerShell 5.1 can't hand WinRT streams to .NET** easily (cast errors); a tiny Rust program with the same `windows` crate was quicker.
+  - **Timers without polling:** `recv_timeout(deadline - now)` lets a worker sleep until either a message or a known moment.
+- **Decisions:** a time window rather than "skip the image if it's Brave's logo" (fragile) or "learn placeholders that get replaced" (shows the logo at least once per run).
+
+---
+
+## 2026-10-01 — Fixes from the user's screenshots: title bar, overlapping layers, Brave logo
+- **Problems (user screenshots):** (1) a white classic title bar ("Crest" + ✕) across the top of the window, the real source of the "white corners"; (2) the small pill drawn on top of the big one ("songs overlap"); (3) the Brave logo as album art.
+- **How they were found:** a recorder script polled the window style and the page state every ~120 ms with a screen capture per change while the user used the pill with the real mouse. Synthetic DOM events did *not* reproduce (1): it needs Windows' real click/focus handling.
+- **Causes:**
+  1. Verified by testing: the white bar appeared while the window style had **no** caption bits (`0x14000000`), so stripping styles wasn't enough. Tao makes the window transparent with `DwmEnableBlurBehindWindow`; anything classic GDI paints into such a window shows up white. With a custom window region, Windows repaints the classic frame on `WM_NCPAINT` / `WM_NCACTIVATE` (and the undocumented `WM_NCUAHDRAWCAPTION`/`WM_NCUAHDRAWFRAME`).
+  2. Verified by testing: on collapse, the expanded layer faded out while the compact layer faded in at the same time; the recording shows `compact=0.47 expanded=0.53` mid-collapse.
+  3. Verified from code, not reproduced live: the album art was cached per track (title+artist+album). Brave first publishes its own logo as the thumbnail, then the real cover under the same title, and the cache kept the logo for the whole song.
+- **Done:**
+  - New `pill_window/windows_native/classic_frame_painting_blocker.rs`: a Win32 subclass (`SetWindowSubclass`, needs the `Win32_UI_Shell` feature of the existing `windows` crate) that swallows the frame-painting messages and passes `WM_NCACTIVATE` on with `lParam = -1` ("don't repaint") so tao's focus tracking still works. Installed from `prepare_pill_window_as_overlay`.
+  - `pillShell.css`: the layers take turns; the incoming one waits `--pill-content-fade-duration` until the outgoing one is gone. Verified by testing: sampled every 20 ms, the overlap (smaller of the two opacities) is 0 when expanding and collapsing.
+  - `smtc_thumbnail_reader.rs`: per-track cache removed; the thumbnail is read on every snapshot (only on player events, a few times per song). `SmtcAlbumArtCache` and `AlbumArtTrackKey` are gone.
+  - clippy clean, 23/23 tests, tsc clean.
+- **Learned:**
+  - **Subclassing** = putting your own function in front of a window's message handler; you handle some messages and pass the rest on with `DefSubclassProc`. It's how you change the behavior of a window someone else (here tao) created.
+  - **"GDI on glass":** in a DWM blur-behind window, classic GDI drawing (which knows nothing about transparency) comes out white/see-through instead of opaque.
+  - **Reproduce with the real input:** simulated events skip Windows' own activation and painting; bugs there only show with a real mouse.
+  - **Caches need the right key:** "same song" isn't "same picture" when the source updates the picture later.
+
+---
+
+## 2026-10-01 — Only one Crest at a time (single-instance plugin)
+- **Problem (reported by the user):** in a test right after the corner fix, songs overlapped, the pill lagged, buttons barely worked, play/pause didn't work, and the corners were still there. Most likely cause (unverified, the copies were gone before I could check): two older release copies from 21:47 were still running under the new dev copy, so three pills were stacked in one spot. Each animates on its own; a click goes to whichever window is on top at that point; the old copies don't have the corner fix.
+- **Done:** added the official `tauri-plugin-single-instance` 2.5 (Rust only, no npm package; user approved the install). Registered first in `lib.rs`; the "another copy was started" callback does nothing, because the pill only appears with music, so there's nothing to bring forward. Verified by testing: with one copy running, a second `crest.exe` exits by itself (exit code 0) within 4 s; clippy clean, 23/23 tests.
+- **Learned:** a Tauri plugin is added on the Rust side with `.plugin(…)` on the builder; some plugins also have an npm package for a JS API, this one doesn't. The plugin must be registered first so the second copy exits before creating windows or a tray icon. On Windows it uses a named mutex plus a message to the first copy.
+- **Also found (from the user's log):** "no media session to send PreviousTrack to" ×4. During a track change YouTube Music's session disappears for about 0.4 s, and a button press in that gap is dropped. To fix next: hold the press until the session is back.
+
+---
+
+## 2026-10-01 — Fix: white "old app" corners after clicking the pill
+- **Problem (reported by the user):** after the first click on the pill, white square corners appeared around it, like a classic-Windows app frame.
+- **Cause (verified from the window's styles; the visual link is unverified until the user retests):** the pill window still had `WS_CAPTION` and `WS_SYSMENU` (style `0x4C80000`). Tauri/tao hides an undecorated window's title bar by giving the frame zero size, but keeps the caption styles. Our `SetWindowRgn` (interactive area) makes Windows stop drawing the modern DWM frame, so on a click or activation change it paints the classic frame instead.
+- **Done:** `windows_pill_window_platform.rs` → `prepare_pill_window_as_overlay` also clears `WS_CAPTION | WS_SYSMENU` from `GWL_STYLE`, then calls `SetWindowPos(SWP_FRAMECHANGED …)` so Windows re-reads the frame. Verified by testing: the dev window's style is now `0x4000000` (no caption), position and size unchanged; clippy clean, 23/23 tests pass.
+- **Learned:**
+  - A Win32 window has two style words: `GWL_STYLE` (frame, caption, borders) and `GWL_EXSTYLE` (tool window, topmost, no-activate…). We had only fixed the extended one.
+  - "Decorations off" in Tauri doesn't mean "no frame styles"; a custom window region turns off the modern frame drawing and exposes the old one.
+  - Style changes affecting the frame need `SetWindowPos` with `SWP_FRAMECHANGED`, or Windows keeps using the cached frame.
+- **Correction (same day):** not sufficient. The white bar still appeared with the caption bits removed; the real cause is classic frame painting into a blur-behind window, fixed with a subclass (see "Fixes from the user's screenshots"). The style change stays, as it leaves Windows less frame to paint.
+- **Also noticed:** two copies of the release `crest.exe` were running at once (both started 21:47). Each shows its own pill. A single-instance guard would prevent this (needs the `tauri-plugin-single-instance` crate → ask first).
 
 ---
 

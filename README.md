@@ -147,6 +147,7 @@ Dynamic Island/
       │  ├─ media_source.rs     trait: watch media sessions + send play/pause/next/previous
       │  ├─ media_session_snapshot.rs  title, artist, album, art, play state, timeline
       │  ├─ media_session_selector.rs  app-ID filter + which session to show (unit-tested)
+      │  ├─ album_art_settle_gate.rs   holds a new track's art back 300 ms ("loading"), skipping placeholders (unit-tested)
       │  └─ windows_smtc/
       │     ├─ mod.rs
       │     ├─ smtc_media_source.rs        Windows MediaSource: starts the worker thread
@@ -156,7 +157,7 @@ Dynamic Island/
       │     ├─ smtc_transport_commands.rs  play/pause, next, previous on a session
       │     ├─ smtc_session_tracker.rs     known sessions, last activity, what was sent
       │     ├─ smtc_snapshot_reader.rs     WinRT properties → snapshot
-      │     └─ smtc_thumbnail_reader.rs    album art → data URL, cached per track
+      │     └─ smtc_thumbnail_reader.rs    album art → data URL, read fresh on every update
       └─ pill_window/
          ├─ mod.rs              declares the module; picks this OS's implementation
          ├─ pill_window_platform.rs    trait: the OS-specific overlay behavior
@@ -165,6 +166,7 @@ Dynamic Island/
          ├─ pill_window_commands.rs    the commands the frontend calls
          └─ windows_native/
             ├─ mod.rs
+            ├─ classic_frame_painting_blocker.rs  Win32 subclass: stops the classic title bar being painted (white bar)
             └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus, hide, window region
 ```
 

@@ -18,6 +18,7 @@ tauri = { version = "2.12", features = ["tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
+tauri-plugin-single-instance = "2.5"
 
 # Same major version Tauri uses, so its HWND type is ours and only one copy compiles.
 [target.'cfg(windows)'.dependencies]
@@ -29,6 +30,7 @@ windows = { version = "0.62", features = [
   "Win32_Foundation",
   "Win32_Graphics_Gdi",
   "Win32_System_WinRT",
+  "Win32_UI_Shell",
   "Win32_UI_WindowsAndMessaging",
 ] }
 

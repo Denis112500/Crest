@@ -21,6 +21,11 @@
   --album-art-compact-radius: 6px;
   --album-art-expanded-size: 64px;
   --album-art-expanded-radius: 14px;
+  --album-art-spinner-size: 50%;
+  --album-art-spinner-stroke-width: 2px;
+  --album-art-spinner-color: #f5f5f7;
+  --album-art-spinner-track-color: rgba(255, 255, 255, 0.18);
+  --album-art-spinner-rotation-duration: 800ms;
 
   /* Compact music view */
   --compact-music-padding-start: 7px;

@@ -6,6 +6,7 @@ export interface NowPlayingPayload {
   trackArtist: string;
   albumTitle: string;
   albumArtDataUrl: string | null;
+  isAlbumArtLoading: boolean;
   playbackState: "playing" | "paused" | "changing" | "stopped";
   timeline: NowPlayingTimeline | null;
 }

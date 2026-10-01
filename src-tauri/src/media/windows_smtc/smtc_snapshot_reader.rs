@@ -6,28 +6,24 @@ use windows::Media::Control::{
 
 use crate::backend_constants::{WINRT_TICKS_FROM_1601_TO_UNIX_EPOCH, WINRT_TICKS_PER_MILLISECOND};
 use crate::media::media_session_snapshot::{MediaPlaybackState, MediaSessionSnapshot, MediaTimeline};
-use crate::media::windows_smtc::smtc_thumbnail_reader::SmtcAlbumArtCache;
+use crate::media::windows_smtc::smtc_thumbnail_reader::read_thumbnail_as_data_url;
 
 /// Must be called from the SMTC worker thread: `.join()` blocks until Windows answers.
 pub fn read_media_session_snapshot(
     session: &SmtcSession,
     source_app_identifier: &str,
-    album_art_cache: &mut SmtcAlbumArtCache,
 ) -> windows::core::Result<MediaSessionSnapshot> {
     let media_properties = session.TryGetMediaPropertiesAsync()?.join()?;
-    let track_title = media_properties.Title()?.to_string_lossy();
-    let track_artist = media_properties.Artist()?.to_string_lossy();
-    let album_title = media_properties.AlbumTitle()?.to_string_lossy();
-    let album_art_data_url = album_art_cache.album_art_for_track(
-        (track_title.clone(), track_artist.clone(), album_title.clone()),
-        media_properties.Thumbnail().ok(),
-    );
     Ok(MediaSessionSnapshot {
         source_app_identifier: source_app_identifier.to_string(),
-        track_title,
-        track_artist,
-        album_title,
-        album_art_data_url,
+        track_title: media_properties.Title()?.to_string_lossy(),
+        track_artist: media_properties.Artist()?.to_string_lossy(),
+        album_title: media_properties.AlbumTitle()?.to_string_lossy(),
+        album_art_data_url: media_properties
+            .Thumbnail()
+            .ok()
+            .and_then(|thumbnail_reference| read_thumbnail_as_data_url(&thumbnail_reference)),
+        is_album_art_loading: false,
         playback_state: read_playback_state(session),
         timeline: read_media_timeline(session),
     })

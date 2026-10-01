@@ -1,4 +1,4 @@
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::time::Instant;
 
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as SmtcSessionManager;
@@ -10,8 +10,9 @@ use crate::media::windows_smtc::smtc_event_subscriptions::subscribe_to_session_l
 use crate::media::windows_smtc::smtc_session_tracker::SmtcSessionTracker;
 use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
 
-/// Runs for the whole life of the app on its own thread. It sleeps in `recv()` until an
-/// SMTC event or a button press arrives, so it costs no CPU while nothing changes.
+/// Runs for the whole life of the app on its own thread. It sleeps until an SMTC event or a
+/// button press arrives (or a new track's album art may be shown), so it costs no CPU while
+/// nothing changes.
 pub fn run_smtc_worker_thread(
     allowed_app_identifier_fragments: Vec<String>,
     media_snapshot_listener: MediaSnapshotListener,
@@ -45,9 +46,15 @@ pub fn run_smtc_worker_thread(
     session_tracker.refresh_session_list();
     session_tracker.publish_preferred_session_if_changed();
 
-    while let Ok(first_message) = worker_message_receiver.recv() {
-        let mut received_messages = vec![first_message];
-        collect_messages_within_coalescing_window(&worker_message_receiver, &mut received_messages);
+    while let Ok(first_message) =
+        wait_for_next_message(&worker_message_receiver, session_tracker.pending_album_art_settle_deadline())
+    {
+        // `None` means only that the album art may now be shown: there's nothing to handle,
+        // just publish again.
+        let mut received_messages: Vec<SmtcWorkerMessage> = first_message.into_iter().collect();
+        if !received_messages.is_empty() {
+            collect_messages_within_coalescing_window(&worker_message_receiver, &mut received_messages);
+        }
         for received_message in received_messages {
             match received_message {
                 SmtcWorkerMessage::SessionListChanged => session_tracker.refresh_session_list(),
@@ -60,6 +67,22 @@ pub fn run_smtc_worker_thread(
             }
         }
         session_tracker.publish_preferred_session_if_changed();
+    }
+}
+
+/// Sleeps until a message arrives, or until `wake_up_at` if one is given (then `Ok(None)`).
+/// `Err` means every sender is gone and the thread should end.
+fn wait_for_next_message(
+    worker_message_receiver: &Receiver<SmtcWorkerMessage>,
+    wake_up_at: Option<Instant>,
+) -> Result<Option<SmtcWorkerMessage>, RecvTimeoutError> {
+    let Some(wake_up_at) = wake_up_at else {
+        return worker_message_receiver.recv().map(Some).map_err(|_| RecvTimeoutError::Disconnected);
+    };
+    match worker_message_receiver.recv_timeout(wake_up_at.saturating_duration_since(Instant::now())) {
+        Ok(next_message) => Ok(Some(next_message)),
+        Err(RecvTimeoutError::Timeout) => Ok(None),
+        Err(RecvTimeoutError::Disconnected) => Err(RecvTimeoutError::Disconnected),
     }
 }
 

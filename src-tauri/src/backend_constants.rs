@@ -27,6 +27,11 @@ pub const PILL_HIDE_DELAY_AFTER_ACTIVITY_ENDS: Duration = Duration::from_secs(3)
 /// Browsers drop the session for about 0.4 s on every track change (measured).
 pub const MUSIC_SESSION_LOSS_GRACE_PERIOD: Duration = Duration::from_millis(1500);
 
+/// How long a new track's album art is held back (the pill shows "loading" instead). Brave
+/// first sends its own logo as the thumbnail and the real cover 60–130 ms later (measured
+/// on 6 skips), so this is about twice the slowest case.
+pub const ALBUM_ART_SETTLE_WINDOW: Duration = Duration::from_millis(300);
+
 /// SMTC events arrive in bursts (dragging the seek bar fires about 10 per second), so
 /// everything that arrives within this window after the first event is handled once.
 #[cfg(target_os = "windows")]

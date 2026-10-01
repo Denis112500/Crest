@@ -40,7 +40,7 @@ export function createExpandedMusicView(): ExpandedMusicView {
     expandedViewElement,
     showNowPlaying(nowPlaying) {
       const isPlaying = nowPlaying.playbackState === "playing";
-      expandedAlbumArt.showAlbumArt(nowPlaying.albumArtDataUrl);
+      expandedAlbumArt.showAlbumArt(nowPlaying.albumArtDataUrl, nowPlaying.isAlbumArtLoading);
       expandedTitleElement.textContent = nowPlaying.trackTitle;
       expandedArtistElement.textContent = nowPlaying.trackArtist;
       playbackProgressBar.showTimeline(nowPlaying.timeline, isPlaying);
