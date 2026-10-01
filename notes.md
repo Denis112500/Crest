@@ -8,6 +8,13 @@
 
 ---
 
+## 2026-10-01 — Publishing on GitHub
+- **Done:** added `LICENSE` (MIT); README gained "Installing" (installer from Releases, SmartScreen note), build command, and a "License" section (toy project, not affiliated with Apple/Google/YouTube). Checked the tracked files for personal data before publishing: no emails, no personal paths, no build output.
+- **Decisions:** public repo, MIT license. The user creates the empty repo on github.com; no GitHub CLI installed. The installer goes into a GitHub Release (uploaded by hand), not into git: build output never belongs in the repo.
+- **Learned:** `git remote add origin <url>` links the local repo to GitHub; `git push -u origin main` uploads it and makes later `git push` calls go there. Git for Windows' Credential Manager handles the GitHub login in the browser on the first push.
+
+---
+
 ## 2026-10-01 — First release build (version 0.1.1)
 - **Done:**
   - Version raised from 0.1.0 to 0.1.1 in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.

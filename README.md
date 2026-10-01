@@ -58,6 +58,7 @@ Window behavior works the same way as media: a small trait, `PillWindowPlatform`
 Dynamic Island/
 ├─ CLAUDE.md                    standing rules for AI-assisted sessions
 ├─ README.md                    this file
+├─ LICENSE                      MIT
 ├─ notes.md                     running project log
 ├─ .gitignore                   ignores node_modules, dist, build output
 ├─ .gitattributes               LF line endings everywhere (Windows and Linux)
@@ -165,13 +166,18 @@ Dynamic Island/
             └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus, hide, window region
 ```
 
-## Running it
+## Installing
+
+Download `Crest_<version>_x64-setup.exe` from the [Releases](../../releases) page and run it (Windows 10/11, 64-bit). The installer isn't code-signed, so SmartScreen will warn: **More info → Run anyway**.
+
+## Running it from source
 
 Prerequisites on Windows: Rust (`stable-msvc`), Microsoft C++ Build Tools with "Desktop development with C++", Node.js. WebView2 ships with Windows 11.
 
 ```powershell
 npm install
-npm run tauri dev
+npm run tauri dev     # run with hot reload
+npm run tauri build   # installer in src-tauri\target\release\bundle\nsis\
 ```
 
 ## Settings
@@ -185,3 +191,7 @@ Crest works without any settings. To change which apps it shows, create `%APPDAT
 ```
 
 A media session is shown only if its app ID contains one of the fragments (ignoring case). The default matches the YouTube Music web app in Chromium browsers. An empty list (`[]`) shows every app.
+
+## License
+
+A personal toy project, built to learn Rust and Tauri. [MIT](LICENSE). Not affiliated with Apple, Google or YouTube; it only reads what Windows already shares through its media controls.
