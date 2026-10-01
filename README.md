@@ -1,5 +1,7 @@
 # Crest
 
+> **A personal toy project**, built to learn Rust, Tauri and Windows APIs. It works on my machine and is shared as-is: no support, no roadmap, and it may change or break at any time.
+
 A small pill at the top center of the screen, in the spirit of the iPhone's Dynamic Island. It shows what's playing (YouTube Music first), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no network calls, no telemetry, no API keys.
