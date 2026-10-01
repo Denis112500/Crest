@@ -2,8 +2,16 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** nothing. The published installer (0.1.1) predates these fixes; a 0.1.2 build is needed for them. Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
+- **In progress:** installer 0.1.2 is built with all fixes; waiting to be uploaded as GitHub Release v0.1.2. Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-01 — Release build 0.1.2
+- **Done:** version 0.1.1 → 0.1.2 (`package.json`, `package-lock.json`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`); `npm run tauri build` in 3 min 44 s → `Crest_0.1.2_x64-setup.exe` (1.35 MiB). Contains all of today's fixes (title bar, layer fades, loading ring, single instance, held button presses).
+- **Verified by testing:** with the dev copy running, the release `crest.exe` exits by itself (exit code 0): dev and release share the identifier `dev.crest.pill`, so the single-instance guard covers both. A full release startup wasn't re-tested (it would have meant closing the user's dev copy).
+- **Learned:** the single-instance lock is per app identifier, not per exe file: to try the installed version, quit the dev copy first (and the reverse).
+- **Next:** user uploads the installer as GitHub Release v0.1.2.
 
 ---
 
