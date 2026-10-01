@@ -148,6 +148,7 @@ Dynamic Island/
       │  ├─ media_session_snapshot.rs  title, artist, album, art, play state, timeline
       │  ├─ media_session_selector.rs  app-ID filter + which session to show (unit-tested)
       │  ├─ album_art_settle_gate.rs   holds a new track's art back 300 ms ("loading"), skipping placeholders (unit-tested)
+      │  ├─ pending_transport_commands.rs  button presses kept while the session is briefly gone (unit-tested)
       │  └─ windows_smtc/
       │     ├─ mod.rs
       │     ├─ smtc_media_source.rs        Windows MediaSource: starts the worker thread
@@ -155,7 +156,8 @@ Dynamic Island/
       │     ├─ smtc_worker_message.rs      what can wake the worker (events, button presses)
       │     ├─ smtc_event_subscriptions.rs SMTC events → messages to the worker
       │     ├─ smtc_transport_commands.rs  play/pause, next, previous on a session
-      │     ├─ smtc_session_tracker.rs     known sessions, last activity, what was sent
+      │     ├─ smtc_session_tracker.rs     known sessions, last activity, what was sent, held presses
+      │     ├─ smtc_tracked_session.rs     one listened-to session + lookup by app
       │     ├─ smtc_snapshot_reader.rs     WinRT properties → snapshot
       │     └─ smtc_thumbnail_reader.rs    album art → data URL, read fresh on every update
       └─ pill_window/

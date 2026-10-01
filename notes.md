@@ -3,7 +3,19 @@
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
 - **In progress:** nothing. The published installer (0.1.1) predates these fixes; a 0.1.2 build is needed for them. Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
-- **Broken:** button presses during a track change (about 0.4 s) are dropped. One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+- **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-01 — Button presses during a track change are no longer lost
+- **Problem:** "no media session to send PreviousTrack to" ×4 in the user's log. Brave drops the media session for about 0.5 s on every track change; a press in that gap had no session to go to and was thrown away, so fast repeated next/previous skipped fewer tracks than pressed.
+- **Done:**
+  - `media/pending_transport_commands.rs` (platform-independent, 2 tests): holds presses in order with their time; `take_still_relevant` hands back those younger than `PENDING_MEDIA_TRANSPORT_COMMAND_LIFETIME` (2 s) and empties the list.
+  - `smtc_session_tracker.rs`: the buttons' target app (`button_target_source_app_identifier`) is no longer cleared when the session vanishes. A press with no session is held; when the session list changes and the target app's session is back, held presses are sent.
+  - `smtc_transport_commands.rs` now reports send failures itself; `smtc_tracked_session.rs` (new) holds `TrackedSmtcSession` and `find_session_of_app`. Split because the tracker grew to 166 lines; it's 146 now.
+  - clippy clean, 28/28 tests.
+- **Learned:** **borrowing fields separately.** A method `&self -> &Session` borrows the whole struct, so you can't change another field while holding the result. A free function that takes only `&self.tracked_sessions` borrows just that field, and Rust allows changing `self.pending_transport_commands` at the same time.
+- **Decisions:** stale presses (older than 2 s) are dropped instead of fired late; no timer is needed, since age is checked when the session comes back.
 
 ---
 

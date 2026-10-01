@@ -3,6 +3,7 @@ mod smtc_media_source;
 mod smtc_session_tracker;
 mod smtc_snapshot_reader;
 mod smtc_thumbnail_reader;
+mod smtc_tracked_session;
 mod smtc_transport_commands;
 mod smtc_worker_message;
 mod smtc_worker_thread;

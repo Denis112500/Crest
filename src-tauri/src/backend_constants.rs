@@ -27,6 +27,11 @@ pub const PILL_HIDE_DELAY_AFTER_ACTIVITY_ENDS: Duration = Duration::from_secs(3)
 /// Browsers drop the session for about 0.4 s on every track change (measured).
 pub const MUSIC_SESSION_LOSS_GRACE_PERIOD: Duration = Duration::from_millis(1500);
 
+/// How long a button press is kept while the player's session is gone, waiting for it to
+/// come back. The session vanishes for about 0.5 s on every track change (measured); an
+/// older press would surprise the user, so it's dropped.
+pub const PENDING_MEDIA_TRANSPORT_COMMAND_LIFETIME: Duration = Duration::from_secs(2);
+
 /// How long a new track's album art is held back (the pill shows "loading" instead). Brave
 /// first sends its own logo as the thumbnail and the real cover 60–130 ms later (measured
 /// on 6 skips), so this is about twice the slowest case.

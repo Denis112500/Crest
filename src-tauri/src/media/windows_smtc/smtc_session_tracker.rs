@@ -8,15 +8,12 @@ use crate::media::album_art_settle_gate::AlbumArtSettleGate;
 use crate::media::media_session_selector::{select_preferred_media_session, MediaSessionCandidate};
 use crate::media::media_session_snapshot::{MediaPlaybackState, MediaSessionSnapshot};
 use crate::media::media_source::{MediaSnapshotListener, MediaTransportCommand};
+use crate::media::pending_transport_commands::PendingTransportCommands;
 use crate::media::windows_smtc::smtc_event_subscriptions::SmtcSessionEventSubscription;
 use crate::media::windows_smtc::smtc_snapshot_reader::{read_media_session_snapshot, read_playback_state};
+use crate::media::windows_smtc::smtc_tracked_session::{find_session_of_app, TrackedSmtcSession};
 use crate::media::windows_smtc::smtc_transport_commands::send_smtc_transport_command;
 use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
-
-struct TrackedSmtcSession {
-    source_app_identifier: String,
-    event_subscription: SmtcSessionEventSubscription,
-}
 
 /// Owns everything the SMTC worker thread knows: which sessions exist, when each was last
 /// active, and what was last sent to the listener (so unchanged snapshots aren't resent).
@@ -28,8 +25,10 @@ pub struct SmtcSessionTracker {
     last_activity_by_source_app: HashMap<String, Instant>,
     album_art_settle_gate: AlbumArtSettleGate,
     last_published_snapshot: Option<Option<MediaSessionSnapshot>>,
-    /// The session the pill currently shows; the buttons control this one.
-    shown_source_app_identifier: Option<String>,
+    /// The app the buttons control: the one shown last. Kept while its session is briefly
+    /// gone between tracks, so a press in that gap can still be delivered to it.
+    button_target_source_app_identifier: Option<String>,
+    pending_transport_commands: PendingTransportCommands,
     media_snapshot_listener: MediaSnapshotListener,
 }
 
@@ -48,7 +47,8 @@ impl SmtcSessionTracker {
             last_activity_by_source_app: HashMap::new(),
             album_art_settle_gate: AlbumArtSettleGate::default(),
             last_published_snapshot: None,
-            shown_source_app_identifier: None,
+            button_target_source_app_identifier: None,
+            pending_transport_commands: PendingTransportCommands::default(),
             media_snapshot_listener,
         }
     }
@@ -84,6 +84,13 @@ impl SmtcSessionTracker {
                 .entry(tracked_session.source_app_identifier.clone())
                 .or_insert_with(Instant::now);
         }
+        let button_target_session =
+            find_session_of_app(&self.tracked_sessions, self.button_target_source_app_identifier.as_deref());
+        if let Some(button_target_session) = button_target_session {
+            for pending_command in self.pending_transport_commands.take_still_relevant(Instant::now()) {
+                send_smtc_transport_command(button_target_session, pending_command);
+            }
+        }
     }
 
     pub fn record_session_activity(&mut self, source_app_identifier: String) {
@@ -95,8 +102,9 @@ impl SmtcSessionTracker {
         if let Some(snapshot) = preferred_snapshot.as_mut() {
             self.album_art_settle_gate.hold_back_unsettled_album_art(snapshot, Instant::now());
         }
-        self.shown_source_app_identifier =
-            preferred_snapshot.as_ref().map(|snapshot| snapshot.source_app_identifier.clone());
+        if let Some(snapshot) = preferred_snapshot.as_ref() {
+            self.button_target_source_app_identifier = Some(snapshot.source_app_identifier.clone());
+        }
         if self.last_published_snapshot.as_ref() != Some(&preferred_snapshot) {
             (self.media_snapshot_listener)(preferred_snapshot.clone());
             self.last_published_snapshot = Some(preferred_snapshot);
@@ -107,19 +115,10 @@ impl SmtcSessionTracker {
         self.album_art_settle_gate.pending_settle_deadline()
     }
 
-    pub fn send_transport_command_to_shown_session(&self, media_transport_command: MediaTransportCommand) {
-        let Some(shown_session) = self.tracked_sessions.iter().find(|tracked_session| {
-            self.shown_source_app_identifier.as_deref() == Some(tracked_session.source_app_identifier.as_str())
-        }) else {
-            eprintln!("Crest media: no media session to send {media_transport_command:?} to");
-            return;
-        };
-        match send_smtc_transport_command(shown_session.event_subscription.session(), media_transport_command) {
-            Ok(true) => {}
-            Ok(false) => eprintln!("Crest media: the player declined {media_transport_command:?}"),
-            Err(command_error) => {
-                eprintln!("Crest media: could not send {media_transport_command:?}: {command_error}")
-            }
+    pub fn send_transport_command_to_shown_session(&mut self, media_transport_command: MediaTransportCommand) {
+        match find_session_of_app(&self.tracked_sessions, self.button_target_source_app_identifier.as_deref()) {
+            Some(button_target_session) => send_smtc_transport_command(button_target_session, media_transport_command),
+            None => self.pending_transport_commands.hold(media_transport_command, Instant::now()),
         }
     }
 

@@ -2,6 +2,7 @@ mod album_art_settle_gate;
 mod media_session_selector;
 mod media_session_snapshot;
 mod media_source;
+mod pending_transport_commands;
 
 #[cfg(target_os = "windows")]
 mod windows_smtc;

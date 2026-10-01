@@ -3,9 +3,18 @@ use windows::Media::Control::GlobalSystemMediaTransportControlsSession as SmtcSe
 use crate::media::media_source::MediaTransportCommand;
 
 /// Must be called from the SMTC worker thread: `.join()` waits for the player's answer.
-/// `Ok(false)` means the player received the request but declined it (for example
-/// "previous" on the first track of a queue).
-pub fn send_smtc_transport_command(
+/// A button press has nobody to return an error to, so failures are only reported.
+pub fn send_smtc_transport_command(session: &SmtcSession, media_transport_command: MediaTransportCommand) {
+    match request_smtc_transport_command(session, media_transport_command) {
+        Ok(true) => {}
+        // The player received the request but declined it (for example "previous" on the
+        // first track of a queue).
+        Ok(false) => eprintln!("Crest media: the player declined {media_transport_command:?}"),
+        Err(command_error) => eprintln!("Crest media: could not send {media_transport_command:?}: {command_error}"),
+    }
+}
+
+fn request_smtc_transport_command(
     session: &SmtcSession,
     media_transport_command: MediaTransportCommand,
 ) -> windows::core::Result<bool> {
