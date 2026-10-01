@@ -11,6 +11,8 @@
 ## 2026-10-01 — Publishing on GitHub
 - **Done:** added `LICENSE` (MIT); README gained "Installing" (installer from Releases, SmartScreen note), build command, and a "License" section (toy project, not affiliated with Apple/Google/YouTube). Checked the tracked files for personal data before publishing: no emails, no personal paths, no build output.
 - **Decisions:** public repo, MIT license. The user creates the empty repo on github.com; no GitHub CLI installed. The installer goes into a GitHub Release (uploaded by hand), not into git: build output never belongs in the repo.
+- **Done (later):** pushed to https://github.com/Denis112500/Crest. Before the push, every commit's author email was changed from the personal Gmail to the GitHub private address (`196484913+Denis112500@users.noreply.github.com`, set as this repo's `user.email`); commit hashes changed, dates and messages didn't.
+- **Learned:** every commit stores its author's name and email; on a public repo anyone can read them. GitHub's "noreply" address (Settings → Emails) still links commits to the account. Rewriting history is only safe before anyone else has it, i.e. before the first push.
 - **Learned:** `git remote add origin <url>` links the local repo to GitHub; `git push -u origin main` uploads it and makes later `git push` calls go there. Git for Windows' Credential Manager handles the GitHub login in the browser on the first push.
 
 ---
@@ -347,6 +349,9 @@ npm run tauri dev
 npm run tauri build
 #   standalone exe: src-tauri\target\release\crest.exe
 #   installer:      src-tauri\target\release\bundle\nsis\Crest_<version>_x64-setup.exe
+
+# Publish commits to GitHub (https://github.com/Denis112500/Crest)
+git push
 
 # Checks
 npx tsc --noEmit                       # type-check the frontend
