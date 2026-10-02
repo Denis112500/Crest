@@ -2,8 +2,20 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** nothing. Installer 0.1.2 with all fixes is published as GitHub Release v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2). Next work is in the "Roadmap (proposed)" entry below.
+- **In progress:** Phase 1 → v0.2.0. Item 1 (hide during fullscreen apps/games): research done, approach proposed, waiting for the user's go-ahead. Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-02 — Phase 1, item 1: how to detect a fullscreen app (research, no code yet)
+- **Decision (user):** Phase 1 confirmed in this order: fullscreen hide → autostart → greyed-out buttons → WebView2 memory → v0.2.0 release on GitHub.
+- **Options found:**
+  - **A. `SHQueryUserNotificationState`** (verified from docs): returns `QUNS_BUSY` (fullscreen app or presentation mode) or `QUNS_RUNNING_D3D_FULL_SCREEN` (exclusive Direct3D). A question you have to ask, never a notification → only usable with polling. No monitor information.
+  - **B. `SetWinEventHook(EVENT_SYSTEM_FOREGROUND)`** + own check "does the front window cover its whole monitor?" (verified from docs): event-driven and knows the monitor, but only fires when the front window *changes*, so it misses a window that becomes fullscreen while already in front (F11, a game switching display mode).
+  - **C. Register as an appbar (`SHAppBarMessage(ABM_NEW)`) and receive `ABN_FULLSCREENAPP`** (verified from docs): the shell's own fullscreen detection, the one that hides the taskbar; sent when the first fullscreen app opens (`lParam` TRUE) and the last one closes (FALSE). Event-driven, also catches F11. Weak spots (unverified, from forum/GitHub reports): no monitor information (this PC has 2 monitors: primary 2560×1440, second 1920×1080 on the right); clicking the desktop can look fullscreen (window classes `Progman`/`WorkerW`); the registration is lost when Explorer restarts (re-register on the `TaskbarCreated` message).
+- **Proposed:** C as the trigger, plus our own check on each notification (front window covers the *pill's* monitor and isn't the desktop). Before building it, a small read-only probe in `dev-tools/` logs what Windows actually sends while the user plays Valorant (fullscreen and windowed fullscreen), uses F11 on each monitor, alt-tabs and clicks the desktop.
+- **Learned:** the reference project (macOS) does the opposite: it deliberately stays visible over fullscreen apps, so nothing to reuse here. Anything that injects into another process (in-context hooks) is off-limits next to anti-cheat (Vanguard); A, B and C are all passive.
+- **Open questions:** hide instantly (no fade over the game) or with the usual animation? Does exclusive fullscreen trigger C? (probe will show)
 
 ---
 
