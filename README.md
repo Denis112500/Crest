@@ -2,13 +2,17 @@
 
 > **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave); shared as-is, no support guaranteed.
 
-A small pill at the top center of the screen, in the spirit of the iPhone's Dynamic Island. It shows what's playing (YouTube Music first), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
+A small pill at the top center of the screen. It shows what's playing (YouTube Music first), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no network calls, no telemetry, no API keys (except for optional integrations).
 
 > Status: version 1 complete. A compact pill (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s or the player closes; tray icon with Quit. See `notes.md` for the running log.
 
 To quit Crest, use the tray icon (notification area, possibly behind the ^ arrow) → **Quit Crest**.
+
+## How it's built
+
+I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code writes the code, debugs and documents it, following the rules in `CLAUDE.md`. `notes.md` is the running log of every decision and bug, and the commit history shows which commits were co-authored.
 
 ## How it works, in plain language
 
@@ -57,7 +61,7 @@ Window behavior works the same way as media: a small trait, `PillWindowPlatform`
 ## Current file tree
 
 ```
-Dynamic Island/
+Crest/
 ├─ CLAUDE.md                    standing rules for AI-assisted sessions
 ├─ README.md                    this file
 ├─ LICENSE                      MIT
@@ -201,4 +205,4 @@ A media session is shown only if its app ID contains one of the fragments (ignor
 
 ## License
 
-A personal hobby project. [MIT](LICENSE). Not affiliated with Apple, Google or YouTube; it only reads what Windows already shares through its media controls.
+A personal hobby project. [MIT](LICENSE). Not affiliated with Google or YouTube; it only reads what Windows already shares through its media controls.
