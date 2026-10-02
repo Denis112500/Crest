@@ -3,6 +3,7 @@ mod activity_sources;
 mod backend_constants;
 mod fullscreen_detection;
 mod ipc_channel_names;
+mod launch_at_login;
 mod media;
 mod pill_window;
 mod system_tray;
@@ -29,6 +30,9 @@ pub fn run_crest_app() {
         // running copy has nothing to bring forward (the pill appears only with music), so
         // the second launch is simply ignored.
         .plugin(tauri_plugin_single_instance::init(|_running_crest_app, _second_launch_arguments, _second_launch_directory| {}))
+        // Used from Rust only (the tray's "Start with Windows"); the page gets no permission
+        // for it in capabilities/default.json, so it can't switch autostart on or off.
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|crest_app| {
             let pill_window = crest_app
                 .get_webview_window(PILL_WINDOW_LABEL)

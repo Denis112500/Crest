@@ -19,6 +19,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"
 tauri-plugin-single-instance = "2.5"
+tauri-plugin-autostart = "2.7"
 
 # Same major version Tauri uses, so its HWND type is ours and only one copy compiles.
 [target.'cfg(windows)'.dependencies]
