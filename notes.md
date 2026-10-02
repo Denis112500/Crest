@@ -2,8 +2,36 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** Phase 1 → v0.2.0. Item 1 (hide during fullscreen apps/games): probe run done, `ABN_FULLSCREENAPP` confirmed for Valorant and YouTube Music; next is 1b (the real feature). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
+- **In progress:** Phase 1 → v0.2.0. Item 1 done (pill hides during fullscreen apps, user confirmed); pull request from branch `fullscreen-hide` waiting for the user's merge. Next: item 2 (autostart). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-02 — Phase 1, item 1b: the pill steps aside for fullscreen apps
+- **Decision (user):** from now on, work goes through **pull requests**: one short-named branch per milestone, PR into `main` with `gh`. Replaces "no pull requests for now" (Roadmap entry).
+- **Done:**
+  - `fullscreen_detection/` (new): `fullscreen_app_watcher.rs` (trait `FullscreenAppWatcher`, like the other platform traits); Windows in `windows_shell_appbar/`: `appbar_fullscreen_app_watcher.rs` (own thread + hidden window + message loop), `appbar_watcher_window_procedure.rs` (reacts to `ABN_FULLSCREENAPP`, the settle timer and `TaskbarCreated`), `appbar_watcher_thread_state.rs` (what the window procedure needs, in a `thread_local`), `front_window_fullscreen_check.rs` (front window covers the **pill's** monitor and isn't the desktop `Progman`/`WorkerW`). Split in four because one file was ~190 lines mixing setup, message handling and state.
+  - "Closed" waits `FULLSCREEN_APP_LEAVE_SETTLE_DELAY` (250 ms) with a Win32 timer and is cancelled by a new "opened": no flash during Valorant's 20 ms mode-switch flicker.
+  - `pill_visibility_controller.rs`: visible = wanted by the activity rules **and** no fullscreen app; reports `PillVisibility { isPillVisible, isFullscreenAppInFront }` (was a bool); 3 new tests. Hide countdowns keep running meanwhile, so a pause during a game still ends with the pill hidden.
+  - Frontend: `pillVisibilityTypes.ts` (new); `pillVisibilityController.ts` hides instantly (class `is-concealed-instantly` = no transition) and doesn't wait for the pointer to leave when a fullscreen app is the reason; tells the presenter when the pill is on/off screen → `ActivityViewSet.setPillOnScreen` → the bars stop while hidden.
+  - Cargo feature `Win32_System_LibraryLoader` (for `GetModuleHandleW`; part of the existing `windows` crate, nothing downloaded).
+  - Verified by testing: clippy clean, 31/31 Rust tests, tsc, vite build; dev app starts with no errors and the page receives the new visibility object.
+- **Verified from code:** tao (Tauri's window layer) makes the process per-monitor DPI aware (`tao/src/platform_impl/windows/dpi.rs`), so window and monitor sizes are in real pixels, as in the probe.
+- **Learned:**
+  - **`thread_local!`:** a window procedure is a plain function Windows calls, with no `self`; a thread-local variable gives it the state of the thread that owns the window, without a `Mutex`.
+  - **Raw handles and threads:** `HWND` is a raw pointer, which Rust won't send to another thread; passing the number (`isize`) and rebuilding the handle there is the usual way when the other thread only reads.
+  - **Win32 timers:** `SetTimer` on a window posts `WM_TIMER` into its message loop, so a delay costs no thread and no polling; `KillTimer` cancels it.
+- **Not handled (accepted):** in exclusive fullscreen, a short alt-tab may not send "closed" (seen in the probe), so the pill stays hidden like the taskbar. The appbar isn't removed when Crest quits; the shell drops registrations of windows that no longer exist (unverified).
+- **Verified by testing (user + state recorder):** the pill vanishes instantly in a fullscreen game, the bars stop ~1 s later while the music keeps playing, and both come back after alt-tab. Not yet seen in practice: fullscreen on the second monitor, desktop clicks, a 30 s pause during a game.
+- **Next:** pull request `fullscreen-hide` → `main`; then item 2.
+
+---
+
+## 2026-10-02 — GitHub CLI installed
+- **Done:** `winget install --id GitHub.cli --exact --source winget` → `gh` 2.102.0 in `C:\Program Files\GitHub CLI\` (user asked for it). Not logged in yet: the user runs `gh auth login` once (browser login; the token is stored by `gh` in Windows Credential Manager, never in the repo).
+- **Learned:** a newly installed program's folder is added to PATH only for terminals opened *after* the install; old windows still say "gh is not recognized".
+- **Open questions:** should the app's "Create PR" button now open real pull requests (branch per milestone) instead of committing to `main`? Until the user decides, the old decision (no PRs, commits to `main`) stands.
+  - **Answer (user, same day):** yes, real pull requests.
 
 ---
 
@@ -51,6 +79,7 @@
 - **Phase 4: personality:** own visual identity (character, idle animations, sounds), never Coucou's Mochi.
 - **Phase 5: Linux** (KDE Plasma, Wayland): MPRIS + layer-shell.
 - **Decisions (user):** no GitHub issues or pull requests for now; the roadmap lives here and commits go straight to `main`.
+  - **Correction (2026-10-02, later):** `gh` installed; milestones now go through pull requests (see item 1b).
 - **Next:** user confirms or reorders; suggested first step is 1 (hide during fullscreen games).
 
 ---
@@ -491,6 +520,10 @@ npm run tauri build
 
 # Publish commits to GitHub (https://github.com/Denis112500/Crest)
 git push
+
+# GitHub CLI (once: log in through the browser)
+gh auth login
+gh auth status
 
 # Checks
 npx tsc --noEmit                       # type-check the frontend

@@ -1,6 +1,7 @@
 mod activity_core;
 mod activity_sources;
 mod backend_constants;
+mod fullscreen_detection;
 mod ipc_channel_names;
 mod media;
 mod pill_window;
@@ -14,6 +15,7 @@ use tauri::{Emitter, Manager};
 use activity_core::{ActivityArbiter, ActivitySourceRegistry, PillVisibilityController, SharedActivityArbiter};
 use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
+use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppWatcher};
 use ipc_channel_names::{PILL_PRESENTATION_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
 use media::CurrentPlatformMediaSource;
 use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
@@ -35,14 +37,25 @@ pub fn run_crest_app() {
             create_crest_tray_icon(crest_app)?;
 
             let visibility_app_handle = crest_app.handle().clone();
-            let pill_visibility_controller = PillVisibilityController::new(Box::new(move |is_pill_visible| {
+            let pill_visibility_controller = PillVisibilityController::new(Box::new(move |pill_visibility| {
                 if let Err(emit_error) =
-                    visibility_app_handle.emit_to(PILL_WINDOW_LABEL, PILL_VISIBILITY_CHANGED_EVENT, is_pill_visible)
+                    visibility_app_handle.emit_to(PILL_WINDOW_LABEL, PILL_VISIBILITY_CHANGED_EVENT, pill_visibility)
                 {
                     eprintln!("Crest: could not send the pill visibility to the window: {emit_error}");
                 }
             }));
             crest_app.manage(pill_visibility_controller.clone());
+
+            let fullscreen_visibility_controller = pill_visibility_controller.clone();
+            // Not fatal: without it the pill only stays on top of games, as before.
+            if let Err(watch_error) = CurrentPlatformFullscreenAppWatcher::start_watching_fullscreen_apps(
+                &pill_window,
+                Box::new(move |is_fullscreen_app_in_front| {
+                    fullscreen_visibility_controller.handle_fullscreen_app_change(is_fullscreen_app_in_front);
+                }),
+            ) {
+                eprintln!("Crest: could not start watching for fullscreen apps: {watch_error}");
+            }
 
             let presentation_app_handle = crest_app.handle().clone();
             let shared_activity_arbiter: SharedActivityArbiter =

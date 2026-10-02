@@ -37,6 +37,12 @@ pub const PENDING_MEDIA_TRANSPORT_COMMAND_LIFETIME: Duration = Duration::from_se
 /// on 6 skips), so this is about twice the slowest case.
 pub const ALBUM_ART_SETTLE_WINDOW: Duration = Duration::from_millis(300);
 
+/// After Windows reports that a fullscreen app has gone, the pill waits this long before it
+/// comes back: switching a fullscreen app's display mode sends "closed" and "opened" 20 ms apart
+/// (measured), and the pill shouldn't flash in between.
+#[cfg(target_os = "windows")]
+pub const FULLSCREEN_APP_LEAVE_SETTLE_DELAY: Duration = Duration::from_millis(250);
+
 /// SMTC events arrive in bursts (dragging the seek bar fires about 10 per second), so
 /// everything that arrives within this window after the first event is handled once.
 #[cfg(target_os = "windows")]

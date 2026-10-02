@@ -10,6 +10,7 @@ export class PillContentPresenter {
   private mountedActivityKind: string | null = null;
   private mountedViewSet: ActivityViewSet | undefined;
   private isExpandedContentVisible = false;
+  private isPillOnScreen = false;
 
   constructor(private readonly pillShellElements: PillShellElements) {}
 
@@ -22,6 +23,7 @@ export class PillContentPresenter {
       this.pillShellElements.compactLayerElement.replaceChildren(activityViewSet.compactViewElement);
       this.pillShellElements.expandedLayerElement.replaceChildren(activityViewSet.expandedViewElement);
       activityViewSet.setExpandedViewVisible(this.isExpandedContentVisible);
+      activityViewSet.setPillOnScreen(this.isPillOnScreen);
       this.mountedViewSet = activityViewSet;
       this.mountedActivityKind = activityKind;
     }
@@ -33,5 +35,10 @@ export class PillContentPresenter {
   setExpandedContentVisible(isExpandedContentVisible: boolean): void {
     this.isExpandedContentVisible = isExpandedContentVisible;
     this.mountedViewSet?.setExpandedViewVisible(isExpandedContentVisible);
+  }
+
+  setPillOnScreen(isPillOnScreen: boolean): void {
+    this.isPillOnScreen = isPillOnScreen;
+    this.mountedViewSet?.setPillOnScreen(isPillOnScreen);
   }
 }

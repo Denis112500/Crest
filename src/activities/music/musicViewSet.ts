@@ -19,5 +19,8 @@ export function createMusicViewSet(): ActivityViewSet {
     setExpandedViewVisible(isExpandedViewVisible) {
       expandedMusicView.setProgressAnimationActive(isExpandedViewVisible);
     },
+    setPillOnScreen(isPillOnScreen) {
+      compactMusicView.setPillOnScreen(isPillOnScreen);
+    },
   };
 }

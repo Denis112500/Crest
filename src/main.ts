@@ -18,6 +18,7 @@ import { connectPillPointerInput } from "./pill/pillPointerInput";
 import { createPillShellElements } from "./pill/pillShellElements";
 import { PillStateMachine } from "./pill/pillStateMachine";
 import { PillVisibilityController } from "./pill/pillVisibilityController";
+import type { PillVisibility } from "./pill/pillVisibilityTypes";
 
 async function startPill(): Promise<void> {
   const pillRootElement = document.querySelector<HTMLElement>("#pill-root");
@@ -38,7 +39,11 @@ async function startPill(): Promise<void> {
   // Before the visibility controller: its "pointer left" handler relies on the state
   // machine having seen the same event first.
   connectPillPointerInput(pillShellElements.pillShellElement, pillStateMachine);
-  const pillVisibilityController = new PillVisibilityController(pillShellElements.pillShellElement, pillStateMachine);
+  const pillVisibilityController = new PillVisibilityController(
+    pillShellElements.pillShellElement,
+    pillStateMachine,
+    (isPillOnScreen) => pillContentPresenter.setPillOnScreen(isPillOnScreen),
+  );
 
   // Window and interactive area first: a track already playing at startup makes the
   // pill peek, which changes the interactive area and must not be overwritten after.
@@ -59,10 +64,10 @@ async function startPill(): Promise<void> {
     },
   );
   // Rust decides whether the pill is on screen; the window stays hidden until it says so.
-  await listenForRustStateChanges<boolean>(
+  await listenForRustStateChanges<PillVisibility>(
     PILL_VISIBILITY_CHANGED_EVENT,
     GET_CURRENT_PILL_VISIBILITY_COMMAND,
-    (isPillVisible) => pillVisibilityController.showPillVisibility(isPillVisible),
+    (pillVisibility) => pillVisibilityController.showPillVisibility(pillVisibility),
   );
 }
 
