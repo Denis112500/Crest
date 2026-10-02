@@ -2,8 +2,13 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** installer 0.1.2 is built with all fixes; waiting to be uploaded as GitHub Release v0.1.2. Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
+- **In progress:** nothing. Installer 0.1.2 with all fixes is published as GitHub Release v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2). Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-02 — "Toy project" → "hobby project"
+- **Decision (user):** the README now calls Crest a personal hobby project instead of a toy project; it had outgrown "toy" (public releases, tests, plugin architecture). The disclaimer stays: works on the author's setup (Windows 11, YouTube Music in Brave), shared as-is, no support guaranteed.
 
 ---
 

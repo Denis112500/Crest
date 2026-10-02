@@ -1,6 +1,6 @@
 # Crest
 
-> **A personal toy project**, built to learn Rust, Tauri and Windows APIs. It works on my machine and is shared as-is: no support, no roadmap, and it may change or break at any time.
+> **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave); shared as-is, no support guaranteed.
 
 A small pill at the top center of the screen, in the spirit of the iPhone's Dynamic Island. It shows what's playing (YouTube Music first), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
@@ -200,4 +200,4 @@ A media session is shown only if its app ID contains one of the fragments (ignor
 
 ## License
 
-A personal toy project, built to learn Rust and Tauri. [MIT](LICENSE). Not affiliated with Apple, Google or YouTube; it only reads what Windows already shares through its media controls.
+A personal hobby project. [MIT](LICENSE). Not affiliated with Apple, Google or YouTube; it only reads what Windows already shares through its media controls.
