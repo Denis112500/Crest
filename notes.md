@@ -2,8 +2,27 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** nothing. Installer 0.1.2 with all fixes is published as GitHub Release v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2). Ideas for later are under "Open questions" in the entries below (fullscreen apps, WebView2 memory, autostart, Linux).
+- **In progress:** nothing. Installer 0.1.2 with all fixes is published as GitHub Release v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2). Next work is in the "Roadmap (proposed)" entry below.
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-02 — Roadmap (proposed, order not confirmed yet)
+- **Phase 1: daily-driver polish → v0.2.0**
+  1. Hide the pill (and stop the bars) while a fullscreen app or game is in front (the pill sits on Valorant's round timer).
+  2. Start with Windows, toggled from the tray (`tauri-plugin-autostart` → ask before installing).
+  3. Grey out buttons the player doesn't support (SMTC's control flags).
+  4. Reduce WebView2 memory (~330 MB of 388 MB): measure, try options, keep what helps.
+  5. ~~Save the debug scripts in `dev-tools/`.~~ Done 2026-10-02: `inspect_pill_window.ps1` (both style words + region, merged from two scripts), `evaluate_in_pill_page.ps1`, `record_pill_session.ps1` (capture area now follows the window), `list_media_sessions.ps1` (PowerShell 5.1), `smtc_thumbnail_watcher/` (Rust); `dev-tools/README.md` says when to use which. Verified by testing: all parse; the inspector, session lister and Rust watcher ran against the live app; the two page tools weren't re-run (need the debugging port).
+- **Phase 2: groundwork → v0.3.0**
+  6. Update CLAUDE.md for v2 (network only for enabled integrations, keys in Windows Credential Manager, free APIs only, no telemetry).
+  7. Small settings window from the tray (autostart, allowed players, later integrations on/off).
+  8. Several activities at once: design how they share the pill (switch / split / queue) before coding.
+- **Phase 3: integrations, free only → v0.4.0+:** Claude Code sessions with Allow/Deny (local), weather (Open-Meteo, no key), calendar (private ICS link), GitHub (free token).
+- **Phase 4: personality:** own visual identity (character, idle animations, sounds), never Coucou's Mochi.
+- **Phase 5: Linux** (KDE Plasma, Wayland): MPRIS + layer-shell.
+- **Decisions (user):** no GitHub issues or pull requests for now; the roadmap lives here and commits go straight to `main`.
+- **Next:** user confirms or reorders; suggested first step is 1 (hide during fullscreen games).
 
 ---
 
@@ -448,6 +467,10 @@ git push
 npx tsc --noEmit                       # type-check the frontend
 cd src-tauri; cargo build; cd ..       # compile the Rust side only
 git status                             # what changed since the last commit
+
+# Debugging helpers (window styles, page state, recorder, media sessions, album art):
+# see dev-tools/README.md
+pwsh dev-tools/inspect_pill_window.ps1
 
 # Debug the pill's page from outside (DevTools protocol on a local-only port), then open
 # http://127.0.0.1:9223/json to find it. Only for testing; don't leave it on.
