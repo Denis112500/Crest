@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-10-02 — Direction: integrations later, free APIs only
+- **Decisions (user):** Crest will grow toward a Coucou-like app with integrations, but **only free APIs, never paid ones**. Not started yet; no integration chosen.
+- **Open questions (decide before the first integration):**
+  - CLAUDE.md currently says "no network calls, no API keys" and "not in v1: other activity sources". It must be updated first. Proposed: network only for integrations the user enables; keys in Windows Credential Manager, never in files or the repo; still no telemetry.
+  - Candidates discussed: Claude Code sessions (local, no key), GitHub (free, personal token), weather via Open-Meteo (no key), calendar via private ICS link (no key).
+- **Learned:** "free" ≠ "no key": some free APIs need nothing, others need a free personal token.
+
+---
+
 ## 2026-10-01 — Release build 0.1.2
 - **Done:** version 0.1.1 → 0.1.2 (`package.json`, `package-lock.json`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`); `npm run tauri build` in 3 min 44 s → `Crest_0.1.2_x64-setup.exe` (1.35 MiB). Contains all of today's fixes (title bar, layer fades, loading ring, single instance, held button presses).
 - **Verified by testing:** with the dev copy running, the release `crest.exe` exits by itself (exit code 0): dev and release share the identifier `dev.crest.pill`, so the single-instance guard covers both. A full release startup wasn't re-tested (it would have meant closing the user's dev copy).
