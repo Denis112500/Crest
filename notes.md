@@ -2,8 +2,32 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** Phase 1 → v0.2.0. Item 1 done (pill hides during fullscreen apps, user confirmed); pull request from branch `fullscreen-hide` waiting for the user's merge. Next: item 2 (autostart). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
+- **In progress:** Phase 1 → v0.2.0. Items 1 (fullscreen hide, merged as PR #1) and 2 ("Start with Windows" in the tray, branch `autostart`) done and tested; next: item 3 (grey out unsupported buttons). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-02 — Phase 1, item 2: "Start with Windows" in the tray
+- **Done:**
+  - Installed `tauri-plugin-autostart` 2.7.0 (user approved; Rust only, no npm package). 3.0.0-alpha.2 exists on crates.io but is a pre-release. New in `Cargo.lock`: `auto-launch` 0.6, `windows-registry` 0.6, `os_info`; macOS/Linux-only crates are listed but not compiled on Windows; `tauri-utils` 2.10.0 → 2.10.1 (patch, needed by the plugin).
+  - `launch_at_login.rs` (new): `is_launch_at_login_enabled` / `toggle_launch_at_login`; always reads the real state back from Windows.
+  - `system_tray.rs`: checkmark item "Start with Windows" + separator above "Quit Crest"; after a click the checkmark is set to what Windows reports.
+  - `lib.rs`: `tauri_plugin_autostart::Builder::new().build()`. **No** permission for the page in `capabilities/` (the page can't switch autostart).
+  - Off by default.
+- **Verified by testing (user clicked, I read the registry):** on → `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value **`Crest`** = path of the running exe, plus `...\Explorer\StartupApproved\Run\Crest` = `02 00…` (enabled in Task Manager); nothing in HKLM. Off → the `Run` value is deleted. clippy clean, 31/31 tests.
+- **Verified from source:**
+  - The plugin registers `current_exe()`, so from `tauri dev` it registers `target\debug\crest.exe` (useless at login without Vite) → only test on/off in dev; the login test happens with the installed v0.2.0.
+  - Tauri's NSIS uninstaller (CLI 2.12.0, `installer.nsi`) already deletes `HKCU\...\Run\${PRODUCTNAME}` and skips it during updates (`/UPDATE`), so no installer hook of our own was needed. The value name matches ("Crest").
+  - Rust calls to the plugin (`app.autolaunch()`) don't go through permissions; `capabilities/` only limits what the page's JavaScript may invoke.
+- **Problems / limits:**
+  - "Off" and the uninstaller leave the `StartupApproved\Run\Crest` bytes behind; harmless (Windows only launches what's under `Run`), overwritten by the next "on".
+  - The path is stored without quotes. Fine for the installed `%LOCALAPPDATA%\Crest\crest.exe` (no spaces); the dev path has a space ("Dynamic Island"). Re-check with v0.2.0.
+  - Open: when upgrading by running a newer installer over the old one and choosing "uninstall first", the old uninstaller runs **without** `/UPDATE` and would remove the autostart entry. Check during the v0.2.0 install.
+- **Learned:**
+  - **`Run` key:** programs listed in `HKCU\...\CurrentVersion\Run` start at login; Task Manager's "Startup apps" shows them and stores enabled/disabled in `StartupApproved\Run`.
+  - **Least privilege with plugins:** a plugin has a Rust API (no permission needed) and page commands (need permissions); grant the page nothing it doesn't use.
+  - **Read the tool's own code first:** Tauri's installer script already did the cleanup we were about to write.
+- **Next:** PR `autostart` → `main`; then item 3.
 
 ---
 
