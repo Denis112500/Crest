@@ -10,6 +10,12 @@ Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + V
 
 To quit Crest, use the tray icon (notification area, possibly behind the ^ arrow) → **Quit Crest**.
 
+## What makes Crest different
+
+- **Private by default.** Crest makes no network calls, sends no telemetry and needs no account. It reads what's playing only from Windows' own media controls (SMTC): no scraping, no unofficial APIs, no cookies. Future integrations will be opt-in, use free APIs only, and keep any keys in Windows Credential Manager.
+- **Light on your PC.** Everything is event-driven, with no polling loops: 0% CPU while idle, paused or hidden, and about 5% of one core while music plays (measured).
+- **Built for Linux too (planned).** All Windows-specific code (media and window behavior) sits behind small interfaces, so a KDE Plasma on Wayland version can plug in next to it: MPRIS for media, layer-shell for the pill window. Not built yet.
+
 ## How it's built
 
 I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code writes the code, debugs and documents it, following the rules in `CLAUDE.md`. `notes.md` is the running log of every decision and bug, and the commit history shows which commits were co-authored.
