@@ -9,6 +9,8 @@ src-tauri/target/
 src-tauri/gen/schemas
 dev-tools/smtc_thumbnail_watcher/target/
 dev-tools/smtc_thumbnail_watcher/Cargo.lock
+dev-tools/fullscreen_event_watcher/target/
+dev-tools/fullscreen_event_watcher/Cargo.lock
 
 # Personal Claude Code settings (launch.json is shared on purpose)
 .claude/settings.local.json

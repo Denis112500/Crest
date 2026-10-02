@@ -10,6 +10,7 @@ installer; all are read-only (they look, they don't change anything).
 | `record_pill_session.ps1` | Logs every change of the window style and the page state for a while, with a screen capture of the pill per change. For bugs that only show with the real mouse: start it, use the pill, read the log. Needs the debugging port. | `pwsh` |
 | `list_media_sessions.ps1` | Which media sessions does Windows see (app ID, title, playback state, supported buttons, timeline)? `-WatchSeconds 30` prints every change afterwards. | **`powershell.exe`** (5.1 only: it loads WinRT types) |
 | `smtc_thumbnail_watcher/` | What album art does the player send, and when? Prints every title/thumbnail change and saves each distinct image. Found Brave's placeholder logo. | `cargo run --release` |
+| `fullscreen_event_watcher/` | What does Windows report when a fullscreen app or game comes to the front or leaves? Registers as an appbar (`ABN_FULLSCREENAPP`, the taskbar's own signal) and watches front-window changes; each event logs the front window's class/title, its monitor, whether it covers that monitor, and `SHQueryUserNotificationState`. | `cargo run --release` |
 
 ## Debugging port
 
@@ -31,4 +32,5 @@ pwsh dev-tools/evaluate_in_pill_page.ps1 -JavaScriptExpression "document.querySe
 pwsh dev-tools/record_pill_session.ps1 -RecordSeconds 120
 powershell.exe -ExecutionPolicy Bypass -File dev-tools/list_media_sessions.ps1 -WatchSeconds 30
 cd dev-tools/smtc_thumbnail_watcher; cargo run --release -- 300 $env:TEMP
+cd dev-tools/fullscreen_event_watcher; cargo run --release -- 600 $env:TEMP\crest_fullscreen_events.log
 ```

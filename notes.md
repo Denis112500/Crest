@@ -2,8 +2,17 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** Phase 1 → v0.2.0. Item 1 (hide during fullscreen apps/games): research done, approach proposed, waiting for the user's go-ahead. Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
+- **In progress:** Phase 1 → v0.2.0. Item 1 (hide during fullscreen apps/games): probe `dev-tools/fullscreen_event_watcher/` built, waiting for the user's test run (Valorant, F11, alt-tab, desktop clicks). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-02 — Phase 1, item 1a: fullscreen probe
+- **Decisions (user):** probe before building; when a fullscreen app comes to the front, the pill disappears **instantly** (no fade over the game); it comes back with the normal animation.
+- **Done:** `dev-tools/fullscreen_event_watcher/` (Rust, same `windows` 0.62 as Crest, no new downloads): a hidden window registered as an appbar logs every `ABN_*` notification, plus an out-of-context `EVENT_SYSTEM_FOREGROUND` hook; each line has the front window's class/title, its monitor, `covers_monitor`, and `SHQueryUserNotificationState`. Ctrl+C or the time limit removes the appbar cleanly; re-registers on `TaskbarCreated`. Added to `dev-tools/README.md` and `.gitignore`. clippy clean.
+- **Verified by testing (smoke run, 6 s):** with Valorant in front, the probe reported `quns=busy`, `covers_monitor=true` on `\\.\DISPLAY1(primary)` at 2560×1440, window class `VALORANTUnrealWindow`. So Valorant in its current mode counts as a normal (borderless/optimized) fullscreen window, not exclusive Direct3D (`d3d_exclusive_fullscreen`).
+- **Learned:** a DPI-unaware program sees scaled coordinates on a scaled monitor, so the probe declares itself per-monitor DPI aware (Crest/Tauri already is); otherwise "covers the monitor" can be wrong.
+- **Next:** user's test run; then 1b (build the real feature) based on the log.
 
 ---
 
