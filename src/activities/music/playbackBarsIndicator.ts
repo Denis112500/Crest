@@ -11,11 +11,14 @@ const MILLISECONDS_PER_SECOND = 1000;
 export interface PlaybackBarsIndicator {
   barsIndicatorElement: HTMLElement;
   showIsPlaying(isPlaying: boolean): void;
+  setPillOnScreen(isPillOnScreen: boolean): void;
 }
 
 // Bouncing bars while music plays, resting bars while paused. A timer at a low fixed rate
 // moves them instead of a CSS animation, which would redraw the window at the monitor's
-// full refresh rate for as long as the music plays. Paused bars cost nothing.
+// full refresh rate for as long as the music plays. Paused bars cost nothing, and so do
+// bars nobody can see: a hidden window doesn't stop page timers in WebView2, so the bars
+// stop themselves while the pill is off screen (during a game, for example).
 export function createPlaybackBarsIndicator(): PlaybackBarsIndicator {
   const barsIndicatorElement = document.createElement("div");
   barsIndicatorElement.className = "playback-bars";
@@ -29,6 +32,8 @@ export function createPlaybackBarsIndicator(): PlaybackBarsIndicator {
   barsIndicatorElement.append(...playbackBarElements);
 
   let bounceTimer: number | undefined;
+  let isPlaybackPlaying = false;
+  let isBarsIndicatorOnScreen = false;
   const drawBarHeights = (): void => {
     const now = performance.now();
     playbackBarElements.forEach((playbackBarElement, barIndex) => {
@@ -45,16 +50,26 @@ export function createPlaybackBarsIndicator(): PlaybackBarsIndicator {
     }
   };
 
+  const startOrStopBouncing = (): void => {
+    const shouldBounce = isPlaybackPlaying && isBarsIndicatorOnScreen;
+    if (shouldBounce && bounceTimer === undefined) {
+      bounceTimer = window.setInterval(drawBarHeights, MILLISECONDS_PER_SECOND / PLAYBACK_BARS_FRAMES_PER_SECOND);
+    } else if (!shouldBounce && bounceTimer !== undefined) {
+      window.clearInterval(bounceTimer);
+      bounceTimer = undefined;
+      restAllBars();
+    }
+  };
+
   return {
     barsIndicatorElement,
     showIsPlaying(isPlaying) {
-      if (isPlaying && bounceTimer === undefined) {
-        bounceTimer = window.setInterval(drawBarHeights, MILLISECONDS_PER_SECOND / PLAYBACK_BARS_FRAMES_PER_SECOND);
-      } else if (!isPlaying && bounceTimer !== undefined) {
-        window.clearInterval(bounceTimer);
-        bounceTimer = undefined;
-        restAllBars();
-      }
+      isPlaybackPlaying = isPlaying;
+      startOrStopBouncing();
+    },
+    setPillOnScreen(isPillOnScreen) {
+      isBarsIndicatorOnScreen = isPillOnScreen;
+      startOrStopBouncing();
     },
   };
 }

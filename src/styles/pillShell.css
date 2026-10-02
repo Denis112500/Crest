@@ -48,6 +48,11 @@ body {
   transform: scale(var(--pill-concealed-scale));
 }
 
+/* A fullscreen app came to the front: gone at once, no fade over the game. */
+.pill-shell.is-concealed-instantly {
+  transition: none;
+}
+
 .pill-shell.is-expanded {
   width: var(--pill-expanded-width);
   height: var(--pill-expanded-height);

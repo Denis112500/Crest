@@ -15,5 +15,6 @@ export function createNothingToShowViewSet(): ActivityViewSet {
     expandedViewElement: createNothingToShowElement(),
     showActivityPayload: () => {},
     setExpandedViewVisible: () => {},
+    setPillOnScreen: () => {},
   };
 }

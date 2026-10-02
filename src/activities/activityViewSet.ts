@@ -6,4 +6,6 @@ export interface ActivityViewSet {
   showActivityPayload(activityPayload: unknown): void;
   /** Lets views pause animations nobody can see, like the progress bar while compact. */
   setExpandedViewVisible(isExpandedViewVisible: boolean): void;
+  /** Lets views stop endless animations while the whole pill is hidden, like during a game. */
+  setPillOnScreen(isPillOnScreen: boolean): void;
 }

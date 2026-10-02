@@ -7,6 +7,7 @@ import { createPlaybackBarsIndicator } from "./playbackBarsIndicator";
 export interface CompactMusicView {
   compactViewElement: HTMLElement;
   showNowPlaying(nowPlaying: NowPlayingPayload): void;
+  setPillOnScreen(isPillOnScreen: boolean): void;
 }
 
 // The small pill: tiny album art, the title, and bars that bounce while playing.
@@ -26,6 +27,9 @@ export function createCompactMusicView(): CompactMusicView {
       // textContent, never innerHTML: a track title must not be able to inject markup.
       compactTitleElement.textContent = nowPlaying.trackTitle;
       playbackBars.showIsPlaying(nowPlaying.playbackState === "playing");
+    },
+    setPillOnScreen(isPillOnScreen) {
+      playbackBars.setPillOnScreen(isPillOnScreen);
     },
   };
 }
