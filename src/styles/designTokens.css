@@ -59,4 +59,6 @@
   --control-play-pause-icon-size: 30px;
   --control-button-gap: 26px;
   --control-button-hover-background: rgba(255, 255, 255, 0.12);
+  /* Dim enough to read as "not now", still visible so the row keeps its shape. */
+  --control-button-disabled-opacity: 0.3;
 }

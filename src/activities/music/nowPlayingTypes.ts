@@ -9,6 +9,14 @@ export interface NowPlayingPayload {
   isAlbumArtLoading: boolean;
   playbackState: "playing" | "paused" | "changing" | "stopped";
   timeline: NowPlayingTimeline | null;
+  availableControls: NowPlayingControlAvailability;
+}
+
+// Which buttons the player accepts right now; the others are greyed out.
+export interface NowPlayingControlAvailability {
+  canTogglePlayPause: boolean;
+  canSkipToNextTrack: boolean;
+  canSkipToPreviousTrack: boolean;
 }
 
 export interface NowPlayingTimeline {

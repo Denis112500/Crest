@@ -16,6 +16,19 @@ pub struct MediaSessionSnapshot {
     pub playback_state: MediaPlaybackState,
     /// `None` when the player doesn't report a track duration.
     pub timeline: Option<MediaTimeline>,
+    pub available_controls: MediaControlAvailability,
+}
+
+/// Which of the pill's buttons the player accepts right now; the others are greyed out.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaControlAvailability {
+    /// The play/pause button sends "toggle", so it follows the player's toggle permission.
+    /// Separate play and pause permissions exist too, but they flip with the state ("play"
+    /// is off while playing; measured with YouTube Music), so they'd grey the button out.
+    pub can_toggle_play_pause: bool,
+    pub can_skip_to_next_track: bool,
+    pub can_skip_to_previous_track: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -37,4 +50,26 @@ pub struct MediaTimeline {
     pub track_duration_milliseconds: i64,
     pub reported_position_milliseconds: i64,
     pub position_reported_at_unix_milliseconds: i64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn control_availability_reaches_the_frontend_under_its_typescript_names() {
+        let next_track_only = MediaControlAvailability {
+            can_toggle_play_pause: false,
+            can_skip_to_next_track: true,
+            can_skip_to_previous_track: false,
+        };
+        assert_eq!(
+            serde_json::to_value(next_track_only).unwrap(),
+            serde_json::json!({
+                "canTogglePlayPause": false,
+                "canSkipToNextTrack": true,
+                "canSkipToPreviousTrack": false,
+            })
+        );
+    }
 }

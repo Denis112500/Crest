@@ -5,7 +5,9 @@ use windows::Media::Control::{
 };
 
 use crate::backend_constants::{WINRT_TICKS_FROM_1601_TO_UNIX_EPOCH, WINRT_TICKS_PER_MILLISECOND};
-use crate::media::media_session_snapshot::{MediaPlaybackState, MediaSessionSnapshot, MediaTimeline};
+use crate::media::media_session_snapshot::{
+    MediaControlAvailability, MediaPlaybackState, MediaSessionSnapshot, MediaTimeline,
+};
 use crate::media::windows_smtc::smtc_thumbnail_reader::read_thumbnail_as_data_url;
 
 /// Must be called from the SMTC worker thread: `.join()` blocks until Windows answers.
@@ -26,6 +28,7 @@ pub fn read_media_session_snapshot(
         is_album_art_loading: false,
         playback_state: read_playback_state(session),
         timeline: read_media_timeline(session),
+        available_controls: read_control_availability(session),
     })
 }
 
@@ -37,6 +40,24 @@ pub fn read_playback_state(session: &SmtcSession) -> MediaPlaybackState {
         Ok(SmtcPlaybackStatus::Paused) => MediaPlaybackState::Paused,
         Ok(SmtcPlaybackStatus::Changing) => MediaPlaybackState::Changing,
         _ => MediaPlaybackState::Stopped,
+    }
+}
+
+/// The player's permissions arrive with every `PlaybackInfoChanged` event. If they can't be
+/// read, all buttons stay usable: a press the player doesn't accept is simply declined.
+fn read_control_availability(session: &SmtcSession) -> MediaControlAvailability {
+    let all_controls_available = MediaControlAvailability {
+        can_toggle_play_pause: true,
+        can_skip_to_next_track: true,
+        can_skip_to_previous_track: true,
+    };
+    let Ok(playback_controls) = session.GetPlaybackInfo().and_then(|playback_info| playback_info.Controls()) else {
+        return all_controls_available;
+    };
+    MediaControlAvailability {
+        can_toggle_play_pause: playback_controls.IsPlayPauseToggleEnabled().unwrap_or(true),
+        can_skip_to_next_track: playback_controls.IsNextEnabled().unwrap_or(true),
+        can_skip_to_previous_track: playback_controls.IsPreviousEnabled().unwrap_or(true),
     }
 }
 

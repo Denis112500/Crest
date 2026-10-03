@@ -45,6 +45,7 @@ export function createExpandedMusicView(): ExpandedMusicView {
       expandedArtistElement.textContent = nowPlaying.trackArtist;
       playbackProgressBar.showTimeline(nowPlaying.timeline, isPlaying);
       musicControlButtons.showIsPlaying(isPlaying);
+      musicControlButtons.showAvailableControls(nowPlaying.availableControls);
     },
     setProgressAnimationActive(isProgressAnimationActive) {
       playbackProgressBar.setAnimationActive(isProgressAnimationActive);

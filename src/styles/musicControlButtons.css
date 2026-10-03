@@ -19,8 +19,13 @@
   cursor: default;
 }
 
-.music-control-button:hover {
+.music-control-button:hover:enabled {
   background: var(--control-button-hover-background);
+}
+
+/* The player doesn't accept this button right now. */
+.music-control-button:disabled {
+  opacity: var(--control-button-disabled-opacity);
 }
 
 .music-control-button .svg-icon {

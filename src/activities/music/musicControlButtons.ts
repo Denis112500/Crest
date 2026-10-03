@@ -8,6 +8,7 @@ import {
 } from "../../ipc/ipcChannelNames";
 import { requestActivityAction } from "../../ipc/requestActivityAction";
 import { createSvgIconElement } from "../createSvgIconElement";
+import type { NowPlayingControlAvailability } from "./nowPlayingTypes";
 
 // Simple shapes on a 24×24 grid: a bar plus a triangle for skipping, a triangle for play,
 // two bars for pause.
@@ -20,10 +21,12 @@ const PLAYING_CLASS = "is-playing";
 export interface MusicControlButtons {
   controlButtonsElement: HTMLElement;
   showIsPlaying(isPlaying: boolean): void;
+  showAvailableControls(availableControls: NowPlayingControlAvailability): void;
 }
 
 // Previous / play-pause / next. Each press becomes an action for the Rust music source;
 // the icons change only when the player confirms, through the next presentation update.
+// A button the player doesn't accept is disabled: greyed out and unclickable.
 export function createMusicControlButtons(): MusicControlButtons {
   const controlButtonsElement = document.createElement("div");
   controlButtonsElement.className = "music-control-buttons";
@@ -61,6 +64,11 @@ export function createMusicControlButtons(): MusicControlButtons {
     controlButtonsElement,
     showIsPlaying(isPlaying) {
       playPauseButton.classList.toggle(PLAYING_CLASS, isPlaying);
+    },
+    showAvailableControls(availableControls) {
+      previousTrackButton.disabled = !availableControls.canSkipToPreviousTrack;
+      playPauseButton.disabled = !availableControls.canTogglePlayPause;
+      nextTrackButton.disabled = !availableControls.canSkipToNextTrack;
     },
   };
 }

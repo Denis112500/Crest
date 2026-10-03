@@ -49,7 +49,7 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::media::media_session_snapshot::MediaPlaybackState;
+    use crate::media::media_session_snapshot::{MediaControlAvailability, MediaPlaybackState};
 
     fn snapshot_of_track(track_title: &str, album_art_data_url: &str) -> MediaSessionSnapshot {
         MediaSessionSnapshot {
@@ -61,6 +61,11 @@ mod tests {
             is_album_art_loading: false,
             playback_state: MediaPlaybackState::Playing,
             timeline: None,
+            available_controls: MediaControlAvailability {
+                can_toggle_play_pause: true,
+                can_skip_to_next_track: true,
+                can_skip_to_previous_track: true,
+            },
         }
     }
 
