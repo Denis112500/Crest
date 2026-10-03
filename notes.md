@@ -2,8 +2,27 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** Phase 1 → v0.2.0. Items 1 (fullscreen hide, merged as PR #1) and 2 ("Start with Windows" in the tray, branch `autostart`) done and tested; next: item 3 (grey out unsupported buttons). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
+- **In progress:** Phase 1 → v0.2.0. Items 1 (fullscreen hide) and 2 ("Start with Windows") done and on `main`. Item 3 (grey out unsupported buttons) done and confirmed by the user, committed on branch `button-support`; next: item 4 (WebView2 memory). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-03 — Phase 1, item 3: grey out buttons the player doesn't accept
+- **Measured (verified by testing, `list_media_sessions.ps1 -WatchSeconds`, YouTube Music in Brave, 6 quick skips, pause/play):**
+  - `next`, `previous` and `toggle` are **always** enabled, also around track changes: between tracks the session disappears for 0.1–0.8 s and comes back with every flag on. Crest's 1.5 s grace period already bridges that gap, so the buttons can't flicker.
+  - `play` / `pause` flip with the state (`play=False` while playing, `pause=False` while paused). Tying the play/pause button to them would grey it out all the time → it follows `IsPlayPauseToggleEnabled`, matching the toggle command it sends.
+- **Done:**
+  - `media_session_snapshot.rs`: `MediaControlAvailability { can_toggle_play_pause, can_skip_to_next_track, can_skip_to_previous_track }` in the snapshot (`availableControls` in JSON); 1 test pins the JSON names the frontend uses.
+  - `smtc_snapshot_reader.rs`: reads `PlaybackInfo.Controls()` with every snapshot (same `PlaybackInfoChanged` event as before, no polling); if unreadable, all buttons stay usable (the player can still decline).
+  - Frontend: `nowPlayingTypes.ts` (`NowPlayingControlAvailability`), `musicControlButtons.ts` (`showAvailableControls` sets `disabled`), `expandedMusicView.ts`, `musicControlButtons.css` (`:disabled` dimmed, hover circle only on `:enabled`), token `--control-button-disabled-opacity: 0.3`.
+  - `dev-tools/list_media_sessions.ps1`: watch mode now also prints the button flags.
+  - clippy clean, 32/32 tests, tsc, vite build.
+- **Verified by testing (page level):** real YouTube Music data arrives as all-enabled; an injected update with previous/next refused gives `disabled=true` and computed opacity 0.3 on those two, play/pause unchanged.
+- **Problem (mine):** to see the test I injected a fake "pill visible" event while the user had a fullscreen game in front, which overrode the fullscreen hide: the pill sat on the game for ~1 min until I re-sent Rust's real visibility. A screenshot taken then didn't match the page state (probably a stale frame over the game) and isn't used as evidence. Rule for later tests: never inject visibility; only inject content while the real pill is visible.
+- **Learned:** **disabled buttons** in HTML don't fire `click`, can be styled with `:disabled`, and screen readers announce them as unavailable, so no extra click guard is needed.
+- **Verified by testing (user):** with the injected update, previous/next look dimmed and don't react to clicks; the next real update from YouTube Music (pause/play) brings them back, because YouTube Music really allows them. The user first took that for a bug; the pill always shows the player's latest real state, so a button only stays dimmed while the player itself keeps refusing it.
+- **Not tested with a real refusing player** (YouTube Music never refuses; a plain YouTube tab might, but Crest only shows YouTube Music by default).
+- **Next:** item 4 (WebView2 memory).
 
 ---
 
