@@ -15,6 +15,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 use crate::pill_window::pill_window_platform::PillWindowPlatform;
 use crate::pill_window::windows_native::classic_frame_painting_blocker::block_classic_frame_painting;
+use crate::pill_window::windows_native::webview_memory_usage_target::adjust_pill_webview_memory_target;
 
 pub struct WindowsPillWindowPlatform;
 
@@ -61,6 +62,7 @@ impl PillWindowPlatform for WindowsPillWindowPlatform {
 
     fn show_pill_window_without_activating(pill_window: &WebviewWindow) -> Result<(), String> {
         let pill_window_native_handle = pill_window.hwnd().map_err(|error| error.to_string())?;
+        adjust_pill_webview_memory_target(pill_window, false)?;
         // SAFETY: same live, same-thread window handle as above. The return value only
         // says whether the window was visible before, so there is no error to handle.
         unsafe {
@@ -76,7 +78,7 @@ impl PillWindowPlatform for WindowsPillWindowPlatform {
         unsafe {
             let _ = ShowWindow(pill_window_native_handle, SW_HIDE);
         }
-        Ok(())
+        adjust_pill_webview_memory_target(pill_window, true)
     }
 
     fn set_pill_window_interactive_area(

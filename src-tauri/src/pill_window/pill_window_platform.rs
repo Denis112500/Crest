@@ -10,7 +10,8 @@ pub trait PillWindowPlatform {
     /// Shows the window without taking focus away from the app the user is typing in.
     fn show_pill_window_without_activating(pill_window: &WebviewWindow) -> Result<(), String>;
 
-    /// Hides the window completely; a hidden webview also stops painting.
+    /// Hides the window completely; a hidden webview also stops painting, and where the OS
+    /// allows, it's asked to give back memory until the window is shown again.
     fn hide_pill_window(pill_window: &WebviewWindow) -> Result<(), String>;
 
     /// Limits the part of the window that exists for the mouse (and is drawn) to one
