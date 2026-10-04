@@ -27,7 +27,7 @@ async function startPill(): Promise<void> {
   }
   applyPillDimensionCssVariables();
   const pillShellElements = createPillShellElements();
-  pillRootElement.append(pillShellElements.pillShellElement);
+  pillRootElement.append(pillShellElements.pillNotchElement);
 
   const pillContentPresenter = new PillContentPresenter(pillShellElements);
   const pillMorphController = new PillMorphController(pillShellElements, (isExpandedContentVisible) =>
@@ -40,7 +40,7 @@ async function startPill(): Promise<void> {
   // machine having seen the same event first.
   connectPillPointerInput(pillShellElements.pillShellElement, pillStateMachine);
   const pillVisibilityController = new PillVisibilityController(
-    pillShellElements.pillShellElement,
+    pillShellElements,
     pillStateMachine,
     (isPillOnScreen) => pillContentPresenter.setPillOnScreen(isPillOnScreen),
   );

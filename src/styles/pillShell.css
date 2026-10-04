@@ -14,7 +14,7 @@ body {
   user-select: none;
 }
 
-/* The window is wider than the pill; the pill hangs from the top, centered. */
+/* The window is wider than the pill; the notch hangs from the top edge, centered. */
 #pill-root {
   width: 100%;
   height: 100%;
@@ -23,40 +23,74 @@ body {
   align-items: flex-start;
 }
 
-.pill-shell {
+/* Shrink-wraps the capsule, so the shoulders follow its width while it morphs. */
+.pill-notch {
   position: relative;
   flex: none;
+  transition: transform var(--pill-conceal-duration) var(--pill-spring-easing);
+}
+
+/* The shoulders: a black square with a quarter circle cut out of its lower outer corner,
+   so the capsule's sides curve outward into the screen edge like a real notch. The colour
+   stop is softened by one pixel so the curve isn't jagged. */
+.pill-notch::before,
+.pill-notch::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: var(--pill-notch-shoulder-radius);
+  height: var(--pill-notch-shoulder-radius);
+}
+
+.pill-notch::before {
+  right: 100%;
+  background: radial-gradient(
+    circle at 0 100%,
+    transparent calc(var(--pill-notch-shoulder-radius) - 1px),
+    var(--pill-background-color) var(--pill-notch-shoulder-radius)
+  );
+}
+
+.pill-notch::after {
+  left: 100%;
+  background: radial-gradient(
+    circle at 100% 100%,
+    transparent calc(var(--pill-notch-shoulder-radius) - 1px),
+    var(--pill-background-color) var(--pill-notch-shoulder-radius)
+  );
+}
+
+/* Hidden: slid up past the screen edge (the window's top clips it); the native window is
+   hidden after. */
+.pill-notch.is-concealed {
+  transform: translateY(-100%);
+}
+
+/* A fullscreen app came to the front: gone at once, no slide over the game. */
+.pill-notch.is-concealed-instantly {
+  transition: none;
+}
+
+/* Flat top against the screen edge, rounded only at the bottom. */
+.pill-shell {
+  position: relative;
   width: var(--pill-compact-width);
   height: var(--pill-compact-height);
-  border-radius: calc(var(--pill-compact-height) / 2);
+  border-radius: 0 0 calc(var(--pill-compact-height) / 2) calc(var(--pill-compact-height) / 2);
   background: var(--pill-background-color);
   color: var(--pill-text-color);
   font-size: var(--pill-font-size);
   overflow: hidden;
-  transform-origin: top center;
   transition:
     width var(--pill-morph-duration) var(--pill-spring-easing),
     height var(--pill-morph-duration) var(--pill-spring-easing),
-    border-radius var(--pill-morph-duration) var(--pill-spring-easing),
-    opacity var(--pill-conceal-duration) ease,
-    transform var(--pill-conceal-duration) var(--pill-spring-easing);
-}
-
-/* Hidden: shrunk toward the top edge and faded out; the native window is hidden after. */
-.pill-shell.is-concealed {
-  opacity: 0;
-  transform: scale(var(--pill-concealed-scale));
-}
-
-/* A fullscreen app came to the front: gone at once, no fade over the game. */
-.pill-shell.is-concealed-instantly {
-  transition: none;
+    border-radius var(--pill-morph-duration) var(--pill-spring-easing);
 }
 
 .pill-shell.is-expanded {
   width: var(--pill-expanded-width);
   height: var(--pill-expanded-height);
-  border-radius: var(--pill-expanded-corner-radius);
+  border-radius: 0 0 var(--pill-expanded-corner-radius) var(--pill-expanded-corner-radius);
 }
 
 /* Both layers stay centered while the capsule grows around them, so the expanded content

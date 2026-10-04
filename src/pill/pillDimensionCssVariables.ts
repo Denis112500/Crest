@@ -5,6 +5,7 @@ import {
   PILL_EXPANDED_LOGICAL_HEIGHT,
   PILL_EXPANDED_LOGICAL_WIDTH,
   PILL_MORPH_DURATION_MILLISECONDS,
+  PILL_NOTCH_SHOULDER_LOGICAL_RADIUS,
 } from "../frontendConstants";
 
 // Lets the CSS use the same numbers as the TypeScript (and therefore as Rust).
@@ -14,6 +15,7 @@ export function applyPillDimensionCssVariables(): void {
   rootStyle.setProperty("--pill-compact-height", `${PILL_COMPACT_LOGICAL_HEIGHT}px`);
   rootStyle.setProperty("--pill-expanded-width", `${PILL_EXPANDED_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-expanded-height", `${PILL_EXPANDED_LOGICAL_HEIGHT}px`);
-  rootStyle.setProperty("--pill-morph-duration", `${PILL_MORPH_DURATION_MILLISECONDS}ms`);
+  rootStyle.setProperty("--pill-notch-shoulder-radius", `${PILL_NOTCH_SHOULDER_LOGICAL_RADIUS}px`);
+  rootStyle.setProperty("--pill-morph-duration",`${PILL_MORPH_DURATION_MILLISECONDS}ms`);
   rootStyle.setProperty("--pill-conceal-duration", `${PILL_CONCEAL_DURATION_MILLISECONDS}ms`);
 }

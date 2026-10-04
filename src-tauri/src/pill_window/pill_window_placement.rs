@@ -1,14 +1,13 @@
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
 
-use crate::backend_constants::PILL_WINDOW_TOP_MARGIN_LOGICAL_PIXELS;
-
 #[derive(Debug, PartialEq)]
 struct PillWindowPhysicalBounds {
     top_left_position: PhysicalPosition<i32>,
     size: PhysicalSize<u32>,
 }
 
-/// Sizes the pill window and centers it at the top of the primary monitor.
+/// Sizes the pill window and centers it on the top edge of the primary monitor, with no
+/// gap: the pill is drawn as a notch hanging from the edge.
 /// The frontend passes logical pixels (CSS pixels); Windows positions windows in
 /// physical pixels, so everything is converted with the monitor's scale factor.
 pub fn apply_top_center_placement_to_pill_window(
@@ -47,12 +46,10 @@ fn calculate_top_center_bounds(
     let pill_physical_height = (pill_logical_height * monitor_scale_factor).round() as u32;
     let horizontal_offset_inside_monitor =
         (monitor_size.width as i32 - pill_physical_width as i32) / 2;
-    let top_margin_physical =
-        (PILL_WINDOW_TOP_MARGIN_LOGICAL_PIXELS * monitor_scale_factor).round() as i32;
     PillWindowPhysicalBounds {
         top_left_position: PhysicalPosition::new(
             monitor_top_left_position.x + horizontal_offset_inside_monitor,
-            monitor_top_left_position.y + top_margin_physical,
+            monitor_top_left_position.y,
         ),
         size: PhysicalSize::new(pill_physical_width, pill_physical_height),
     }
@@ -72,7 +69,7 @@ mod tests {
             36.0,
         );
         assert_eq!(pill_bounds.size, PhysicalSize::new(330, 54));
-        assert_eq!(pill_bounds.top_left_position, PhysicalPosition::new(1115, 12));
+        assert_eq!(pill_bounds.top_left_position, PhysicalPosition::new(1115, 0));
     }
 
     #[test]
@@ -84,6 +81,6 @@ mod tests {
             220.0,
             36.0,
         );
-        assert_eq!(pill_bounds.top_left_position, PhysicalPosition::new(-1070, 8));
+        assert_eq!(pill_bounds.top_left_position, PhysicalPosition::new(-1070, 0));
     }
 }

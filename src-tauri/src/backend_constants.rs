@@ -3,9 +3,6 @@ use std::time::Duration;
 /// Must match the window `label` in `tauri.conf.json`.
 pub const PILL_WINDOW_LABEL: &str = "pill";
 
-/// Gap between the top edge of the screen and the pill, like the island floating below the notch.
-pub const PILL_WINDOW_TOP_MARGIN_LOGICAL_PIXELS: f64 = 8.0;
-
 /// Optional settings file inside Crest's config folder (%APPDATA%\dev.crest.pill on Windows).
 pub const USER_SETTINGS_FILE_NAME: &str = "settings.json";
 

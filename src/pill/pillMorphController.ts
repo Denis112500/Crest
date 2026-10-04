@@ -3,6 +3,7 @@ import {
   PILL_COMPACT_LOGICAL_WIDTH,
   PILL_MORPH_DURATION_MILLISECONDS,
   PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS,
+  PILL_NOTCH_SHOULDER_LOGICAL_RADIUS,
   PILL_WINDOW_LOGICAL_HEIGHT,
   PILL_WINDOW_LOGICAL_WIDTH,
 } from "../frontendConstants";
@@ -30,10 +31,12 @@ export class PillMorphController {
   }
 
   applyCompactInteractiveArea(): Promise<void> {
+    // The interactive area also clips what is drawn, so it includes the shoulders.
+    const compactNotchLogicalWidth = PILL_COMPACT_LOGICAL_WIDTH + 2 * PILL_NOTCH_SHOULDER_LOGICAL_RADIUS;
     return requestPillInteractiveArea(
-      (PILL_WINDOW_LOGICAL_WIDTH - PILL_COMPACT_LOGICAL_WIDTH) / 2,
+      (PILL_WINDOW_LOGICAL_WIDTH - compactNotchLogicalWidth) / 2,
       0,
-      PILL_COMPACT_LOGICAL_WIDTH,
+      compactNotchLogicalWidth,
       PILL_COMPACT_LOGICAL_HEIGHT,
     );
   }
