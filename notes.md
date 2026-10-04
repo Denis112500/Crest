@@ -2,7 +2,7 @@
 
 ## Current state
 - **Works:** v1 (milestones a–g) plus all of Phase 1: the pill shows YouTube Music at the top center, hides instantly while a fullscreen app covers its monitor, greys out buttons the player refuses, uses ~20 MB of RAM while hidden (was ~83 MB); tray with "Start with Windows" and Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing. Installed: 0.2.0 (user confirmed).
-- **In progress:** Phase 2 → v0.3.0. Item 6 (CLAUDE.md rules for v2) done on branch `rules-v2`, not committed yet. Next: item 6b (notch look), then 7 (settings window), 8 (several activities, design only). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
+- **In progress:** Phase 2 → v0.3.0. Item 6 (CLAUDE.md rules for v2) done and pushed. Item 6b (notch look) done and pushed (dev build only; installed Crest is still 0.2.0 with the gap). Next: 7 (settings window), 8 (several activities, design only). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
 
 ---
@@ -21,6 +21,16 @@
 - **Decisions (user):** option B: flat top, rounded bottom corners, plus curved "shoulders" that flare into the screen edge; hiding slides up into the edge instead of shrinking and fading. Rejected: A (flat top without shoulders).
 - **Expected trade-off (to watch in daily use):** pushing the mouse into the top center now lands on the pill and expands it after 150 ms; that's where a maximized window's title bar or a browser tab would be.
 - **Next:** build it on branch `notch-look`.
+- **Done (same day, branch `notch-look`):**
+  - Rust: `PILL_WINDOW_TOP_MARGIN_LOGICAL_PIXELS` removed; `pill_window_placement.rs` puts the window at the monitor's top edge (tests now expect y = 0).
+  - `pillShellElements.ts`: new outer element `.pill-notch` around the capsule. It draws the shoulders (`::before`/`::after`) and carries the hide slide. Needed because the capsule has `overflow: hidden` (it hides the expanded layer while small), which would clip shoulders drawn on the capsule itself.
+  - `pillShell.css`: capsule corners `0 0 r r` (flat top); shoulders = an 8 px square with a quarter circle cut out by a `radial-gradient` (1 px soft edge against jaggies); hidden = `translateY(-100%)` on the notch instead of fade + shrink. Token `--pill-concealed-scale` removed.
+  - `frontendConstants.ts`: `PILL_NOTCH_SHOULDER_LOGICAL_RADIUS = 8`; window width = expanded + 2 × (overshoot room + shoulder) = 412 (was 396). `pillMorphController.ts`: the compact interactive area includes the shoulders (236 × 36), since the window region also clips what's drawn.
+  - `pillVisibilityController.ts`: takes `PillShellElements`; hide classes go on the notch; the end of a hide is the notch's `transform` transition (was the capsule's `opacity`). The "pointer left" listener stays on the capsule.
+- **Verified by testing:** tsc clean, clippy clean, 32/32 Rust tests. Browser preview (page only, no Tauri, transitions turned off by hand to see end states): compact 220 × 36 at y = 0 with radius `0 0 18 18`, expanded 380 × 176 with `0 0 30 30`, shoulders visible on both sides of both sizes.
+- **Not tested yet:** the real window (top edge, region with shoulders, slide-in/out animation, hover). Hovering a shoulder doesn't expand the pill (only the capsule listens); intended, as they're 8 px of decoration.
+  - **Update (same day):** the user ran the dev build (`target\debug\crest.exe`, 20:37) and approved the commit. Which checks of the list were done wasn't reported item by item. Still open: whether the top-center hover triggers too often in daily use.
+- **Learned:** **`overflow: hidden` clips pseudo-elements too**, because `::before`/`::after` are children of the element. Anything that must stick out of a clipping box goes on a wrapper.
 
 ---
 
