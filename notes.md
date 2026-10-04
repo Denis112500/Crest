@@ -2,15 +2,31 @@
 
 ## Current state
 - **Works:** v1 (milestones a–g) plus all of Phase 1: the pill shows YouTube Music at the top center, hides instantly while a fullscreen app covers its monitor, greys out buttons the player refuses, uses ~20 MB of RAM while hidden (was ~83 MB); tray with "Start with Windows" and Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing. Installed: 0.2.0 (user confirmed).
-- **In progress:** nothing. **Phase 1 is done:** v0.2.0 is published (https://github.com/Denis112500/Crest/releases/tag/v0.2.0). Next: Phase 2 (item 6, update CLAUDE.md for v2).
+- **In progress:** Phase 2 → v0.3.0. Item 6 (CLAUDE.md rules for v2) done on branch `rules-v2`, not committed yet. Next: item 6b (notch look), then 7 (settings window), 8 (several activities, design only). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-04 — Phase 2, item 6: CLAUDE.md rules for v2
+- **Decisions (user approved the exact wording):** in CLAUDE.md "Scope and platforms":
+  - "Not in v1: …" → scope follows the roadmap here; not planned yet: Linux (Phase 5), notifications, volume/brightness popups; integrations one at a time, each approved first. (The old line also excluded a settings UI, which item 7 needs.)
+  - "No network calls, no API keys" → network only for an integration the user switched on, only to that service, all off by default; free APIs only (no paid plans, no free tiers that need a payment method); keys/tokens only in Windows Credential Manager behind a trait, never in files, settings.json, logs, the repo or the page (the page may hand a token to Rust once, never reads it back); network calls only from Rust, the page's CSP stays closed; no telemetry, analytics or remote crash reports. SMTC-only music rule unchanged.
+  - "No polling loops" gets one exception: an integration that can only fetch (weather, calendar) may use a coarse timer while it's switched on.
+- **Why the two extra rules (mine, approved):** if the page could reach the network, a bug in it (e.g. markup in a song title) could too; keeping network and tokens in Rust keeps that surface small.
+- **Open (Phase 3):** Credential Manager access either via the `keyring` crate (new install → ask) or the `Win32_Security_Credentials` feature of the `windows` crate we already have (nothing new downloaded).
+- **Also fixed:** a broken path in "Release build 0.2.0" below (`target\release` had been saved with `\r` as a real line break).
+
+## 2026-10-04 — Phase 2, item 6b (new): notch look, decided
+- **Request (user):** the pill should be glued to the top edge (no 8 px gap) and look like a notch.
+- **Decisions (user):** option B: flat top, rounded bottom corners, plus curved "shoulders" that flare into the screen edge; hiding slides up into the edge instead of shrinking and fading. Rejected: A (flat top without shoulders).
+- **Expected trade-off (to watch in daily use):** pushing the mouse into the top center now lands on the pill and expands it after 150 ms; that's where a maximized window's title bar or a browser tab would be.
+- **Next:** build it on branch `notch-look`.
 
 ---
 
 ## 2026-10-04 — Release build 0.2.0
 - **Done:** version 0.1.2 → 0.2.0 (`package.json`, `package-lock.json` ×2, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`), on branch `release-0.2.0`. `npm run tauri build` in 127 s → `Crest_0.2.0_x64-setup.exe` (1.36 MiB). Contains Phase 1 items 1–4.
-- **Problem avoided:** the running Crest was `target
-elease\crest.exe`; a build can't overwrite a running exe on Windows, so Crest was stopped first.
+- **Problem avoided:** the running Crest was `target\release\crest.exe`; a build can't overwrite a running exe on Windows, so Crest was stopped first.
 - **Install test:** no Crest was installed any more (no `%LOCALAPPDATA%\Crest`, no uninstall entry), so this was a **fresh install**, not an update over 0.1.2. Installed 20:01 → `%LOCALAPPDATA%\Crest\crest.exe`, uninstall entry "Crest 0.2.0"; the user confirmed it works (pill, buttons, fullscreen hide).
 - **Not tested (user's choice, no restart possible):** Crest actually starting at login, the unquoted path in the `Run` value with the installed exe, and the update path from 0.1.x ("uninstall first" question). The on/off switch itself was verified in dev (item 2).
 - **Published (2026-10-04):** GitHub Release v0.2.0 with `gh release create`, tag `v0.2.0` on commit `898fdc6` ("Release 0.2.0"), asset `Crest_0.2.0_x64-setup.exe` (1 423 637 bytes), marked Latest; text approved by the user, without the untested claim that it updates 0.1.x in place.
@@ -154,6 +170,7 @@ elease\crest.exe`; a build can't overwrite a running exe on Windows, so Crest wa
   6. Update CLAUDE.md for v2 (network only for enabled integrations, keys in Windows Credential Manager, free APIs only, no telemetry).
   7. Small settings window from the tray (autostart, allowed players, later integrations on/off).
   8. Several activities at once: design how they share the pill (switch / split / queue) before coding.
+  - **Added (2026-10-04, user):** 6b. Notch look: glued to the top edge, notch shape with shoulders, slides up when hiding.
 - **Phase 3: integrations, free only → v0.4.0+:** Claude Code sessions with Allow/Deny (local), weather (Open-Meteo, no key), calendar (private ICS link), GitHub (free token).
 - **Phase 4: personality:** own visual identity (character, idle animations, sounds), never Coucou's Mochi.
 - **Phase 5: Linux** (KDE Plasma, Wayland): MPRIS + layer-shell.
