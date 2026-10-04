@@ -18,9 +18,14 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 
 ## Scope and platforms
 - Primary: Windows 11. Later: Linux (Arch, KDE Plasma, Wayland) — not built yet, but all platform-specific code (media backend, window behavior) lives behind small traits in its own folder.
-- Not in v1: Linux support, notifications, volume/brightness popups, settings UI, other activity sources, anything needing API keys.
-- Everything stays local: no telemetry, no network calls, no API keys. Music data only through Windows SMTC; no unofficial YouTube Music APIs, scraping or cookies.
-- Keep idle CPU and memory low: event-driven, no polling loops.
+- Scope follows the roadmap in notes.md. Not planned yet: Linux support (Phase 5), notifications, volume/brightness popups. New activity sources (integrations) are added one at a time, each approved before it's built.
+- Local by default: no network calls unless the user has switched on an integration that needs them, and then only to that integration's own service. Every integration is off by default.
+- Free APIs only, never paid ones (no paid plans, no free tiers that require a payment method). Say before building whether a free API still needs a key or token.
+- Keys and tokens are stored only in Windows Credential Manager (behind a small trait, like the other platform code), never in files, settings.json, logs, the repo or the page. The page may hand a token to Rust once to store it, but never reads it back.
+- Network calls come from Rust; the page's CSP keeps blocking the network.
+- No telemetry, analytics or remote crash reports.
+- Music data only through Windows SMTC; no unofficial YouTube Music APIs, scraping or cookies.
+- Keep idle CPU and memory low: event-driven, no polling loops. One exception: an integration that can only fetch (weather, calendar) may use a coarse timer, and only while it's switched on.
 
 ## Reference project
 `../reference/coucou` (MIT code; name, Mochi character, icon, sounds and media are rights reserved) is read-only inspiration for window and event patterns. Don't copy code; if a substantial piece would be reused, stop and ask first. Never copy or imitate its name or assets. Verify its patterns against the Tauri docs.
