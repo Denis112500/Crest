@@ -1,11 +1,15 @@
 # Project notes
 
 ## Current state
-- **Works:** v1 (milestones a–g) plus all of Phase 1: the pill shows YouTube Music at the top center, hides instantly while a fullscreen app covers its monitor, greys out buttons the player refuses, uses ~20 MB of RAM while hidden (was ~83 MB); tray with "Start with Windows" and Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing. Installed: 0.2.0 (user confirmed).
-- **In progress:** Phase 2 → v0.3.0. Item 6 (CLAUDE.md rules for v2) done and pushed. Item 6b (notch look) done and pushed (dev build only; installed Crest is still 0.2.0 with the gap). Item 7 (settings window) on branch `settings-window`: step 1 committed (empty window, memory measured, startup memory bug fixed); step 2 (General + Display) committed; step 3 (allowed players) built, waiting for the user.s test; then the README update. Then 8 (several activities, design only). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
+- **Works:** v1 + Phase 1 + Phase 2 items 6, 6b, 7 (on `main`, dev builds): a notch glued to the top edge shows YouTube Music, hides instantly for fullscreen apps, greys out refused buttons; settings window (tray "Settings…" or launching Crest again) with Start with Windows, the monitor it sits on, and allowed players (live, "Show every player" switch). RAM while hidden: 16–32 MB (startup bug fixed: was 78 MB until the first song). CPU 0% idle, ~4.7% of one core playing. Installed: 0.2.0.
+- **In progress:** Phase 2 → v0.3.0. Next: item 8 (several activities at once, design only), then version 0.3.0 + installer + GitHub release, and the two open Phase 1 checks (start at login with the installed version; installing over an older version keeps it). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
 
 ---
+
+## 2026-10-04 — Phase 2, item 7: README brought up to date
+- **Done:** `README.md` was still at v1 in places. Updated: notch description and status (0.2.0 published, 0.3.0 in progress); tray = Settings… + Quit, second launch opens Settings; privacy wording from the new CLAUDE.md rules; memory while hidden (16–32 MB, measured); fullscreen hide in the visibility rules; `MediaPlayerFilter`; the window now moves only when another monitor is chosen; new "The settings window" section (on demand, per-window permissions); the whole file tree (added `settings.html`, `src/settings/`, `capabilities/settings_window.json`, `fullscreen_detection/`, `settings_window/`, `launch_at_login.rs`, the new media and pill_window files; `user_settings_file.rs` → `user_settings_store.rs`); the Settings section rewritten for the settings window, the file's fields, the new matching rule and what changed for hand-written files from before 0.3.0.
+- **Next:** user reviews the README; commit ("Update README", no co-author), then merge `settings-window` into `main` and push when the user says so. Then item 8 (design only).
 
 ## 2026-10-04 — Phase 2, item 7, step 3: allowed players
 - **Done (branch `settings-window`):**
@@ -26,6 +30,7 @@
   - `settings.json` gets `showEveryMediaPlayer`. A file without it (written before 0.3.0) is read as "on" if its list is empty, so an old "[] = every player" setup keeps working (test). The field has its own `#[serde(default)]`, so a missing field is `None`, not `Default`'s `Some(false)`.
   - New command `change_show_every_player`; the card has a "Show every player" switch and says "No players chosen … the pill shows no music" for an empty list. Adding YouTube Music saves the `_crx_…` part again. "Brave" is labeled "Brave tabs".
   - clippy clean, 47/47 Rust tests, tsc, vite build.
+- **Verified by testing (user):** tested the fixed dev build and reported "it works" (results not reported item by item).
 - **Learned:** **make "all" its own case.** Using an empty list to mean "everything" was fine while the list was only edited by hand, but a Remove button makes "empty" a normal state, and then it silently meant the opposite of what the user did. An enum says what it means.
 
 ## 2026-10-04 — Phase 2, item 7, step 2: General + Display settings
