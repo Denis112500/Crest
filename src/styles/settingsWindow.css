@@ -1,5 +1,10 @@
 /* A normal, framed window (unlike the pill), laid out like Windows 11's own settings:
    a title, then sections of white (or dark) cards. */
+/* Native controls (the dropdown's list) follow Windows' light/dark mode too. */
+:root {
+  color-scheme: light dark;
+}
+
 html,
 body {
   margin: 0;
@@ -34,6 +39,8 @@ body {
   font-weight: var(--settings-title-font-weight);
 }
 
+/* The cards and the empty note share one look. */
+.settings-card,
 .settings-empty-note {
   margin: 0;
   padding: var(--settings-card-padding);
@@ -41,4 +48,82 @@ body {
   border-radius: var(--settings-card-radius);
   background: var(--settings-card-background);
   color: var(--settings-secondary-text-color);
+}
+
+.settings-card {
+  padding: 0;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--settings-row-gap);
+  padding: var(--settings-card-padding);
+}
+
+.setting-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-row-text-gap);
+}
+
+.setting-row-description {
+  margin: 0;
+  font-size: var(--settings-description-font-size);
+  color: var(--settings-secondary-text-color);
+}
+
+.setting-select {
+  min-width: var(--settings-select-min-width);
+  padding: var(--settings-control-padding);
+  border: 1px solid var(--settings-control-border-color);
+  border-radius: var(--settings-control-radius);
+  background: var(--settings-control-background);
+  color: var(--settings-text-color);
+  font: inherit;
+}
+
+/* A checkbox drawn as Windows 11's on/off switch: a capsule with a knob that slides right
+   and the capsule filled with the accent color when on. */
+.setting-switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  margin: 0;
+  width: var(--settings-switch-width);
+  height: var(--settings-switch-height);
+  border: 1px solid var(--settings-control-border-color);
+  border-radius: calc(var(--settings-switch-height) / 2);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--settings-switch-transition-duration) ease;
+}
+
+.setting-switch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: var(--settings-switch-knob-inset);
+  width: var(--settings-switch-knob-size);
+  height: var(--settings-switch-knob-size);
+  border-radius: 50%;
+  background: var(--settings-secondary-text-color);
+  transform: translateY(-50%);
+  transition: left var(--settings-switch-transition-duration) ease;
+}
+
+.setting-switch:checked {
+  border-color: var(--settings-accent-color);
+  background: var(--settings-accent-color);
+}
+
+.setting-switch:checked::after {
+  left: calc(100% - var(--settings-switch-knob-size) - var(--settings-switch-knob-inset));
+  background: var(--settings-control-background);
+}
+
+.setting-switch:disabled {
+  opacity: var(--settings-disabled-opacity);
+  cursor: default;
 }

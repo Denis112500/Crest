@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "settings-window",
+  "description": "What the settings window's frontend may call: reading and changing settings, nothing of the pill's.",
+  "windows": ["settings"],
+  "permissions": [
+    "core:default",
+    "allow-read-launch-at-login-setting",
+    "allow-change-launch-at-login-setting",
+    "allow-list-pill-display-options",
+    "allow-choose-pill-display"
+  ]
+}

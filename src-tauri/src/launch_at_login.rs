@@ -12,18 +12,18 @@ pub fn is_launch_at_login_enabled<R: Runtime>(crest_app: &impl Manager<R>) -> bo
 }
 
 /// Switches starting at login on or off and returns what the OS reports afterwards, so the
-/// tray checkmark shows the truth even if the switch failed.
-pub fn toggle_launch_at_login<R: Runtime>(crest_app: &impl Manager<R>) -> bool {
+/// settings switch shows the truth even if the change failed.
+pub fn set_launch_at_login<R: Runtime>(crest_app: &impl Manager<R>, should_launch_at_login: bool) -> bool {
     let autostart_registration = crest_app.autolaunch();
     // Registers the exe that is running now: from `tauri dev` that's the debug build, which
     // needs the Vite server, so only test it there briefly and switch it off again.
-    let toggle_result = if is_launch_at_login_enabled(crest_app) {
-        autostart_registration.disable()
-    } else {
+    let change_result = if should_launch_at_login {
         autostart_registration.enable()
+    } else {
+        autostart_registration.disable()
     };
-    if let Err(toggle_error) = toggle_result {
-        eprintln!("Crest: could not change whether it starts at login: {toggle_error}");
+    if let Err(change_error) = change_result {
+        eprintln!("Crest: could not change whether it starts at login: {change_error}");
     }
     is_launch_at_login_enabled(crest_app)
 }

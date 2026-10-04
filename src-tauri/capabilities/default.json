@@ -1,7 +1,16 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the pill window's frontend may call. Anything touching the OS goes through Crest's own Rust commands.",
+  "description": "What the pill window's frontend may call. Anything touching the OS goes through Crest's own Rust commands, and only the pill's own ones.",
   "windows": ["pill"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "allow-place-pill-window-at-top-center",
+    "allow-reveal-pill-window",
+    "allow-conceal-pill-window",
+    "allow-set-pill-interactive-area",
+    "allow-get-current-pill-presentation",
+    "allow-get-current-pill-visibility",
+    "allow-perform-activity-action"
+  ]
 }

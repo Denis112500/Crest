@@ -8,7 +8,7 @@ mod media;
 mod pill_window;
 mod settings_window;
 mod system_tray;
-mod user_settings_file;
+mod user_settings_store;
 
 use std::sync::{Arc, Mutex};
 
@@ -23,7 +23,7 @@ use media::CurrentPlatformMediaSource;
 use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
 use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
-use user_settings_file::load_crest_user_settings;
+use user_settings_store::CrestUserSettingsStore;
 
 pub fn run_crest_app() {
     tauri::Builder::default()
@@ -36,10 +36,12 @@ pub fn run_crest_app() {
                 open_or_focus_settings_window(running_crest_app);
             },
         ))
-        // Used from Rust only (the tray's "Start with Windows"); the page gets no permission
-        // for it in capabilities/default.json, so it can't switch autostart on or off.
+        // Used from Rust only (through the settings window's own commands); no page gets the
+        // plugin's permissions, so no page can call the plugin directly.
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .setup(|crest_app| {
+            // Before anything else: the pill page asks for its placement, which reads it.
+            crest_app.manage(CrestUserSettingsStore::load_from_config_directory(&crest_app.path().app_config_dir()?));
             let pill_window = crest_app
                 .get_webview_window(PILL_WINDOW_LABEL)
                 .ok_or("the pill window from tauri.conf.json was not created")?;
@@ -81,7 +83,7 @@ pub fn run_crest_app() {
                 }))));
             crest_app.manage(Arc::clone(&shared_activity_arbiter));
 
-            let crest_user_settings = load_crest_user_settings(&crest_app.path().app_config_dir()?);
+            let crest_user_settings = crest_app.state::<CrestUserSettingsStore>().read_current_settings();
             let media_source =
                 CurrentPlatformMediaSource::new(crest_user_settings.allowed_media_app_identifier_fragments);
             let mut activity_source_registry = ActivitySourceRegistry::default();
@@ -98,6 +100,10 @@ pub fn run_crest_app() {
             activity_core::pill_presentation_command::get_current_pill_presentation,
             activity_core::pill_visibility_command::get_current_pill_visibility,
             activity_core::activity_action_command::perform_activity_action,
+            settings_window::settings_window_commands::read_launch_at_login_setting,
+            settings_window::settings_window_commands::change_launch_at_login_setting,
+            settings_window::settings_window_commands::list_pill_display_options,
+            settings_window::settings_window_commands::choose_pill_display,
         ])
         .run(tauri::generate_context!())
         .expect("Crest failed to start the Tauri application");

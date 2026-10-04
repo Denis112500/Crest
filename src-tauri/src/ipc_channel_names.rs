@@ -6,6 +6,9 @@ pub const PILL_PRESENTATION_CHANGED_EVENT: &str = "pill-presentation-changed";
 /// Event carrying whether the pill should be on screen and whether a fullscreen app is in front.
 pub const PILL_VISIBILITY_CHANGED_EVENT: &str = "pill-visibility-changed";
 
+/// Event telling the pill window the user chose another monitor, so it places itself again.
+pub const PILL_DISPLAY_CHANGED_EVENT: &str = "pill-display-changed";
+
 /// Activity kind of the music source; the frontend picks its views by this name.
 pub const MUSIC_ACTIVITY_KIND: &str = "music";
 

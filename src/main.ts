@@ -1,11 +1,15 @@
 import "./styles/designTokens.css";
 import "./styles/pillShell.css";
 
+import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+
 import type { PillPresentation } from "./activities/pillPresentationTypes";
 import { PILL_WINDOW_LOGICAL_HEIGHT, PILL_WINDOW_LOGICAL_WIDTH } from "./frontendConstants";
 import {
   GET_CURRENT_PILL_PRESENTATION_COMMAND,
   GET_CURRENT_PILL_VISIBILITY_COMMAND,
+  PILL_DISPLAY_CHANGED_EVENT,
   PILL_PRESENTATION_CHANGED_EVENT,
   PILL_VISIBILITY_CHANGED_EVENT,
 } from "./ipc/ipcChannelNames";
@@ -45,10 +49,22 @@ async function startPill(): Promise<void> {
     (isPillOnScreen) => pillContentPresenter.setPillOnScreen(isPillOnScreen),
   );
 
+  const placePillWindowOnChosenDisplay = async (): Promise<void> => {
+    await requestPillWindowPlacement(PILL_WINDOW_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT);
+    await pillMorphController.applyCurrentInteractiveArea();
+  };
   // Window and interactive area first: a track already playing at startup makes the
   // pill peek, which changes the interactive area and must not be overwritten after.
-  await requestPillWindowPlacement(PILL_WINDOW_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT);
-  await pillMorphController.applyCompactInteractiveArea();
+  await placePillWindowOnChosenDisplay();
+  // The user picked another monitor in the settings window.
+  await listen(PILL_DISPLAY_CHANGED_EVENT, () => {
+    placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
+  });
+  // Windows rescaled the window (a monitor with other scaling): the interactive area is in
+  // physical pixels, so it must be sent again.
+  await getCurrentWindow().onScaleChanged(() => {
+    placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
+  });
 
   let lastAttentionKey: string | null = null;
   await listenForRustStateChanges<PillPresentation | null>(
@@ -69,6 +85,10 @@ async function startPill(): Promise<void> {
     GET_CURRENT_PILL_VISIBILITY_COMMAND,
     (pillVisibility) => pillVisibilityController.showPillVisibility(pillVisibility),
   );
+}
+
+function reportPlacementFailure(placementError: unknown): void {
+  console.error("Crest could not place the pill on the chosen display:", placementError);
 }
 
 startPill().catch((startupError: unknown) => {

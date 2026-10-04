@@ -30,7 +30,16 @@ export class PillMorphController {
     });
   }
 
-  applyCompactInteractiveArea(): Promise<void> {
+  // After the window was placed again (another monitor, another scale), the interactive
+  // area must be sent again for whatever state the pill is in right now.
+  applyCurrentInteractiveArea(): Promise<void> {
+    if (this.pillShellElements.pillShellElement.classList.contains(EXPANDED_SHELL_CLASS)) {
+      return requestPillInteractiveArea(0, 0, PILL_WINDOW_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT);
+    }
+    return this.applyCompactInteractiveArea();
+  }
+
+  private applyCompactInteractiveArea(): Promise<void> {
     // The interactive area also clips what is drawn, so it includes the shoulders.
     const compactNotchLogicalWidth = PILL_COMPACT_LOGICAL_WIDTH + 2 * PILL_NOTCH_SHOULDER_LOGICAL_RADIUS;
     return requestPillInteractiveArea(
