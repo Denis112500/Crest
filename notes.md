@@ -2,8 +2,32 @@
 
 ## Current state
 - **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** Phase 1 → v0.2.0. Items 1 (fullscreen hide) and 2 ("Start with Windows") done and on `main`. Item 3 (grey out unsupported buttons) done and confirmed by the user, committed on branch `button-support`; next: item 4 (WebView2 memory). Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
+- **In progress:** Phase 1 → v0.2.0. Items 1 (fullscreen hide) and 2 ("Start with Windows") done and on `main`. Items 1–3 on `main`. Item 4 (WebView2 memory) built and measured on branch `webview-memory`: RAM while hidden 86 → 20 MB; next: v0.2.0 release. Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-04 — Phase 1, item 4: WebView2 memory (measured)
+- **Correction to earlier notes:** "388 MB, of which ~330 MB WebView2" (milestone g) was the **sum of the processes' working sets**. That counts the WebView2/Edge program code, which Windows loads once and shares, once per process (7 processes). What Crest really occupies in RAM is the **private working set** (Task Manager's "Memory" column): ~81–86 MB.
+- **Done:**
+  - `dev-tools/measure_crest_memory.ps1` (new): finds Crest and every WebView2 process it started, names their role (manager, renderer, GPU, network/storage helpers, crash reporter) and averages private working set, private bytes and working set over N samples.
+  - `pill_window/windows_native/webview_memory_usage_target.rs` (new): `MemoryUsageTargetLevel = Low` when the pill window is hidden, `Normal` before it's shown (called from `hide_pill_window` / `show_pill_window_without_activating`). Uses `webview2-com` 0.39 (user approved; the same crate and version Tauri already uses, so nothing new is compiled; +1 line in `Cargo.lock`).
+- **Measured (verified by testing, release builds, 10 samples × 2 s, private working set; baseline exe kept as a copy so both builds were compared on the same day):**
+
+  | State | Baseline | Memory target "Low" while hidden |
+  |---|---|---|
+  | Hidden (60 s after start, paused) | 80.9 / 86.2 / 83.2 MB (3 runs) | **19.6 MB** |
+  | Playing, compact | 85.7 MB | **60.5 MB** (measured after a hidden → playing switch) |
+
+  Private bytes stay the same (~157–183 MB): WebView2 lets Windows move the memory out of RAM instead of freeing it; it comes back when needed. Run-to-run spread ~5 MB. The user saw no difference when the pill reappeared (animation, art, bars).
+- **Decisions:**
+  - Kept: memory target "Low" while hidden (−64 MB hidden, −25 MB playing).
+  - Not used: `TrySuspend` (verified from docs: pauses scripts too; the hidden page must keep listening for "show yourself"). Browser start-up switches (e.g. network service inside the manager process): at most ~6 MB playing / ~1.5 MB hidden left to win, and Tauri's own default switches would have to be repeated by hand.
+- **Learned:**
+  - **Which memory number:** private working set = RAM only this process uses; working set = also shared pages (don't sum over processes); private bytes = reserved, including what's paged out. Task Manager's default "Memory" column is the private working set.
+  - **"Low memory target"** doesn't free memory, it allows Windows to page it out; good for an app that's hidden most of the time, as long as waking up stays fast.
+  - **Measuring pitfalls hit today:** a running `tauri dev` restarts the debug build after every file change, and the single-instance guard then blocks the release build; check which `crest.exe` (path) is running before every measurement.
+- **Next:** commit; then v0.2.0 (version bump, installer, install over 0.1.2 incl. the autostart checks, GitHub release).
 
 ---
 
@@ -274,6 +298,7 @@
 - **Open questions / ideas for later:**
   - Hide (or stop the bars) while a fullscreen app or game is in front.
   - WebView2 memory (about 330 MB of the 388 MB): try browser arguments, or suspending the webview while hidden.
+    - **Correction (2026-10-04):** the 388 MB summed shared memory several times; real RAM use was ~83 MB, now ~20 MB while hidden (see item 4).
   - Build an installer (`npm run tauri build`, NSIS) and start with Windows (autostart); not in the v1 scope.
   - Use SMTC's "control enabled" flags to grey out buttons the player doesn't support.
   - Linux (KDE Plasma, Wayland): `media/linux_mpris/` (MPRIS over D-Bus) and `pill_window/linux_layer_shell/` (layer-shell for position, always-on-top and input region).
