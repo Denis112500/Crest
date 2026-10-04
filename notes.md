@@ -1,9 +1,19 @@
 # Project notes
 
 ## Current state
-- **Works:** **version 1 complete (milestones a–g)** plus fixes confirmed by the user: no white title bar/corners, layers fade in turn, a loading ring instead of Brave's logo on skip, only one Crest at a time. Pill at the top center shows YouTube Music; springs open on hover/click/new track; hides 30 s after pausing or ~4.5 s after the player closes; tray icon with Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing.
-- **In progress:** Phase 1 → v0.2.0. Items 1 (fullscreen hide) and 2 ("Start with Windows") done and on `main`. Items 1–3 on `main`. Item 4 (WebView2 memory) built and measured on branch `webview-memory`: RAM while hidden 86 → 20 MB; next: v0.2.0 release. Last release: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
+- **Works:** v1 (milestones a–g) plus all of Phase 1: the pill shows YouTube Music at the top center, hides instantly while a fullscreen app covers its monitor, greys out buttons the player refuses, uses ~20 MB of RAM while hidden (was ~83 MB); tray with "Start with Windows" and Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing. Installed: 0.2.0 (user confirmed).
+- **In progress:** release v0.2.0: version raised on branch `release-0.2.0`, installer built and tested (fresh install; starting at login not tested); next: publish the GitHub release. Last published: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-04 — Release build 0.2.0
+- **Done:** version 0.1.2 → 0.2.0 (`package.json`, `package-lock.json` ×2, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`), on branch `release-0.2.0`. `npm run tauri build` in 127 s → `Crest_0.2.0_x64-setup.exe` (1.36 MiB). Contains Phase 1 items 1–4.
+- **Problem avoided:** the running Crest was `target
+elease\crest.exe`; a build can't overwrite a running exe on Windows, so Crest was stopped first.
+- **Install test:** no Crest was installed any more (no `%LOCALAPPDATA%\Crest`, no uninstall entry), so this was a **fresh install**, not an update over 0.1.2. Installed 20:01 → `%LOCALAPPDATA%\Crest\crest.exe`, uninstall entry "Crest 0.2.0"; the user confirmed it works (pill, buttons, fullscreen hide).
+- **Not tested (user's choice, no restart possible):** Crest actually starting at login, the unquoted path in the `Run` value with the installed exe, and the update path from 0.1.x ("uninstall first" question). The on/off switch itself was verified in dev (item 2).
+- **Next:** GitHub release v0.2.0 (text approved by the user first).
 
 ---
 
