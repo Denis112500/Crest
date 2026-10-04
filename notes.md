@@ -2,7 +2,7 @@
 
 ## Current state
 - **Works:** v1 (milestones a–g) plus all of Phase 1: the pill shows YouTube Music at the top center, hides instantly while a fullscreen app covers its monitor, greys out buttons the player refuses, uses ~20 MB of RAM while hidden (was ~83 MB); tray with "Start with Windows" and Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing. Installed: 0.2.0 (user confirmed).
-- **In progress:** release v0.2.0: version raised on branch `release-0.2.0`, installer built and tested (fresh install; starting at login not tested); next: publish the GitHub release. Last published: v0.1.2 (https://github.com/Denis112500/Crest/releases/tag/v0.1.2).
+- **In progress:** nothing. **Phase 1 is done:** v0.2.0 is published (https://github.com/Denis112500/Crest/releases/tag/v0.2.0). Next: Phase 2 (item 6, update CLAUDE.md for v2).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
 
 ---
@@ -13,7 +13,9 @@
 elease\crest.exe`; a build can't overwrite a running exe on Windows, so Crest was stopped first.
 - **Install test:** no Crest was installed any more (no `%LOCALAPPDATA%\Crest`, no uninstall entry), so this was a **fresh install**, not an update over 0.1.2. Installed 20:01 → `%LOCALAPPDATA%\Crest\crest.exe`, uninstall entry "Crest 0.2.0"; the user confirmed it works (pill, buttons, fullscreen hide).
 - **Not tested (user's choice, no restart possible):** Crest actually starting at login, the unquoted path in the `Run` value with the installed exe, and the update path from 0.1.x ("uninstall first" question). The on/off switch itself was verified in dev (item 2).
-- **Next:** GitHub release v0.2.0 (text approved by the user first).
+- **Published (2026-10-04):** GitHub Release v0.2.0 with `gh release create`, tag `v0.2.0` on commit `898fdc6` ("Release 0.2.0"), asset `Crest_0.2.0_x64-setup.exe` (1 423 637 bytes), marked Latest; text approved by the user, without the untested claim that it updates 0.1.x in place.
+- **Learned:** `gh release create <tag> <file> --target <commit> --title … --notes-file …` creates the tag on GitHub, uploads the installer and publishes in one step; `git fetch --tags` brings the new tag to the local copy.
+- **Next:** Phase 2, item 6.
 
 ---
 
