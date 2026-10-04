@@ -1,5 +1,7 @@
 use std::time::Instant;
 
+use crate::media::media_player_filter::MediaPlayerFilter;
+
 /// What the selector needs to know about one media session, whatever the OS.
 pub struct MediaSessionCandidate<'candidate> {
     pub source_app_identifier: &'candidate str,
@@ -13,26 +15,14 @@ pub struct MediaSessionCandidate<'candidate> {
 /// Returns the index into `candidates`.
 pub fn select_preferred_media_session(
     candidates: &[MediaSessionCandidate],
-    allowed_app_identifier_fragments: &[String],
+    media_player_filter: &MediaPlayerFilter,
 ) -> Option<usize> {
     candidates
         .iter()
         .enumerate()
-        .filter(|(_, candidate)| {
-            is_app_identifier_allowed(candidate.source_app_identifier, allowed_app_identifier_fragments)
-        })
+        .filter(|(_, candidate)| media_player_filter.allows_app_identifier(candidate.source_app_identifier))
         .max_by_key(|(_, candidate)| (candidate.is_playing, candidate.last_activity))
         .map(|(candidate_index, _)| candidate_index)
-}
-
-/// An empty filter allows every app; otherwise the app ID must contain one of the
-/// fragments, ignoring case (browsers aren't consistent: "Brave", "chrome.exe", "MSEdge").
-fn is_app_identifier_allowed(source_app_identifier: &str, allowed_app_identifier_fragments: &[String]) -> bool {
-    let lowercase_app_identifier = source_app_identifier.to_lowercase();
-    allowed_app_identifier_fragments.is_empty()
-        || allowed_app_identifier_fragments
-            .iter()
-            .any(|allowed_fragment| lowercase_app_identifier.contains(&allowed_fragment.to_lowercase()))
 }
 
 #[cfg(test)]
@@ -44,8 +34,8 @@ mod tests {
     const YOUTUBE_MUSIC_IN_BRAVE: &str = "Brave._crx_cinhimbnkkghhklpknlkffjgod";
     const SPOTIFY: &str = "Spotify.exe";
 
-    fn youtube_music_filter() -> Vec<String> {
-        vec!["_CRX_cinhimbnkkghhklpknlkffjgod".to_string()]
+    fn youtube_music_filter() -> MediaPlayerFilter {
+        MediaPlayerFilter::OnlyListedPlayers(vec!["_CRX_cinhimbnkkghhklpknlkffjgod".to_string()])
     }
 
     #[test]
@@ -72,7 +62,7 @@ mod tests {
             MediaSessionCandidate { source_app_identifier: SPOTIFY, is_playing: false, last_activity: Some(later) },
             MediaSessionCandidate { source_app_identifier: YOUTUBE_MUSIC_IN_BRAVE, is_playing: true, last_activity: Some(earlier) },
         ];
-        assert_eq!(select_preferred_media_session(&candidates, &[]), Some(1));
+        assert_eq!(select_preferred_media_session(&candidates, &MediaPlayerFilter::EveryPlayer), Some(1));
     }
 
     #[test]
@@ -83,6 +73,6 @@ mod tests {
             MediaSessionCandidate { source_app_identifier: YOUTUBE_MUSIC_IN_BRAVE, is_playing: false, last_activity: Some(later) },
             MediaSessionCandidate { source_app_identifier: SPOTIFY, is_playing: false, last_activity: Some(earlier) },
         ];
-        assert_eq!(select_preferred_media_session(&candidates, &[]), Some(0));
+        assert_eq!(select_preferred_media_session(&candidates, &MediaPlayerFilter::EveryPlayer), Some(0));
     }
 }

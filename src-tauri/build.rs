@@ -14,6 +14,9 @@ const CREST_COMMAND_NAMES: &[&str] = &[
     "change_launch_at_login_setting",
     "list_pill_display_options",
     "choose_pill_display",
+    "list_allowed_player_options",
+    "change_allowed_players",
+    "change_show_every_player",
 ];
 
 fn main() {

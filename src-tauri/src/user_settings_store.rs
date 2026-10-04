@@ -5,6 +5,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 
 use crate::backend_constants::{DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT, USER_SETTINGS_FILE_NAME};
+use crate::media::MediaPlayerFilter;
 
 /// Crest's settings, kept in `settings.json` in its config folder (%APPDATA%\dev.crest.pill).
 /// The folder is outside the install folder, so updates don't touch it. Every field is
@@ -12,9 +13,14 @@ use crate::backend_constants::{DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT, US
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct CrestUserSettings {
-    /// A media session is shown only if its app ID contains one of these (ignoring case).
-    /// An empty list shows every app.
+    /// A media session is shown only if its app ID is listed (exact, or a browser-independent
+    /// `_crx_` web-app ID; see `is_app_identifier_in_list`), unless `show_every_media_player` is on.
     pub allowed_media_app_identifier_fragments: Vec<String>,
+    /// Show whatever plays, ignoring the list. `None` only while reading a file from before
+    /// 0.3.0, where an empty list meant "every player"; loading turns it into that meaning.
+    /// Its own `default` makes a missing field `None` instead of `Default`'s `Some(false)`.
+    #[serde(default)]
+    pub show_every_media_player: Option<bool>,
     /// Windows' name of the monitor the pill sits on (e.g. `\\.\DISPLAY2`). `None`, or a
     /// monitor that isn't connected, means the main display.
     pub pill_display_name: Option<String>,
@@ -24,12 +30,23 @@ impl Default for CrestUserSettings {
     fn default() -> Self {
         Self {
             allowed_media_app_identifier_fragments: vec![DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT.to_string()],
+            show_every_media_player: Some(false),
             pill_display_name: None,
         }
     }
 }
 
 /// The settings as they are now, shared by Tauri commands, plus where to save them.
+impl CrestUserSettings {
+    pub fn media_player_filter(&self) -> MediaPlayerFilter {
+        if self.show_every_media_player == Some(true) {
+            MediaPlayerFilter::EveryPlayer
+        } else {
+            MediaPlayerFilter::OnlyListedPlayers(self.allowed_media_app_identifier_fragments.clone())
+        }
+    }
+}
+
 pub struct CrestUserSettingsStore {
     settings_file_path: PathBuf,
     current_settings: Mutex<CrestUserSettings>,
@@ -66,10 +83,15 @@ fn read_settings_file(settings_file_path: &Path) -> CrestUserSettings {
     let Ok(settings_file_text) = fs::read_to_string(settings_file_path) else {
         return CrestUserSettings::default();
     };
-    serde_json::from_str(&settings_file_text).unwrap_or_else(|parse_error| {
+    let mut loaded_settings: CrestUserSettings = serde_json::from_str(&settings_file_text).unwrap_or_else(|parse_error| {
         eprintln!("Crest: ignoring {} because it is not valid: {parse_error}", settings_file_path.display());
         CrestUserSettings::default()
-    })
+    });
+    // Before 0.3.0 the file had no switch, and an empty list meant every player.
+    loaded_settings
+        .show_every_media_player
+        .get_or_insert(loaded_settings.allowed_media_app_identifier_fragments.is_empty());
+    loaded_settings
 }
 
 /// Writes a temporary file next to the real one, then renames it over the real one. A rename
@@ -117,7 +139,23 @@ mod tests {
 
         let loaded_settings = CrestUserSettingsStore::load_from_config_directory(&test_directory).read_current_settings();
         assert!(loaded_settings.allowed_media_app_identifier_fragments.is_empty());
+        assert_eq!(loaded_settings.media_player_filter(), MediaPlayerFilter::EveryPlayer);
         assert_eq!(loaded_settings.pill_display_name, None);
+        fs::remove_dir_all(&test_directory).unwrap();
+    }
+
+    #[test]
+    fn an_empty_list_with_the_switch_off_shows_no_player() {
+        let test_directory = create_empty_test_directory("no-player");
+        fs::create_dir_all(&test_directory).unwrap();
+        fs::write(
+            test_directory.join(USER_SETTINGS_FILE_NAME),
+            r#"{ "allowedMediaAppIdentifierFragments": [], "showEveryMediaPlayer": false }"#,
+        )
+        .unwrap();
+
+        let loaded_settings = CrestUserSettingsStore::load_from_config_directory(&test_directory).read_current_settings();
+        assert_eq!(loaded_settings.media_player_filter(), MediaPlayerFilter::OnlyListedPlayers(Vec::new()));
         fs::remove_dir_all(&test_directory).unwrap();
     }
 }

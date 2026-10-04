@@ -19,7 +19,7 @@ use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
 use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppWatcher};
 use ipc_channel_names::{PILL_PRESENTATION_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
-use media::CurrentPlatformMediaSource;
+use media::{CurrentPlatformMediaSource, MediaSource};
 use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
 use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
@@ -84,8 +84,10 @@ pub fn run_crest_app() {
             crest_app.manage(Arc::clone(&shared_activity_arbiter));
 
             let crest_user_settings = crest_app.state::<CrestUserSettingsStore>().read_current_settings();
-            let media_source =
-                CurrentPlatformMediaSource::new(crest_user_settings.allowed_media_app_identifier_fragments);
+            let media_source = CurrentPlatformMediaSource::new(crest_user_settings.media_player_filter());
+            // Taken before the source disappears into the music activity: the settings window
+            // uses it to list players and change the filter while the source runs.
+            crest_app.manage(media_source.create_player_filter_control());
             let mut activity_source_registry = ActivitySourceRegistry::default();
             activity_source_registry
                 .start_and_register(Box::new(MusicActivitySource::new(Box::new(media_source))), &shared_activity_arbiter)?;
@@ -104,6 +106,9 @@ pub fn run_crest_app() {
             settings_window::settings_window_commands::change_launch_at_login_setting,
             settings_window::settings_window_commands::list_pill_display_options,
             settings_window::settings_window_commands::choose_pill_display,
+            settings_window::settings_window_commands::list_allowed_player_options,
+            settings_window::settings_window_commands::change_allowed_players,
+            settings_window::settings_window_commands::change_show_every_player,
         ])
         .run(tauri::generate_context!())
         .expect("Crest failed to start the Tauri application");

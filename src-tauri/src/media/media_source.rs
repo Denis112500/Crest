@@ -1,3 +1,4 @@
+use crate::media::media_player_filter_control::MediaPlayerFilterControl;
 use crate::media::media_session_snapshot::MediaSessionSnapshot;
 
 /// Called with the preferred media session every time something about it changes,
@@ -25,4 +26,8 @@ pub trait MediaSource: Send {
     /// Asks the player of the session currently shown to act. Returns as soon as the
     /// request is queued; the effect arrives later as an ordinary snapshot update.
     fn send_media_transport_command(&self, media_transport_command: MediaTransportCommand) -> Result<(), String>;
+
+    /// A handle for the settings window, created before the source is handed to its
+    /// activity: lists the open players and changes the filter while the source runs.
+    fn create_player_filter_control(&self) -> MediaPlayerFilterControl;
 }

@@ -8,6 +8,9 @@
     "allow-read-launch-at-login-setting",
     "allow-change-launch-at-login-setting",
     "allow-list-pill-display-options",
-    "allow-choose-pill-display"
+    "allow-choose-pill-display",
+    "allow-list-allowed-player-options",
+    "allow-change-allowed-players",
+    "allow-change-show-every-player"
   ]
 }

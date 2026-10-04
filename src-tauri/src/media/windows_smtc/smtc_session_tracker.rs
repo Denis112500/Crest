@@ -1,17 +1,20 @@
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Instant;
 
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as SmtcSessionManager;
 
 use crate::media::album_art_settle_gate::AlbumArtSettleGate;
+use crate::media::media_player_filter::MediaPlayerFilter;
 use crate::media::media_session_selector::{select_preferred_media_session, MediaSessionCandidate};
 use crate::media::media_session_snapshot::{MediaPlaybackState, MediaSessionSnapshot};
 use crate::media::media_source::{MediaSnapshotListener, MediaTransportCommand};
 use crate::media::pending_transport_commands::PendingTransportCommands;
-use crate::media::windows_smtc::smtc_event_subscriptions::SmtcSessionEventSubscription;
 use crate::media::windows_smtc::smtc_snapshot_reader::{read_media_session_snapshot, read_playback_state};
-use crate::media::windows_smtc::smtc_tracked_session::{find_session_of_app, TrackedSmtcSession};
+use crate::media::windows_smtc::smtc_tracked_session::{
+    find_session_of_app, subscribe_to_current_sessions, TrackedSmtcSession,
+};
 use crate::media::windows_smtc::smtc_transport_commands::send_smtc_transport_command;
 use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
 
@@ -20,7 +23,9 @@ use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
 pub struct SmtcSessionTracker {
     session_manager: SmtcSessionManager,
     worker_message_sender: Sender<SmtcWorkerMessage>,
-    allowed_app_identifier_fragments: Vec<String>,
+    media_player_filter: MediaPlayerFilter,
+    /// Every player's app ID, allowed or not, for the settings window to offer.
+    open_player_app_identifiers: Arc<Mutex<Vec<String>>>,
     tracked_sessions: Vec<TrackedSmtcSession>,
     last_activity_by_source_app: HashMap<String, Instant>,
     album_art_settle_gate: AlbumArtSettleGate,
@@ -36,13 +41,15 @@ impl SmtcSessionTracker {
     pub fn new(
         session_manager: SmtcSessionManager,
         worker_message_sender: Sender<SmtcWorkerMessage>,
-        allowed_app_identifier_fragments: Vec<String>,
+        media_player_filter: MediaPlayerFilter,
+        open_player_app_identifiers: Arc<Mutex<Vec<String>>>,
         media_snapshot_listener: MediaSnapshotListener,
     ) -> Self {
         Self {
             session_manager,
             worker_message_sender,
-            allowed_app_identifier_fragments,
+            media_player_filter,
+            open_player_app_identifiers,
             tracked_sessions: Vec::new(),
             last_activity_by_source_app: HashMap::new(),
             album_art_settle_gate: AlbumArtSettleGate::default(),
@@ -56,21 +63,15 @@ impl SmtcSessionTracker {
     /// Re-subscribes to every current session. Replacing the list drops the old
     /// subscriptions, which unsubscribes from sessions that have closed.
     pub fn refresh_session_list(&mut self) {
-        let current_sessions = match self.session_manager.GetSessions() {
-            Ok(current_sessions) => current_sessions,
-            Err(read_error) => {
-                eprintln!("Crest media: could not list media sessions: {read_error}");
-                return;
-            }
+        let Some(current_sessions) = subscribe_to_current_sessions(&self.session_manager, &self.worker_message_sender)
+        else {
+            return;
         };
-        self.tracked_sessions = current_sessions
-            .into_iter()
-            .filter_map(|session| {
-                let source_app_identifier = session.SourceAppUserModelId().ok()?.to_string_lossy();
-                let event_subscription =
-                    SmtcSessionEventSubscription::subscribe(session, &self.worker_message_sender).ok()?;
-                Some(TrackedSmtcSession { source_app_identifier, event_subscription })
-            })
+        self.tracked_sessions = current_sessions;
+        *self.open_player_app_identifiers.lock().unwrap_or_else(PoisonError::into_inner) = self
+            .tracked_sessions
+            .iter()
+            .map(|tracked_session| tracked_session.source_app_identifier.clone())
             .collect();
 
         // A session that closed and comes back (browsers do this on every track change)
@@ -91,6 +92,12 @@ impl SmtcSessionTracker {
                 send_smtc_transport_command(button_target_session, pending_command);
             }
         }
+    }
+
+    /// The worker publishes right after handling messages, so the pill switches to (or away
+    /// from) a player as soon as the filter changes.
+    pub fn replace_media_player_filter(&mut self, media_player_filter: MediaPlayerFilter) {
+        self.media_player_filter = media_player_filter;
     }
 
     pub fn record_session_activity(&mut self, source_app_identifier: String) {
@@ -134,7 +141,7 @@ impl SmtcSessionTracker {
             })
             .collect();
         let preferred_session_index =
-            select_preferred_media_session(&candidates, &self.allowed_app_identifier_fragments)?;
+            select_preferred_media_session(&candidates, &self.media_player_filter)?;
         let preferred_session = &self.tracked_sessions[preferred_session_index];
         read_media_session_snapshot(
             preferred_session.event_subscription.session(),

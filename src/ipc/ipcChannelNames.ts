@@ -12,6 +12,9 @@ export const READ_LAUNCH_AT_LOGIN_SETTING_COMMAND = "read_launch_at_login_settin
 export const CHANGE_LAUNCH_AT_LOGIN_SETTING_COMMAND = "change_launch_at_login_setting";
 export const LIST_PILL_DISPLAY_OPTIONS_COMMAND = "list_pill_display_options";
 export const CHOOSE_PILL_DISPLAY_COMMAND = "choose_pill_display";
+export const LIST_ALLOWED_PLAYER_OPTIONS_COMMAND = "list_allowed_player_options";
+export const CHANGE_ALLOWED_PLAYERS_COMMAND = "change_allowed_players";
+export const CHANGE_SHOW_EVERY_PLAYER_COMMAND = "change_show_every_player";
 
 export const PILL_PRESENTATION_CHANGED_EVENT = "pill-presentation-changed";
 export const PILL_VISIBILITY_CHANGED_EVENT = "pill-visibility-changed";

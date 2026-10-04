@@ -1,3 +1,4 @@
+use crate::media::media_player_filter::MediaPlayerFilter;
 use crate::media::media_source::MediaTransportCommand;
 
 /// Everything that wakes the SMTC worker thread. SMTC event handlers (on Windows thread-pool
@@ -7,4 +8,6 @@ pub enum SmtcWorkerMessage {
     SessionListChanged,
     SessionActivity { source_app_identifier: String },
     TransportCommandRequested(MediaTransportCommand),
+    /// From the settings window.
+    MediaPlayerFilterReplaced(MediaPlayerFilter),
 }

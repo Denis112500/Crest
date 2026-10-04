@@ -1,10 +1,12 @@
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use windows::Media::Control::GlobalSystemMediaTransportControlsSessionManager as SmtcSessionManager;
 use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
 
 use crate::backend_constants::SMTC_EVENT_COALESCING_WINDOW;
+use crate::media::media_player_filter::MediaPlayerFilter;
 use crate::media::media_source::MediaSnapshotListener;
 use crate::media::windows_smtc::smtc_event_subscriptions::subscribe_to_session_list_changes;
 use crate::media::windows_smtc::smtc_session_tracker::SmtcSessionTracker;
@@ -14,7 +16,8 @@ use crate::media::windows_smtc::smtc_worker_message::SmtcWorkerMessage;
 /// button press arrives (or a new track's album art may be shown), so it costs no CPU while
 /// nothing changes.
 pub fn run_smtc_worker_thread(
-    allowed_app_identifier_fragments: Vec<String>,
+    media_player_filter: MediaPlayerFilter,
+    open_player_app_identifiers: Arc<Mutex<Vec<String>>>,
     media_snapshot_listener: MediaSnapshotListener,
     worker_message_sender: Sender<SmtcWorkerMessage>,
     worker_message_receiver: Receiver<SmtcWorkerMessage>,
@@ -40,7 +43,8 @@ pub fn run_smtc_worker_thread(
     let mut session_tracker = SmtcSessionTracker::new(
         session_manager,
         worker_message_sender,
-        allowed_app_identifier_fragments,
+        media_player_filter,
+        open_player_app_identifiers,
         media_snapshot_listener,
     );
     session_tracker.refresh_session_list();
@@ -63,6 +67,9 @@ pub fn run_smtc_worker_thread(
                 }
                 SmtcWorkerMessage::TransportCommandRequested(media_transport_command) => {
                     session_tracker.send_transport_command_to_shown_session(media_transport_command)
+                }
+                SmtcWorkerMessage::MediaPlayerFilterReplaced(media_player_filter) => {
+                    session_tracker.replace_media_player_filter(media_player_filter)
                 }
             }
         }

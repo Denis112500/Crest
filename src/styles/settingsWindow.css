@@ -74,6 +74,18 @@ body {
   color: var(--settings-secondary-text-color);
 }
 
+/* Several rows in one card (the player list) are divided by a thin line, as in Windows. */
+.setting-row + .setting-row {
+  border-top: 1px solid var(--settings-row-separator-color);
+}
+
+/* Long app IDs (the description of a player row) wrap instead of widening the window. */
+.setting-row-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.setting-button,
 .setting-select {
   min-width: var(--settings-select-min-width);
   padding: var(--settings-control-padding);
@@ -126,4 +138,15 @@ body {
 .setting-switch:disabled {
   opacity: var(--settings-disabled-opacity);
   cursor: default;
+}
+
+.setting-button {
+  flex: none;
+  padding: var(--settings-button-padding);
+  min-width: 0;
+  cursor: pointer;
+}
+
+.setting-select:disabled {
+  opacity: var(--settings-disabled-opacity);
 }

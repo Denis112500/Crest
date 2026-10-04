@@ -11,9 +11,10 @@ pub const SETTINGS_WINDOW_LABEL: &str = "settings";
 pub const SETTINGS_WINDOW_PAGE_PATH: &str = "settings.html";
 
 pub const SETTINGS_WINDOW_LOGICAL_WIDTH: f64 = 480.0;
-pub const SETTINGS_WINDOW_LOGICAL_HEIGHT: f64 = 560.0;
+pub const SETTINGS_WINDOW_LOGICAL_HEIGHT: f64 = 640.0;
 
-/// Optional settings file inside Crest's config folder (%APPDATA%\dev.crest.pill on Windows).
+/// Settings file inside Crest's config folder (%APPDATA%\dev.crest.pill on Windows), written by
+/// the settings window; it doesn't exist until a setting is changed.
 pub const USER_SETTINGS_FILE_NAME: &str = "settings.json";
 
 /// The YouTube Music web app ID. Chromium browsers report the installed app as
