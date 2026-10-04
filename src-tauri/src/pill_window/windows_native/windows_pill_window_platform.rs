@@ -57,7 +57,11 @@ impl PillWindowPlatform for WindowsPillWindowPlatform {
             )
             .map_err(|error| error.to_string())?;
         }
-        block_classic_frame_painting(pill_window_native_handle)
+        block_classic_frame_painting(pill_window_native_handle)?;
+        // The window starts hidden, and the low target is otherwise only set when it hides
+        // again; without this, a Crest started with nothing playing (e.g. at login) would keep
+        // the normal target until the first song, about 78 MB instead of 20 (measured).
+        adjust_pill_webview_memory_target(pill_window, true)
     }
 
     fn show_pill_window_without_activating(pill_window: &WebviewWindow) -> Result<(), String> {

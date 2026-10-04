@@ -3,8 +3,11 @@ use tauri::tray::TrayIconBuilder;
 use tauri::App;
 
 use crate::launch_at_login::{is_launch_at_login_enabled, toggle_launch_at_login};
+use crate::settings_window::open_or_focus_settings_window;
 
 const TRAY_TOOLTIP_TEXT: &str = "Crest";
+const OPEN_SETTINGS_MENU_ITEM_IDENTIFIER: &str = "open-settings";
+const OPEN_SETTINGS_MENU_ITEM_LABEL: &str = "Settings…";
 const LAUNCH_AT_LOGIN_MENU_ITEM_IDENTIFIER: &str = "launch-at-login";
 const LAUNCH_AT_LOGIN_MENU_ITEM_LABEL: &str = "Start with Windows";
 const QUIT_MENU_ITEM_IDENTIFIER: &str = "quit-crest";
@@ -21,16 +24,29 @@ pub fn create_crest_tray_icon(crest_app: &App) -> tauri::Result<()> {
         is_launch_at_login_enabled(crest_app),
         None::<&str>,
     )?;
+    let open_settings_menu_item = MenuItem::with_id(
+        crest_app,
+        OPEN_SETTINGS_MENU_ITEM_IDENTIFIER,
+        OPEN_SETTINGS_MENU_ITEM_LABEL,
+        true,
+        None::<&str>,
+    )?;
     let quit_menu_item =
         MenuItem::with_id(crest_app, QUIT_MENU_ITEM_IDENTIFIER, QUIT_MENU_ITEM_LABEL, true, None::<&str>)?;
     let tray_menu = Menu::with_items(
         crest_app,
-        &[&launch_at_login_menu_item, &PredefinedMenuItem::separator(crest_app)?, &quit_menu_item],
+        &[
+            &open_settings_menu_item,
+            &launch_at_login_menu_item,
+            &PredefinedMenuItem::separator(crest_app)?,
+            &quit_menu_item,
+        ],
     )?;
     let mut tray_icon_builder = TrayIconBuilder::new()
         .tooltip(TRAY_TOOLTIP_TEXT)
         .menu(&tray_menu)
         .on_menu_event(move |crest_app_handle, menu_event| match menu_event.id().as_ref() {
+            OPEN_SETTINGS_MENU_ITEM_IDENTIFIER => open_or_focus_settings_window(crest_app_handle),
             LAUNCH_AT_LOGIN_MENU_ITEM_IDENTIFIER => {
                 // Windows already flipped the checkmark on click; overwrite it with what the
                 // OS really reports, in case the switch failed.

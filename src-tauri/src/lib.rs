@@ -6,6 +6,7 @@ mod ipc_channel_names;
 mod launch_at_login;
 mod media;
 mod pill_window;
+mod settings_window;
 mod system_tray;
 mod user_settings_file;
 
@@ -20,16 +21,21 @@ use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppWat
 use ipc_channel_names::{PILL_PRESENTATION_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
 use media::CurrentPlatformMediaSource;
 use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
+use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
 use user_settings_file::load_crest_user_settings;
 
 pub fn run_crest_app() {
     tauri::Builder::default()
         // Registered first, as the plugin requires, so a second copy exits before it creates
-        // its own pill and tray icon. Two copies would stack two pills in the same spot. The
-        // running copy has nothing to bring forward (the pill appears only with music), so
-        // the second launch is simply ignored.
-        .plugin(tauri_plugin_single_instance::init(|_running_crest_app, _second_launch_arguments, _second_launch_directory| {}))
+        // its own pill and tray icon. Two copies would stack two pills in the same spot.
+        // Starting Crest again (e.g. from the Start menu) while it runs opens the settings
+        // instead, so they can be found without knowing about the tray icon.
+        .plugin(tauri_plugin_single_instance::init(
+            |running_crest_app, _second_launch_arguments, _second_launch_directory| {
+                open_or_focus_settings_window(running_crest_app);
+            },
+        ))
         // Used from Rust only (the tray's "Start with Windows"); the page gets no permission
         // for it in capabilities/default.json, so it can't switch autostart on or off.
         .plugin(tauri_plugin_autostart::Builder::new().build())

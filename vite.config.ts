@@ -27,4 +27,14 @@ export default defineConfig(() => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  // Two pages: the pill (index.html) and the settings window (settings.html), each with its
+  // own entry, so the settings code never loads into the pill.
+  build: {
+    rollupOptions: {
+      input: {
+        pill: "index.html",
+        settings: "settings.html",
+      },
+    },
+  },
 }));

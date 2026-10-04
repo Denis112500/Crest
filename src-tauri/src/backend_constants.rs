@@ -3,6 +3,16 @@ use std::time::Duration;
 /// Must match the window `label` in `tauri.conf.json`.
 pub const PILL_WINDOW_LABEL: &str = "pill";
 
+/// The settings window is created when it's opened and destroyed when it's closed, so it
+/// costs no memory the rest of the time.
+pub const SETTINGS_WINDOW_LABEL: &str = "settings";
+
+/// Built by Vite next to the pill's index.html (see `build.rollupOptions.input` in vite.config.ts).
+pub const SETTINGS_WINDOW_PAGE_PATH: &str = "settings.html";
+
+pub const SETTINGS_WINDOW_LOGICAL_WIDTH: f64 = 480.0;
+pub const SETTINGS_WINDOW_LOGICAL_HEIGHT: f64 = 560.0;
+
 /// Optional settings file inside Crest's config folder (%APPDATA%\dev.crest.pill on Windows).
 pub const USER_SETTINGS_FILE_NAME: &str = "settings.json";
 

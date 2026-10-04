@@ -1,0 +1,44 @@
+/* A normal, framed window (unlike the pill), laid out like Windows 11's own settings:
+   a title, then sections of white (or dark) cards. */
+html,
+body {
+  margin: 0;
+  background: var(--settings-page-background);
+  color: var(--settings-text-color);
+  font-family: var(--settings-font-family);
+  font-size: var(--settings-font-size);
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-section-gap);
+  padding: var(--settings-page-padding);
+}
+
+.settings-page-title {
+  margin: 0;
+  font-size: var(--settings-page-title-font-size);
+  font-weight: var(--settings-title-font-weight);
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-section-inner-gap);
+}
+
+.settings-section-title {
+  margin: 0;
+  font-size: var(--settings-section-title-font-size);
+  font-weight: var(--settings-title-font-weight);
+}
+
+.settings-empty-note {
+  margin: 0;
+  padding: var(--settings-card-padding);
+  border: 1px solid var(--settings-card-border-color);
+  border-radius: var(--settings-card-radius);
+  background: var(--settings-card-background);
+  color: var(--settings-secondary-text-color);
+}
