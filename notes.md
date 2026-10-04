@@ -2,10 +2,33 @@
 
 ## Current state
 - **Works:** v1 (milestones a–g) plus all of Phase 1: the pill shows YouTube Music at the top center, hides instantly while a fullscreen app covers its monitor, greys out buttons the player refuses, uses ~20 MB of RAM while hidden (was ~83 MB); tray with "Start with Windows" and Quit. CPU: 0% idle/paused/hidden, ~4.7% of one core while playing. Installed: 0.2.0 (user confirmed).
-- **In progress:** Phase 2 → v0.3.0. Item 6 (CLAUDE.md rules for v2) done and pushed. Item 6b (notch look) done and pushed (dev build only; installed Crest is still 0.2.0 with the gap). Next: 7 (settings window), 8 (several activities, design only). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
+- **In progress:** Phase 2 → v0.3.0. Item 6 (CLAUDE.md rules for v2) done and pushed. Item 6b (notch look) done and pushed (dev build only; installed Crest is still 0.2.0 with the gap). Item 7 (settings window) step 1 done on branch `settings-window` (empty window, memory measured, startup memory bug fixed), not committed. Then 8 (several activities, design only). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
 
 ---
+
+## 2026-10-04 — Phase 2, item 7, step 1: empty settings window + memory
+- **Decisions (user):** A second Tauri window, created on demand and destroyed on close (not kept alive hidden: no memory held for a rarely used window). "Start with Windows" moves from the tray into the window (step 2). Starting Crest again while it runs opens Settings. Later there will be more ways to open Settings (a settings wheel), so there's exactly one opener function.
+- **Done (branch `settings-window`):**
+  - `settings_window/settings_window_opener.rs` (new): `open_or_focus_settings_window` focuses an open window or builds a new one on its own thread (verified from Tauri docs: building a webview window inside a menu/event handler deadlocks on Windows). Window: "Crest Settings", 480×560, not resizable, centered.
+  - `system_tray.rs`: "Settings…" item (the "Start with Windows" checkmark stays until step 2). `lib.rs`: the single-instance callback opens Settings.
+  - `settings.html` + `styles/settingsWindow.css` (new, Windows 11 settings look, light/dark via `prefers-color-scheme`), settings tokens in `designTokens.css`; `vite.config.ts` builds two pages (`rollupOptions.input`), so settings code never loads into the pill.
+- **Verified from source (Tauri NSIS script):** the uninstaller deletes `%APPDATA%\dev.crest.pill` (settings.json) only if "Delete the application data" is ticked (unticked by default) and never in update mode. So settings survive updates.
+- **Problem found and fixed (old bug since item 4):** the pill sets the WebView2 memory target "Low" only when it hides, and it only hides after being shown. A Crest started with nothing playing (e.g. at login) stayed at "Normal": **78.3 MB**. Fix: `prepare_pill_window_as_overlay` also sets "Low" (the window starts hidden).
+- **Measured (verified by testing, release build, nothing playing, pill hidden, private working set):**
+
+  | State | Total | Notes |
+  |---|---|---|
+  | Never opened, before the fix | 78.3 MB | 60 s after start |
+  | Never opened, with the fix | 31.8 / 32.8 MB | 60 s after start; again 50 s later |
+  | Settings open | 66.0 MB | +1 renderer (15 MB); manager 10→23, GPU 3→9 |
+  | 3 s after closing | 50.2 MB | the settings renderer is gone |
+  | ~1 min after closing | **15.9 MB** | manager 4.9, pill renderer 0.2 |
+
+  The settings page gets its **own** renderer process; the pill's renderer kept its "Low" level the whole time.
+- **Verified by testing:** the second launch opened the window ("Crest Settings" title) and the extra copy exited. 32/32 Rust tests, clippy, tsc, vite build.
+- **Unexplained:** never-opened settles at ~32 MB, after-close at ~16 MB. Maybe closing a webview makes WebView2 trim the shared processes (unverified). Both are far below the 78 MB before the fix.
+- **Learned:** **multi-window apps in Tauri:** windows from `tauri.conf.json` exist from the start; windows built in Rust with `WebviewWindowBuilder` exist only while open. Closing a Tauri window destroys it (and here, its renderer process) unless the close is intercepted.
 
 ## 2026-10-04 — Phase 2, item 6: CLAUDE.md rules for v2
 - **Decisions (user approved the exact wording):** in CLAUDE.md "Scope and platforms":
