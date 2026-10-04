@@ -2,10 +2,30 @@
 
 ## Current state
 - **Works:** v1 + Phase 1 + Phase 2 items 6, 6b, 7 (on `main`, dev builds): a notch glued to the top edge shows YouTube Music, hides instantly for fullscreen apps, greys out refused buttons; settings window (tray "Settings…" or launching Crest again) with Start with Windows, the monitor it sits on, and allowed players (live, "Show every player" switch). RAM while hidden: 16–32 MB (startup bug fixed: was 78 MB until the first song). CPU 0% idle, ~4.7% of one core playing. Installed: 0.2.0.
-- **In progress:** Phase 2 → v0.3.0. Next: item 8 (several activities at once, design only), then version 0.3.0 + installer + GitHub release, and the two open Phase 1 checks (start at login with the installed version; installing over an older version keeps it). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
+- **In progress:** Phase 2 → v0.3.0. Item 8 decided (B: split notch, design only). Now: version 0.3.0 + installer + GitHub release, and the two open Phase 1 checks (start at login with the installed version; installing over an older version keeps it). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
 
 ---
+
+## 2026-10-04 — Phase 2, item 8: several activities at once (design only, no code)
+- **Today (verified from code):** `activity_arbiter.rs` keeps one update per source and exactly one wins (highest `display_priority`, then most recent); the pill shows only that one.
+- **Activities expected from Phase 3:** long-running (music, a running timer, Claude Code working), alerts that need the user now (timer done, Claude Code Allow/Deny, meeting starting), ambient (weather, next event).
+- **Options considered:**
+  - A. One at a time by priority (today + alerts): no work, but music disappears for as long as a timer runs.
+  - **B. Split notch: main activity + companion segment** (iPhone-style), alerts take over.
+  - C. Rotate every few seconds: everything visible in turn, but distracting, unpredictable to click, and a recurring timer against the event-driven rule.
+- **Decision (user): B.**
+  - Compact: one notch with two segments, `[ main activity | companion ]`; with 3+ ongoing activities the companion shows "+N" and the expanded view pages through all of them (dots).
+  - Hover a segment → that activity opens in the big view. Click the companion → it becomes the main one (remembered until it ends).
+  - Alerts take over the whole notch, open with their buttons, stay until answered or dismissed; several alerts queue (priority, then arrival).
+  - Settings (with the first integration): "Activities" section with the priority order of kinds and each kind on/off.
+- **What changes when it's built (Phase 3, with the second activity source):**
+  - `ActivityUpdate.is_ongoing: bool` → three cases: lingering / ongoing / alert.
+  - `activity_arbiter.rs`: "pick one winner" → a pure, unit-tested `arrange_pill_activities(...)` returning { alert or none, main, companion, count of the rest }; the user's swap is part of its input. New command `focus_activity(kind)`.
+  - `pill_visibility_policy.rs` decides from the arrangement (visible while anything is ongoing or alerting).
+  - Frontend: each activity view set gains a tiny companion view (icon + one short value); `pillContentPresenter.ts` mounts main + companion; the compact interactive area widens while a companion is shown; alerts use the activity's expanded view with buttons; answers go through the existing `perform_activity_action`.
+  - Unchanged: one notch shape, one rectangular interactive area, window size (the expanded view is already wider than compact + companion), the music source apart from the new field.
+- **Learned:** separate **what an activity is** (lingering / ongoing / alert) from **where it goes** (the arrangement): sources describe themselves, one pure function decides the layout, as the visibility policy already does for show/hide.
 
 ## 2026-10-04 — Phase 2, item 7: README brought up to date
 - **Done:** `README.md` was still at v1 in places. Updated: notch description and status (0.2.0 published, 0.3.0 in progress); tray = Settings… + Quit, second launch opens Settings; privacy wording from the new CLAUDE.md rules; memory while hidden (16–32 MB, measured); fullscreen hide in the visibility rules; `MediaPlayerFilter`; the window now moves only when another monitor is chosen; new "The settings window" section (on demand, per-window permissions); the whole file tree (added `settings.html`, `src/settings/`, `capabilities/settings_window.json`, `fullscreen_detection/`, `settings_window/`, `launch_at_login.rs`, the new media and pill_window files; `user_settings_file.rs` → `user_settings_store.rs`); the Settings section rewritten for the settings window, the file's fields, the new matching rule and what changed for hand-written files from before 0.3.0.
