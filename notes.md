@@ -7,6 +7,15 @@
 
 ---
 
+## 2026-10-05 — 0.3.1: every player by default for new installs
+- **Why (decided with the user):** before a soft launch (Tauri Discord, r/tauri; the big launch waits for Phase 3's Claude Code integration), a stranger with Spotify or a normal browser tab would install Crest, play music and see nothing, because only YouTube Music was allowed by default.
+- **Done (branch `every-player-default`):** `CrestUserSettings::default()` (used only when there is no `settings.json`, i.e. a fresh install) now has `show_every_media_player: Some(true)`; the list still starts with YouTube Music, so switching "Show every player" off gives the old behavior. Existing files keep their choice (an older file with a list and no switch still means "only the list", test). 2 new tests; 55/55, clippy clean, tsc. README: "any player that appears in Windows' own media controls (built and tested with YouTube Music and Brave)", status 0.3.1, the Allowed players paragraph. Version 0.3.0 → 0.3.1 (6 places); installer `Crest_0.3.1_x64-setup.exe` built 18:27.
+- **Also pushed before:** `118b607` Ignore local demo helper (`.gitignore`: `dev-tools/readme_demo_pointer.py`).
+- **Not claimed:** that it works with Spotify or other players (only YouTube Music and Brave tabs were tested).
+- **Verified by testing (user, real install, own Windows Terminal):** 0.3.0 → 0.3.1 with the installer's preselected "Uninstall before installing" (the first real upgrade outside the Claude container), then Crest started from the Start menu: About = 0.3.1, built 18:27; `Run\Crest` = `C:\Users\<user>\AppData\Local\Crest\crest.exe`. The check right after the installer (entry deleted) wasn't reported; the end result is the one that matters.
+
+---
+
 ## 2026-10-05 — Going public: README demo, anonymized notes
 - **Decision (user):** make Crest more popular but "faceless" (pseudonymous posts, a demo GIF instead of a person). `notes.md` stays public but is anonymized from now on (option b): the Windows user name in paths becomes `<user>`, specific installed apps become "other startup apps". Older versions stay in the git history (rewriting it was option c, not chosen). GitHub URLs (`Denis112500/Crest`) stay; the user name is a separate decision.
 - **Done:** `dev-tools/record_readme_demo.py` (new): records a 12 s GIF and a still of the open pill, capturing only a rectangle around the pill window (412×184 + margins), merging unchanged frames; uses Pillow 12.1.1 (already installed). A test frame showed the user's animated wallpaper behind the transparent corners → record in front of an empty maximized Notepad.
