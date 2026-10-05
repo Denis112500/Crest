@@ -131,7 +131,8 @@ Crest/
 │  │  ├─ settingRowElement.ts        one row: title, explanation, control
 │  │  ├─ launchAtLoginSettingRow.ts  "Start with Windows" switch
 │  │  ├─ pillDisplaySettingRow.ts    "Show the pill on" monitor list
-│  │  └─ allowedPlayersSettingCard.ts  "Show every player", the player list, adding open players
+│  │  ├─ allowedPlayersSettingCard.ts  "Show every player", the player list, adding open players
+│  │  └─ crestBuildDescriptionLine.ts  the About card: which Crest is running
 │  └─ styles/
 │     ├─ designTokens.css       every color, spacing, duration and the spring curve (pill and settings)
 │     ├─ pillShell.css          transparent page, notch shape, the morph and slide animations
@@ -152,7 +153,11 @@ Crest/
       ├─ backend_constants.rs   every Rust constant (windows, settings, priorities, timings)
       ├─ ipc_channel_names.rs   event, activity-kind and action names shared with the frontend
       ├─ user_settings_store.rs settings.json: loads it, keeps the current settings, saves safely (unit-tested)
-      ├─ launch_at_login.rs     "Start with Windows" through tauri-plugin-autostart
+      ├─ launch_at_login/
+      │  ├─ mod.rs
+      │  ├─ launch_at_login_switch.rs       "Start with Windows" on/off through tauri-plugin-autostart
+      │  ├─ launch_at_login_repair.rs       at startup: puts the entry back if an update deleted it or it points at a removed Crest (unit-tested)
+      │  └─ windows_run_key_registration.rs reads Windows' Run entry and whether its program still exists (unit-tested)
       ├─ system_tray.rs         tray icon with "Settings…" and "Quit Crest"
       ├─ activity_core/
       │  ├─ mod.rs
@@ -219,6 +224,7 @@ Crest/
          ├─ mod.rs
          ├─ settings_window_opener.rs    opens the window or brings it to the front (tray, second launch)
          ├─ settings_window_commands.rs  the commands the settings page calls
+         ├─ crest_build_description.rs   version, release/dev, build time and path for the About card
          └─ allowed_player_options.rs    what the player card shows (unit-tested)
 ```
 
@@ -240,9 +246,11 @@ npm run tauri build   # installer in src-tauri\target\release\bundle\nsis\
 
 Open them from the tray icon (**Settings…**) or by starting Crest again while it runs:
 
-- **Start with Windows**: Crest starts in the background when you sign in. Off by default.
+- **Start with Windows**: Crest starts in the background when you sign in. Off by default. Crest remembers your choice: Windows' installer removes the start-up entry when an update uninstalls the old version first, and Crest puts it back the next time it starts.
 - **Show the pill on**: the main display, or a specific monitor. If that monitor is unplugged, the pill goes to the main display.
 - **Allowed players**: which players the pill shows. By default only YouTube Music; add any player while it's open (a video in a normal browser tab counts as one player per browser, e.g. "Brave tabs"), or switch on **Show every player**. With an empty list and the switch off, the pill shows no music.
+
+The **About** card at the bottom shows which Crest is running (version, release or dev build, when it was built, and the file's location).
 
 Changes apply at once and are saved in `%APPDATA%\dev.crest.pill\settings.json`, outside the install folder, so updates keep them (uninstalling removes them only if you tick "Delete the application data"). You don't need to edit the file; if you do, a list entry matches a player's exact app ID (ignoring case), except an entry starting with `_crx_`, which matches that web app in any Chromium browser:
 
@@ -250,6 +258,7 @@ Changes apply at once and are saved in `%APPDATA%\dev.crest.pill\settings.json`,
 {
   "allowedMediaAppIdentifierFragments": ["_crx_cinhimbnkkghhklpknlkffjgod"],
   "showEveryMediaPlayer": false,
+  "shouldLaunchAtLogin": false,
   "pillDisplayName": null
 }
 ```
