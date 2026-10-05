@@ -1,8 +1,8 @@
 # Project notes
 
 ## Current state
-- **Works:** v0.3.0 published and installed (Phases 1 and 2 complete): notch glued to the top edge, hides instantly for fullscreen apps, greys out refused buttons; settings window (tray "Settings…" or launching Crest again) with Start with Windows (restored after updates), monitor choice, allowed players, About card. RAM while hidden 16–32 MB; CPU 0% idle/hidden (bars timer leak fixed), ~4.7% of one core playing; starts at login (verified).
-- **In progress:** nothing. **Phase 2 is done:** v0.3.0 is published (https://github.com/Denis112500/Crest/releases/tag/v0.3.0). Next: Phase 3 (integrations, free only), only when the user starts it; the item 8 design (split notch) gets built with the second activity source. Rule: installs and autostart checks only outside the Claude app (MSIX container).
+- **Works:** v0.3.1 published and installed (Phases 1 and 2 complete): notch glued to the top edge, hides instantly for fullscreen apps, greys out refused buttons; settings window (tray "Settings…" or launching Crest again) with Start with Windows (restored after updates), monitor choice, allowed players, About card. RAM while hidden 16–32 MB; CPU 0% idle/hidden (bars timer leak fixed), ~4.7% of one core playing; starts at login (verified).
+- **In progress:** nothing. Phase 2 is done; v0.3.1 is published (https://github.com/Denis112500/Crest/releases/tag/v0.3.1): new installs show every player. Next: soft launch (Tauri Discord, r/tauri), then Phase 3 (integrations, free only) when the user starts it; big launch after the Claude Code integration. Rule: installs and autostart checks only outside the Claude app (MSIX container).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
 
 ---
@@ -13,6 +13,8 @@
 - **Also pushed before:** `118b607` Ignore local demo helper (`.gitignore`: `dev-tools/readme_demo_pointer.py`).
 - **Not claimed:** that it works with Spotify or other players (only YouTube Music and Brave tabs were tested).
 - **Verified by testing (user, real install, own Windows Terminal):** 0.3.0 → 0.3.1 with the installer's preselected "Uninstall before installing" (the first real upgrade outside the Claude container), then Crest started from the Start menu: About = 0.3.1, built 18:27; `Run\Crest` = `C:\Users\<user>\AppData\Local\Crest\crest.exe`. The check right after the installer (entry deleted) wasn't reported; the end result is the one that matters.
+- **Published (2026-10-05):** commits `5c2ff15` Show every player on new installs, `5e77a85` Update README, `2317eb9` Update notes on `main`; GitHub Release v0.3.1 "Crest 0.3.1", tag on `2317eb9`, asset `Crest_0.3.1_x64-setup.exe` (1 457 435 bytes, the tested 18:27 build), marked Latest, text approved by the user. `dev-tools/record_readme_demo.py` stays uncommitted on purpose (its local version needs the unpublished mouse helper).
+- **Next:** soft launch (Tauri Discord "showcase", r/tauri), then Phase 3; the big launch after the Claude Code integration.
 
 ---
 
