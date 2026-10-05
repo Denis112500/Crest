@@ -6,11 +6,11 @@
 
 > **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave); shared as-is, no support guaranteed.
 
-A small black notch hanging from the top center of the screen. It shows what's playing (YouTube Music first), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
+A small black notch hanging from the top center of the screen. It shows what's playing in any player that appears in Windows' own media controls (built and tested with YouTube Music and Brave), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration (there are none yet).
 
-> Status: 0.3.0 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. A settings window for starting with Windows, the monitor it sits on, and which players it shows. See `notes.md` for the running log.
+> Status: 0.3.1 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. A settings window for starting with Windows, the monitor it sits on, and which players it shows. See `notes.md` for the running log.
 
 Crest's tray icon (notification area, possibly behind the ^ arrow) has **Settings…** and **Quit Crest**. Starting Crest again while it runs also opens the settings.
 
@@ -263,7 +263,7 @@ Open them from the tray icon (**Settings…**) or by starting Crest again while 
 
 - **Start with Windows**: Crest starts in the background when you sign in. Off by default. Crest remembers your choice: Windows' installer removes the start-up entry when an update uninstalls the old version first, and Crest puts it back the next time it starts.
 - **Show the pill on**: the main display, or a specific monitor. If that monitor is unplugged, the pill goes to the main display.
-- **Allowed players**: which players the pill shows. By default only YouTube Music; add any player while it's open (a video in a normal browser tab counts as one player per browser, e.g. "Brave tabs"), or switch on **Show every player**. With an empty list and the switch off, the pill shows no music.
+- **Allowed players**: which players the pill shows. A new install shows **every player**; switch that off to show only the list (it starts with YouTube Music), and add any player while it's open (a video in a normal browser tab counts as one player per browser, e.g. "Brave tabs"). With an empty list and the switch off, the pill shows no music.
 
 The **About** card at the bottom shows which Crest is running (version, release or dev build, when it was built, and the file's location).
 
