@@ -13,6 +13,9 @@ dev-tools/smtc_thumbnail_watcher/Cargo.lock
 dev-tools/fullscreen_event_watcher/target/
 dev-tools/fullscreen_event_watcher/Cargo.lock
 
+# Local helper for recording the README demo (moves the mouse); kept off GitHub on purpose
+dev-tools/readme_demo_pointer.py
+
 # Personal Claude Code settings (launch.json is shared on purpose)
 .claude/settings.local.json
 
