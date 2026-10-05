@@ -1,14 +1,28 @@
 # Crest
 
+<p align="center">
+  <img src="docs/crest-demo.gif" width="460" alt="Crest: a black notch at the top of the screen shows the playing song, opens into a player with album art, title, progress and buttons, and closes again">
+</p>
+
 > **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave); shared as-is, no support guaranteed.
 
 A small black notch hanging from the top center of the screen. It shows what's playing (YouTube Music first), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration (there are none yet).
 
-> Status: 0.2.0 is published; 0.3.0 is in progress. A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. A settings window for starting with Windows, the monitor it sits on, and which players it shows. See `notes.md` for the running log.
+> Status: 0.3.0 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. A settings window for starting with Windows, the monitor it sits on, and which players it shows. See `notes.md` for the running log.
 
 Crest's tray icon (notification area, possibly behind the ^ arrow) has **Settings…** and **Quit Crest**. Starting Crest again while it runs also opens the settings.
+
+## What it looks like
+
+<p align="center">
+  <img src="docs/crest-expanded.png" width="460" alt="The open pill: album art, song title and artists, elapsed and remaining time, previous, pause and next buttons">
+</p>
+
+Compact, it's a small notch with the album art, the title and bouncing bars; hovered or clicked (or when a new song starts), it opens into the player above, and it slides up into the screen edge when there's nothing to show.
+
+<sub>Music in the demo: "C U Again" by Jéja, Mikk Mäe, CARTOON and Futuristik, an NCS release, provided by [NoCopyrightSounds](https://ncs.io).</sub>
 
 ## What makes Crest different
 
@@ -79,6 +93,7 @@ Crest/
 ├─ README.md                    this file
 ├─ LICENSE                      MIT
 ├─ dev-tools/                   debugging helpers, not part of the app (see dev-tools/README.md)
+├─ docs/                        the demo GIF and screenshot shown in this README
 ├─ notes.md                     running project log
 ├─ .gitignore                   ignores node_modules, dist, build output
 ├─ .gitattributes               LF line endings everywhere (Windows and Linux)
