@@ -32,7 +32,7 @@ Compact, it's a small notch with the album art, the title and bouncing bars; hov
 
 ## How it's built
 
-I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code writes the code, debugs and documents it, following the rules in `CLAUDE.md`. `notes.md` is the running log of every decision and bug, and the commit history shows which commits were co-authored.
+I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code helps me with code and debugs, following the rules in `CLAUDE.md`. `notes.md` is the running log of every decision and bug, and the commit history shows which commits were co-authored.
 
 ## How it works, in plain language
 
