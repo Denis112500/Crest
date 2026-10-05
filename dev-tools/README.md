@@ -13,6 +13,7 @@ installer; all are read-only (they look, they don't change anything).
 | `fullscreen_event_watcher/` | What does Windows report when a fullscreen app or game comes to the front or leaves? Registers as an appbar (`ABN_FULLSCREENAPP`, the taskbar's own signal) and watches front-window changes; each event logs the front window's class/title, its monitor, whether it covers that monitor, and `SHQueryUserNotificationState`. | `cargo run --release` |
 | `measure_crest_memory.ps1` | How much memory do Crest and its WebView2 processes use? Per process (role from the command line) and in total: private working set (Task Manager's "Memory"), private bytes, working set, averaged over samples. Measure release builds, and check which `crest.exe` is running. | `pwsh` |
 | `measure_pill_reveal_delay.ps1` | How long does the pill take to appear after music starts? Samples every 20 ms whether a player reports Playing and whether the pill window is visible; prints each change and the delay, and stops after the first measured appearance. Press play while the pill is hidden. | **`powershell.exe`** (5.1 only: it loads WinRT types) |
+| `record_readme_demo.py` | Records the README's demo: a GIF and a still of the open pill, capturing only a rectangle around the pill window (unchanged frames merged). Put a calm window behind the pill first; the still is the frame with the most visible text. | `python` (needs Pillow) |
 
 ## Debugging port
 
@@ -32,6 +33,7 @@ The dev page is `http://localhost:1420`; for a release build pass
 pwsh dev-tools/inspect_pill_window.ps1
 pwsh dev-tools/measure_crest_memory.ps1 -SampleCount 10 -SampleIntervalSeconds 2
 powershell.exe -ExecutionPolicy Bypass -File dev-tools/measure_pill_reveal_delay.ps1 -WatchSeconds 600
+python dev-tools/record_readme_demo.py --seconds 16 --output-folder docs
 pwsh dev-tools/evaluate_in_pill_page.ps1 -JavaScriptExpression "document.querySelector('.pill-shell').className"
 pwsh dev-tools/record_pill_session.ps1 -RecordSeconds 120
 powershell.exe -ExecutionPolicy Bypass -File dev-tools/list_media_sessions.ps1 -WatchSeconds 30
