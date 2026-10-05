@@ -18,7 +18,7 @@ pub struct CrestUserSettings {
     pub allowed_media_app_identifier_fragments: Vec<String>,
     /// Show whatever plays, ignoring the list. `None` only while reading a file from before
     /// 0.3.0, where an empty list meant "every player"; loading turns it into that meaning.
-    /// Its own `default` makes a missing field `None` instead of `Default`'s `Some(false)`.
+    /// Its own `default` makes a missing field `None` instead of `Default`'s `Some(true)`.
     #[serde(default)]
     pub show_every_media_player: Option<bool>,
     /// The user's own "Start with Windows" choice. Windows keeps the real switch (the `Run`
@@ -31,11 +31,15 @@ pub struct CrestUserSettings {
     pub pill_display_name: Option<String>,
 }
 
+/// Used when there is no settings file yet, i.e. on a fresh install. Since 0.3.1 it shows every
+/// player: someone with Spotify or a normal browser tab saw nothing before, because only YouTube
+/// Music was allowed. The list still starts with YouTube Music, so switching "every player" off
+/// gives the old behavior. Existing files keep their own choice.
 impl Default for CrestUserSettings {
     fn default() -> Self {
         Self {
             allowed_media_app_identifier_fragments: vec![DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT.to_string()],
-            show_every_media_player: Some(false),
+            show_every_media_player: Some(true),
             should_launch_at_login: None,
             pill_display_name: None,
         }
@@ -162,6 +166,31 @@ mod tests {
 
         let loaded_settings = CrestUserSettingsStore::load_from_config_directory(&test_directory).read_current_settings();
         assert_eq!(loaded_settings.media_player_filter(), MediaPlayerFilter::OnlyListedPlayers(Vec::new()));
+        fs::remove_dir_all(&test_directory).unwrap();
+    }
+
+    #[test]
+    fn a_fresh_install_shows_every_player() {
+        let test_directory = create_empty_test_directory("fresh-install");
+        let loaded_settings = CrestUserSettingsStore::load_from_config_directory(&test_directory).read_current_settings();
+        assert_eq!(loaded_settings.media_player_filter(), MediaPlayerFilter::EveryPlayer);
+    }
+
+    #[test]
+    fn an_older_file_with_a_list_keeps_showing_only_that_list() {
+        let test_directory = create_empty_test_directory("older-file-with-list");
+        fs::create_dir_all(&test_directory).unwrap();
+        fs::write(
+            test_directory.join(USER_SETTINGS_FILE_NAME),
+            r#"{ "allowedMediaAppIdentifierFragments": ["_crx_cinhimbnkkghhklpknlkffjgod"] }"#,
+        )
+        .unwrap();
+
+        let loaded_settings = CrestUserSettingsStore::load_from_config_directory(&test_directory).read_current_settings();
+        assert_eq!(
+            loaded_settings.media_player_filter(),
+            MediaPlayerFilter::OnlyListedPlayers(vec!["_crx_cinhimbnkkghhklpknlkffjgod".to_string()])
+        );
         fs::remove_dir_all(&test_directory).unwrap();
     }
 }
