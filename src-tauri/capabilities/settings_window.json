@@ -5,6 +5,7 @@
   "windows": ["settings"],
   "permissions": [
     "core:default",
+    "allow-read-crest-build-description",
     "allow-read-launch-at-login-setting",
     "allow-change-launch-at-login-setting",
     "allow-list-pill-display-options",

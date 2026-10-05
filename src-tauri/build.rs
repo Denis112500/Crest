@@ -10,6 +10,7 @@ const CREST_COMMAND_NAMES: &[&str] = &[
     "get_current_pill_presentation",
     "get_current_pill_visibility",
     "perform_activity_action",
+    "read_crest_build_description",
     "read_launch_at_login_setting",
     "change_launch_at_login_setting",
     "list_pill_display_options",

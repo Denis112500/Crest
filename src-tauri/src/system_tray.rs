@@ -4,7 +4,6 @@ use tauri::App;
 
 use crate::settings_window::open_or_focus_settings_window;
 
-const TRAY_TOOLTIP_TEXT: &str = "Crest";
 const OPEN_SETTINGS_MENU_ITEM_IDENTIFIER: &str = "open-settings";
 const OPEN_SETTINGS_MENU_ITEM_LABEL: &str = "Settings…";
 const QUIT_MENU_ITEM_IDENTIFIER: &str = "quit-crest";
@@ -26,8 +25,11 @@ pub fn create_crest_tray_icon(crest_app: &App) -> tauri::Result<()> {
         crest_app,
         &[&open_settings_menu_item, &PredefinedMenuItem::separator(crest_app)?, &quit_menu_item],
     )?;
+    // "Crest 0.3.0", and "(dev)" for `tauri dev`, so it's clear which copy is running.
+    let development_build_marker = if cfg!(debug_assertions) { " (dev)" } else { "" };
+    let tray_tooltip_text = format!("Crest {}{development_build_marker}", crest_app.package_info().version);
     let mut tray_icon_builder = TrayIconBuilder::new()
-        .tooltip(TRAY_TOOLTIP_TEXT)
+        .tooltip(tray_tooltip_text)
         .menu(&tray_menu)
         .on_menu_event(move |crest_app_handle, menu_event| match menu_event.id().as_ref() {
             OPEN_SETTINGS_MENU_ITEM_IDENTIFIER => open_or_focus_settings_window(crest_app_handle),

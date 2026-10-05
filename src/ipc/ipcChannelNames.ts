@@ -8,6 +8,7 @@ export const GET_CURRENT_PILL_PRESENTATION_COMMAND = "get_current_pill_presentat
 export const GET_CURRENT_PILL_VISIBILITY_COMMAND = "get_current_pill_visibility";
 export const PERFORM_ACTIVITY_ACTION_COMMAND = "perform_activity_action";
 // Settings window only (see src-tauri/capabilities/settings_window.json).
+export const READ_CREST_BUILD_DESCRIPTION_COMMAND = "read_crest_build_description";
 export const READ_LAUNCH_AT_LOGIN_SETTING_COMMAND = "read_launch_at_login_setting";
 export const CHANGE_LAUNCH_AT_LOGIN_SETTING_COMMAND = "change_launch_at_login_setting";
 export const LIST_PILL_DISPLAY_OPTIONS_COMMAND = "list_pill_display_options";

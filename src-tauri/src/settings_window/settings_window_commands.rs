@@ -6,19 +6,35 @@ use crate::launch_at_login::{is_launch_at_login_enabled, set_launch_at_login};
 use crate::media::{MediaPlayerFilter, MediaPlayerFilterControl};
 use crate::pill_window::{describe_pill_display_options, read_connected_displays, PillDisplayOption};
 use crate::settings_window::allowed_player_options::{describe_allowed_player_options, AllowedPlayerOptions};
+use crate::settings_window::crest_build_description::{describe_running_crest_build, CrestBuildDescription};
 use crate::user_settings_store::{CrestUserSettings, CrestUserSettingsStore};
 
 // Only the settings window may call these (capabilities/settings_window.json); the pill page
 // has no permission for them.
 
 #[tauri::command]
+pub fn read_crest_build_description(crest_app: AppHandle) -> CrestBuildDescription {
+    describe_running_crest_build(&crest_app)
+}
+
+#[tauri::command]
 pub fn read_launch_at_login_setting(crest_app: AppHandle) -> bool {
     is_launch_at_login_enabled(&crest_app)
 }
 
-/// Returns what Windows reports afterwards, which the switch then shows.
+/// Returns what Windows reports afterwards, which the switch then shows. The choice is also
+/// saved, so Crest can restore the entry after an update deletes it.
 #[tauri::command]
-pub fn change_launch_at_login_setting(crest_app: AppHandle, should_launch_at_login: bool) -> bool {
+pub fn change_launch_at_login_setting(
+    crest_app: AppHandle,
+    settings_store: State<'_, CrestUserSettingsStore>,
+    should_launch_at_login: bool,
+) -> bool {
+    if let Err(save_error) =
+        settings_store.change_and_save(|settings| settings.should_launch_at_login = Some(should_launch_at_login))
+    {
+        eprintln!("Crest: could not save the Start with Windows choice: {save_error}");
+    }
     set_launch_at_login(&crest_app, should_launch_at_login)
 }
 

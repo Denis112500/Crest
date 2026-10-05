@@ -150,3 +150,13 @@ body {
 .setting-select:disabled {
   opacity: var(--settings-disabled-opacity);
 }
+
+/* The About card holds plain text lines, padded like a setting row. */
+.settings-about-card {
+  padding: var(--settings-card-padding);
+  overflow-wrap: anywhere;
+}
+
+.settings-about-summary {
+  margin: 0;
+}

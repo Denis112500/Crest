@@ -19,6 +19,7 @@ use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
 use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppWatcher};
 use ipc_channel_names::{PILL_PRESENTATION_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
+use launch_at_login::repair_launch_at_login_after_update;
 use media::{CurrentPlatformMediaSource, MediaSource};
 use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
 use settings_window::open_or_focus_settings_window;
@@ -42,6 +43,7 @@ pub fn run_crest_app() {
         .setup(|crest_app| {
             // Before anything else: the pill page asks for its placement, which reads it.
             crest_app.manage(CrestUserSettingsStore::load_from_config_directory(&crest_app.path().app_config_dir()?));
+            repair_launch_at_login_after_update(crest_app.handle(), &crest_app.state::<CrestUserSettingsStore>());
             let pill_window = crest_app
                 .get_webview_window(PILL_WINDOW_LABEL)
                 .ok_or("the pill window from tauri.conf.json was not created")?;
@@ -102,6 +104,7 @@ pub fn run_crest_app() {
             activity_core::pill_presentation_command::get_current_pill_presentation,
             activity_core::pill_visibility_command::get_current_pill_visibility,
             activity_core::activity_action_command::perform_activity_action,
+            settings_window::settings_window_commands::read_crest_build_description,
             settings_window::settings_window_commands::read_launch_at_login_setting,
             settings_window::settings_window_commands::change_launch_at_login_setting,
             settings_window::settings_window_commands::list_pill_display_options,

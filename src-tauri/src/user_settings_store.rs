@@ -21,6 +21,11 @@ pub struct CrestUserSettings {
     /// Its own `default` makes a missing field `None` instead of `Default`'s `Some(false)`.
     #[serde(default)]
     pub show_every_media_player: Option<bool>,
+    /// The user's own "Start with Windows" choice. Windows keeps the real switch (the `Run`
+    /// entry), but Crest's installer deletes it on an update; this copy lets Crest put it back.
+    /// `None` until Crest has seen or made a choice (versions before 0.3.0 didn't save it).
+    #[serde(default)]
+    pub should_launch_at_login: Option<bool>,
     /// Windows' name of the monitor the pill sits on (e.g. `\\.\DISPLAY2`). `None`, or a
     /// monitor that isn't connected, means the main display.
     pub pill_display_name: Option<String>,
@@ -31,6 +36,7 @@ impl Default for CrestUserSettings {
         Self {
             allowed_media_app_identifier_fragments: vec![DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT.to_string()],
             show_every_media_player: Some(false),
+            should_launch_at_login: None,
             pill_display_name: None,
         }
     }
