@@ -22,7 +22,7 @@ Crest's tray icon (notification area, possibly behind the ^ arrow) has **Setting
 
 Compact, it's a small notch with the album art, the title and bouncing bars; hovered or clicked (or when a new song starts), it opens into the player above, and it slides up into the screen edge when there's nothing to show.
 
-<sub>Music in the demo: "C U Again" by Jéja, Mikk Mäe, CARTOON and Futuristik, an NCS release, provided by [NoCopyrightSounds](https://ncs.io).</sub>
+<sub>Music in the demo: "C U Again" by Jéja, Mikk Mäe, CARTOON and Futuristik, and "On & On" by CARTOON and Jéja (feat. Daniel Levi), NCS releases, provided by [NoCopyrightSounds](https://ncs.io).</sub>
 
 ## What makes Crest different
 
