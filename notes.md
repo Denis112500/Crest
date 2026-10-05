@@ -1,9 +1,18 @@
 # Project notes
 
 ## Current state
-- **Works:** v1 + Phase 1 + Phase 2 items 6, 6b, 7 (on `main`, dev builds): a notch glued to the top edge shows YouTube Music, hides instantly for fullscreen apps, greys out refused buttons; settings window (tray "Settings…" or launching Crest again) with Start with Windows, the monitor it sits on, and allowed players (live, "Show every player" switch). RAM while hidden: 16–32 MB (startup bug fixed: was 78 MB until the first song). CPU 0% idle, ~4.7% of one core playing. Installed: 0.3.0 (user's settings reset to defaults by "delete application data").
-- **In progress:** Phase 2 → v0.3.0, **not published**. Branch `autostart-repair` (uncommitted): Start-with-Windows repair after updates (verified on a real install), About card, full code review with 3 bugs fixed (bars timer leak verified 78 → 0 ms), all Phase 1 checks done (starts at login: yes). Installer 10:54 is the release candidate and is installed. Next: commit + push, release text, publish. Rule: installs and autostart checks only outside the Claude app (MSIX container). Last published: v0.2.0 (https://github.com/Denis112500/Crest/releases/tag/v0.2.0).
+- **Works:** v0.3.0 published and installed (Phases 1 and 2 complete): notch glued to the top edge, hides instantly for fullscreen apps, greys out refused buttons; settings window (tray "Settings…" or launching Crest again) with Start with Windows (restored after updates), monitor choice, allowed players, About card. RAM while hidden 16–32 MB; CPU 0% idle/hidden (bars timer leak fixed), ~4.7% of one core playing; starts at login (verified).
+- **In progress:** nothing. **Phase 2 is done:** v0.3.0 is published (https://github.com/Denis112500/Crest/releases/tag/v0.3.0). Next: Phase 3 (integrations, free only), only when the user starts it; the item 8 design (split notch) gets built with the second activity source. Rule: installs and autostart checks only outside the Claude app (MSIX container).
 - **Broken:** nothing known; button presses during a track change are now held and delivered (user confirmed). One unexplained observation in the (g) edge-case test didn't reproduce (see that entry).
+
+---
+
+## 2026-10-05 — Release 0.3.0 published
+- **Done:** commits on `main` (pushed): `70ef6f6` Restore Start with Windows after updates, `963547d` Fix bugs from code review, `7d508ba` Add reveal delay probe, `14b1b7a` Update dev-tools README, `b7353c1` Update README, `6376f44` Update notes. The two files touched by both code commits (`settingsWindowMain.ts`, `backend_constants.rs`) were split so each commit holds only what its name says.
+- **Published (2026-10-05):** GitHub Release v0.3.0 "Crest 0.3.0" with `gh release create`, tag `v0.3.0` on `6376f44`, asset `Crest_0.3.0_x64-setup.exe` (1 457 395 bytes, built 10:54 from that exact code; the copy the user has installed), marked Latest; text approved by the user. It says updating from 0.2.0 with the preselected option removes Start with Windows once (from Tauri's installer script + the same-version "Uninstall Crest" test on a real install; a real 0.2.0 → 0.3.0 update outside the container wasn't run).
+- **Phase 2 is complete:** items 6, 6b, 7, 8 + the autostart repair and the code review.
+- **Learned:** `gh release view --json` has no `isLatest` field; `gh release list` shows "Latest".
+- **Next:** Phase 3, when the user starts it.
 
 ---
 
