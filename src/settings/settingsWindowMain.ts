@@ -5,7 +5,8 @@ import { createPillDisplaySettingRow } from "./pillDisplaySettingRow";
 
 // Fills the settings page's cards. Each row reads its current value from Rust when the
 // window opens; the window is created fresh every time, so there's nothing to keep in sync.
-async function startSettingsWindow(): Promise<void> {
+// Every card is filled on its own: if one can't be read, the others still appear.
+function startSettingsWindow(): void {
   const generalSettingsCard = document.querySelector<HTMLElement>("#general-settings-card");
   const displaySettingsCard = document.querySelector<HTMLElement>("#display-settings-card");
   const allowedPlayersCard = document.querySelector<HTMLElement>("#allowed-players-card");
@@ -13,16 +14,16 @@ async function startSettingsWindow(): Promise<void> {
   if (!generalSettingsCard || !displaySettingsCard || !allowedPlayersCard || !aboutCard) {
     throw new Error("settings.html is missing a settings card");
   }
-  const [launchAtLoginSettingRow, pillDisplaySettingRow] = await Promise.all([
-    createLaunchAtLoginSettingRow(),
-    createPillDisplaySettingRow(),
-    fillAllowedPlayersSettingCard(allowedPlayersCard),
-    fillCrestBuildDescriptionLine(aboutCard),
-  ]);
-  generalSettingsCard.append(launchAtLoginSettingRow);
-  displaySettingsCard.append(pillDisplaySettingRow);
+  const reportCardFailure = (cardName: string) => (cardError: unknown) =>
+    console.error(`Crest could not fill the ${cardName} settings:`, cardError);
+  createLaunchAtLoginSettingRow()
+    .then((launchAtLoginSettingRow) => generalSettingsCard.append(launchAtLoginSettingRow))
+    .catch(reportCardFailure("general"));
+  createPillDisplaySettingRow()
+    .then((pillDisplaySettingRow) => displaySettingsCard.append(pillDisplaySettingRow))
+    .catch(reportCardFailure("display"));
+  fillAllowedPlayersSettingCard(allowedPlayersCard).catch(reportCardFailure("player"));
+  fillCrestBuildDescriptionLine(aboutCard).catch(reportCardFailure("about"));
 }
 
-startSettingsWindow().catch((startupError: unknown) => {
-  console.error("Crest could not fill the settings window:", startupError);
-});
+startSettingsWindow();

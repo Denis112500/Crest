@@ -13,6 +13,10 @@ pub const SETTINGS_WINDOW_PAGE_PATH: &str = "settings.html";
 pub const SETTINGS_WINDOW_LOGICAL_WIDTH: f64 = 480.0;
 pub const SETTINGS_WINDOW_LOGICAL_HEIGHT: f64 = 720.0;
 
+/// Room kept free for the window's title bar when the settings window is fitted to a small
+/// screen (Windows 11's title bar is about 32 logical pixels, plus a small margin).
+pub const SETTINGS_WINDOW_TITLE_BAR_ALLOWANCE_LOGICAL_PIXELS: f64 = 40.0;
+
 /// Settings file inside Crest's config folder (%APPDATA%\dev.crest.pill on Windows), written by
 /// the settings window; it doesn't exist until a setting is changed.
 pub const USER_SETTINGS_FILE_NAME: &str = "settings.json";

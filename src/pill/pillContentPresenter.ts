@@ -17,7 +17,10 @@ export class PillContentPresenter {
   showPillPresentation(pillPresentation: PillPresentation | null): void {
     const activityKind = pillPresentation?.activityKind ?? null;
     if (!this.mountedViewSet || activityKind !== this.mountedActivityKind) {
+      // The outgoing views must stop their timers before they're dropped: closing a player
+      // while it plays used to leave the bars ticking 15 times a second, unseen, forever.
       this.mountedViewSet?.setExpandedViewVisible(false);
+      this.mountedViewSet?.setPillOnScreen(false);
       const activityViewSet =
         (activityKind !== null && createActivityViewSetForKind(activityKind)) || createNothingToShowViewSet();
       this.pillShellElements.compactLayerElement.replaceChildren(activityViewSet.compactViewElement);
