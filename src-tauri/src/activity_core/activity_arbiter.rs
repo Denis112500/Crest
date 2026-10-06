@@ -36,6 +36,15 @@ impl ActivityArbiter {
     }
 
     pub fn record_activity_update(&mut self, activity_kind: &'static str, activity_update: ActivityUpdate) {
+        // A repeated identical update isn't news: counting it as "most recent" would let a source
+        // that re-sends the same state push a newer lingering activity out of the main place.
+        let is_repeat = self
+            .recorded_activity_by_kind
+            .get(activity_kind)
+            .is_some_and(|recorded| recorded.activity_update == activity_update);
+        if is_repeat {
+            return;
+        }
         let arrival_order = self.next_arrival_order;
         self.next_arrival_order += 1;
         // Focus lasts while the activity is happening; once it pauses, the usual order returns.
@@ -153,6 +162,15 @@ mod tests {
         activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Lingering, 50, "song"));
         activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Ongoing, 50, "song"));
         assert_eq!(main_kind(&activity_arbiter), Some("timer"));
+    }
+
+    #[test]
+    fn a_repeated_identical_update_does_not_make_an_activity_newer() {
+        let (mut activity_arbiter, _) = arbiter_recording_main_kinds();
+        activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Lingering, 50, "song"));
+        activity_arbiter.record_activity_update("claude-code", activity_update(ActivityPresence::Lingering, 40, "done"));
+        activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Lingering, 50, "song"));
+        assert_eq!(main_kind(&activity_arbiter), Some("claude-code"));
     }
 
     #[test]

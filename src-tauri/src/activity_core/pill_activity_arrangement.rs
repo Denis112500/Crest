@@ -47,7 +47,9 @@ impl PillArrangement {
 /// The layout rules:
 /// - alerts queue: the highest priority goes first, then the one that came first;
 /// - main: ongoing before lingering; among ongoing ones, the one the user focused (clicked
-///   as companion) first, then priority, then the most recent;
+///   as companion) first, then priority, then the most recent; among lingering ones only the
+///   most recent counts, whatever its priority: "Claude Code is done" just now says more than
+///   a song paused minutes ago;
 /// - companion: the next ongoing activity; lingering ones never sit next to the main one,
 ///   because a paused player would otherwise stay on screen forever.
 pub fn arrange_pill_activities(
@@ -68,7 +70,8 @@ pub fn arrange_pill_activities(
     main_candidates.sort_by_key(|recorded| {
         let is_ongoing = recorded.activity_update.activity_presence == ActivityPresence::Ongoing;
         let is_focused = is_ongoing && focused_activity_kind == Some(recorded.activity_kind);
-        Reverse((is_ongoing, is_focused, recorded.activity_update.display_priority, recorded.arrival_order))
+        let ranking_priority = if is_ongoing { recorded.activity_update.display_priority } else { 0 };
+        Reverse((is_ongoing, is_focused, ranking_priority, recorded.arrival_order))
     });
     let mut ordered_candidates = main_candidates.into_iter();
     let main_activity = ordered_candidates.next().map(place_in_pill);
@@ -144,6 +147,14 @@ mod tests {
         let music = recorded("music", ActivityPresence::Ongoing, 50, 0);
         let podcast = recorded("podcast", ActivityPresence::Ongoing, 50, 1);
         assert_eq!(kind_of(&arrange_pill_activities(&[&music, &podcast], None).main_activity), Some("podcast"));
+    }
+
+    #[test]
+    fn among_lingering_activities_the_most_recent_is_main_whatever_its_priority() {
+        let paused_music = recorded("music", ActivityPresence::Lingering, 50, 0);
+        let finished_session = recorded("claude-code", ActivityPresence::Lingering, 40, 1);
+        let arrangement = arrange_pill_activities(&[&paused_music, &finished_session], None);
+        assert_eq!(kind_of(&arrangement.main_activity), Some("claude-code"));
     }
 
     #[test]
