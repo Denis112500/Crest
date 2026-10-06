@@ -1,11 +1,13 @@
 import { createActivityViewSetForKind } from "../activities/activityViewRegistry";
 import type { ActivityViewSet } from "../activities/activityViewSet";
+import { findLeadingActivity } from "../activities/findLeadingActivity";
 import { createNothingToShowViewSet } from "../activities/nothingToShowViewSet";
-import type { PillPresentation } from "../activities/pillPresentationTypes";
+import type { PillArrangement } from "../activities/pillArrangementTypes";
 import type { PillShellElements } from "./pillShellElements";
 
-// Puts the right activity's views into the pill's two layers. Views are only rebuilt
-// when the activity kind changes; otherwise they are updated in place.
+// Puts the leading activity's views (the alert, else the main one) into the pill's two
+// layers. Views are only rebuilt when the activity kind changes; otherwise they are updated
+// in place. The companion segment and alert buttons come with the first source that uses them.
 export class PillContentPresenter {
   private mountedActivityKind: string | null = null;
   private mountedViewSet: ActivityViewSet | undefined;
@@ -14,8 +16,9 @@ export class PillContentPresenter {
 
   constructor(private readonly pillShellElements: PillShellElements) {}
 
-  showPillPresentation(pillPresentation: PillPresentation | null): void {
-    const activityKind = pillPresentation?.activityKind ?? null;
+  showPillArrangement(pillArrangement: PillArrangement): void {
+    const leadingActivity = findLeadingActivity(pillArrangement);
+    const activityKind = leadingActivity?.activityKind ?? null;
     if (!this.mountedViewSet || activityKind !== this.mountedActivityKind) {
       // The outgoing views must stop their timers before they're dropped: closing a player
       // while it plays used to leave the bars ticking 15 times a second, unseen, forever.
@@ -30,8 +33,8 @@ export class PillContentPresenter {
       this.mountedViewSet = activityViewSet;
       this.mountedActivityKind = activityKind;
     }
-    if (pillPresentation) {
-      this.mountedViewSet.showActivityPayload(pillPresentation.activityPayload);
+    if (leadingActivity) {
+      this.mountedViewSet.showActivityPayload(leadingActivity.activityPayload);
     }
   }
 

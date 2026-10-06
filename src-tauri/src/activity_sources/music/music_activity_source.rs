@@ -1,4 +1,4 @@
-use crate::activity_core::{ActivityPublisher, ActivitySource, ActivityUpdate};
+use crate::activity_core::{ActivityPresence, ActivityPublisher, ActivitySource, ActivityUpdate};
 use crate::activity_sources::music::session_loss_grace_period::SessionLossGracePeriod;
 use crate::backend_constants::{MUSIC_ACTIVITY_DISPLAY_PRIORITY, MUSIC_SESSION_LOSS_GRACE_PERIOD};
 use crate::ipc_channel_names::{
@@ -64,7 +64,11 @@ fn convert_to_music_activity_update(media_snapshot: &MediaSessionSnapshot) -> Op
         .ok()?;
     Some(ActivityUpdate {
         display_priority: MUSIC_ACTIVITY_DISPLAY_PRIORITY,
-        is_ongoing: media_snapshot.playback_state == MediaPlaybackState::Playing,
+        activity_presence: if media_snapshot.playback_state == MediaPlaybackState::Playing {
+            ActivityPresence::Ongoing
+        } else {
+            ActivityPresence::Lingering
+        },
         // A new title or artist means a new track, which makes the pill peek.
         attention_key: format!("{}\n{}", media_snapshot.track_title, media_snapshot.track_artist),
         activity_payload,

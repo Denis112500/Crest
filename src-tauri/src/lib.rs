@@ -21,7 +21,7 @@ use activity_core::{ActivityArbiter, ActivitySourceRegistry, PillVisibilityContr
 use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
 use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppWatcher};
-use ipc_channel_names::{PILL_PRESENTATION_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
+use ipc_channel_names::{PILL_ARRANGEMENT_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
 use launch_at_login::repair_launch_at_login_after_update;
 use media::{CurrentPlatformMediaSource, MediaSource};
 use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
@@ -74,17 +74,15 @@ pub fn run_crest_app() {
                 eprintln!("Crest: could not start watching for fullscreen apps: {watch_error}");
             }
 
-            let presentation_app_handle = crest_app.handle().clone();
+            let arrangement_app_handle = crest_app.handle().clone();
             let shared_activity_arbiter: SharedActivityArbiter =
-                Arc::new(Mutex::new(ActivityArbiter::new(Box::new(move |pill_presentation| {
-                    if let Err(emit_error) = presentation_app_handle.emit_to(
-                        PILL_WINDOW_LABEL,
-                        PILL_PRESENTATION_CHANGED_EVENT,
-                        pill_presentation,
-                    ) {
-                        eprintln!("Crest: could not send the pill presentation to the window: {emit_error}");
+                Arc::new(Mutex::new(ActivityArbiter::new(Box::new(move |pill_arrangement| {
+                    if let Err(emit_error) =
+                        arrangement_app_handle.emit_to(PILL_WINDOW_LABEL, PILL_ARRANGEMENT_CHANGED_EVENT, pill_arrangement)
+                    {
+                        eprintln!("Crest: could not send the pill arrangement to the window: {emit_error}");
                     }
-                    pill_visibility_controller.handle_presentation_change(pill_presentation);
+                    pill_visibility_controller.handle_arrangement_change(pill_arrangement);
                 }))));
             crest_app.manage(Arc::clone(&shared_activity_arbiter));
 
@@ -104,7 +102,8 @@ pub fn run_crest_app() {
             pill_window::pill_window_commands::reveal_pill_window,
             pill_window::pill_window_commands::conceal_pill_window,
             pill_window::pill_window_commands::set_pill_interactive_area,
-            activity_core::pill_presentation_command::get_current_pill_presentation,
+            activity_core::pill_arrangement_command::get_current_pill_arrangement,
+            activity_core::focus_activity_command::focus_activity,
             activity_core::pill_visibility_command::get_current_pill_visibility,
             activity_core::activity_action_command::perform_activity_action,
             settings_window::settings_window_commands::read_crest_build_description,

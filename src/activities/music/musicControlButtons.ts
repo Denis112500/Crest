@@ -28,7 +28,7 @@ export interface MusicControlButtons {
 }
 
 // Previous / play-pause / next. Each press becomes an action for the Rust music source;
-// the icons change only when the player confirms, through the next presentation update.
+// the icons change only when the player confirms, through the next arrangement update.
 // A button the player doesn't accept is disabled: greyed out and unclickable.
 export function createMusicControlButtons(): MusicControlButtons {
   const controlButtonsElement = document.createElement("div");

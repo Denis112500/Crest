@@ -6,7 +6,7 @@ use std::thread;
 
 use serde::Serialize;
 
-use crate::activity_core::activity_arbiter::PillPresentation;
+use crate::activity_core::pill_activity_arrangement::PillArrangement;
 use crate::activity_core::pill_visibility_policy::{decide_pill_visibility, PendingHideChange};
 
 /// Whether the pill should be on screen, and whether a fullscreen app is in front. The
@@ -27,7 +27,7 @@ struct PillVisibilityState {
     is_wanted_by_activity: bool,
     is_fullscreen_app_in_front: bool,
     last_reported_visibility: PillVisibility,
-    previous_presentation: Option<PillPresentation>,
+    previous_arrangement: PillArrangement,
     /// Bumped whenever the pending hide changes; a sleeping hide timer only acts if the
     /// generation it started with is still the current one.
     hide_generation: u64,
@@ -72,18 +72,17 @@ impl PillVisibilityController {
                 is_wanted_by_activity: false,
                 is_fullscreen_app_in_front: false,
                 last_reported_visibility: hidden_without_fullscreen_app,
-                previous_presentation: None,
+                previous_arrangement: PillArrangement::default(),
                 hide_generation: 0,
                 pill_visibility_listener,
             })),
         }
     }
 
-    pub fn handle_presentation_change(&self, current_presentation: Option<&PillPresentation>) {
+    pub fn handle_arrangement_change(&self, current_arrangement: &PillArrangement) {
         let mut visibility_state = lock_visibility_state(&self.shared_visibility_state);
-        let visibility_decision =
-            decide_pill_visibility(visibility_state.previous_presentation.as_ref(), current_presentation);
-        visibility_state.previous_presentation = current_presentation.cloned();
+        let visibility_decision = decide_pill_visibility(&visibility_state.previous_arrangement, current_arrangement);
+        visibility_state.previous_arrangement = current_arrangement.clone();
         if visibility_decision.should_show_now {
             visibility_state.set_wanted_by_activity(true);
         }
@@ -124,7 +123,8 @@ fn lock_visibility_state(shared_visibility_state: &Mutex<PillVisibilityState>) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::activity_core::activity_update::ActivityUpdate;
+    use crate::activity_core::activity_update::{ActivityPresence, ActivityUpdate};
+    use crate::activity_core::pill_activity_arrangement::PillActivity;
 
     fn controller_recording_visibility_reports() -> (PillVisibilityController, Arc<Mutex<Vec<PillVisibility>>>) {
         let reported_visibilities = Arc::new(Mutex::new(Vec::new()));
@@ -135,22 +135,25 @@ mod tests {
         (pill_visibility_controller, reported_visibilities)
     }
 
-    fn playing_music_presentation() -> PillPresentation {
-        PillPresentation {
-            activity_kind: "music",
-            activity_update: ActivityUpdate {
-                display_priority: 50,
-                is_ongoing: true,
-                attention_key: "song".to_string(),
-                activity_payload: serde_json::Value::Null,
-            },
+    fn playing_music_arrangement() -> PillArrangement {
+        PillArrangement {
+            main_activity: Some(PillActivity {
+                activity_kind: "music",
+                activity_update: ActivityUpdate {
+                    display_priority: 50,
+                    activity_presence: ActivityPresence::Ongoing,
+                    attention_key: "song".to_string(),
+                    activity_payload: serde_json::Value::Null,
+                },
+            }),
+            ..Default::default()
         }
     }
 
     #[test]
     fn a_fullscreen_app_hides_a_playing_pill_and_says_why() {
         let (pill_visibility_controller, reported_visibilities) = controller_recording_visibility_reports();
-        pill_visibility_controller.handle_presentation_change(Some(&playing_music_presentation()));
+        pill_visibility_controller.handle_arrangement_change(&playing_music_arrangement());
         pill_visibility_controller.handle_fullscreen_app_change(true);
         assert_eq!(
             reported_visibilities.lock().unwrap().last(),
@@ -161,7 +164,7 @@ mod tests {
     #[test]
     fn a_playing_pill_comes_back_when_the_fullscreen_app_leaves() {
         let (pill_visibility_controller, _reported_visibilities) = controller_recording_visibility_reports();
-        pill_visibility_controller.handle_presentation_change(Some(&playing_music_presentation()));
+        pill_visibility_controller.handle_arrangement_change(&playing_music_arrangement());
         pill_visibility_controller.handle_fullscreen_app_change(true);
         pill_visibility_controller.handle_fullscreen_app_change(false);
         assert!(pill_visibility_controller.current_pill_visibility().is_pill_visible);

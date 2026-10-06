@@ -4,7 +4,7 @@ export const PLACE_PILL_WINDOW_COMMAND = "place_pill_window_at_top_center";
 export const REVEAL_PILL_WINDOW_COMMAND = "reveal_pill_window";
 export const CONCEAL_PILL_WINDOW_COMMAND = "conceal_pill_window";
 export const SET_PILL_INTERACTIVE_AREA_COMMAND = "set_pill_interactive_area";
-export const GET_CURRENT_PILL_PRESENTATION_COMMAND = "get_current_pill_presentation";
+export const GET_CURRENT_PILL_ARRANGEMENT_COMMAND = "get_current_pill_arrangement";
 export const GET_CURRENT_PILL_VISIBILITY_COMMAND = "get_current_pill_visibility";
 export const PERFORM_ACTIVITY_ACTION_COMMAND = "perform_activity_action";
 // Settings window only (see src-tauri/capabilities/settings_window.json).
@@ -17,7 +17,7 @@ export const LIST_ALLOWED_PLAYER_OPTIONS_COMMAND = "list_allowed_player_options"
 export const CHANGE_ALLOWED_PLAYERS_COMMAND = "change_allowed_players";
 export const CHANGE_SHOW_EVERY_PLAYER_COMMAND = "change_show_every_player";
 
-export const PILL_PRESENTATION_CHANGED_EVENT = "pill-presentation-changed";
+export const PILL_ARRANGEMENT_CHANGED_EVENT = "pill-arrangement-changed";
 export const PILL_VISIBILITY_CHANGED_EVENT = "pill-visibility-changed";
 export const PILL_DISPLAY_CHANGED_EVENT = "pill-display-changed";
 

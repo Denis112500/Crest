@@ -1,7 +1,7 @@
 // Names shared with the frontend. Each must match `src/ipc/ipcChannelNames.ts` exactly.
 
-/// Event carrying what the pill should show now (`null` when there is nothing).
-pub const PILL_PRESENTATION_CHANGED_EVENT: &str = "pill-presentation-changed";
+/// Event carrying the pill's layout now: alert, main and companion activity (each may be `null`).
+pub const PILL_ARRANGEMENT_CHANGED_EVENT: &str = "pill-arrangement-changed";
 
 /// Event carrying whether the pill should be on screen and whether a fullscreen app is in front.
 pub const PILL_VISIBILITY_CHANGED_EVENT: &str = "pill-visibility-changed";

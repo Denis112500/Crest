@@ -9,7 +9,8 @@
     "allow-reveal-pill-window",
     "allow-conceal-pill-window",
     "allow-set-pill-interactive-area",
-    "allow-get-current-pill-presentation",
+    "allow-get-current-pill-arrangement",
+    "allow-focus-activity",
     "allow-get-current-pill-visibility",
     "allow-perform-activity-action"
   ]

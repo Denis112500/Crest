@@ -7,13 +7,14 @@ import "./styles/pillShell.css";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-import type { PillPresentation } from "./activities/pillPresentationTypes";
+import { findLeadingActivity } from "./activities/findLeadingActivity";
+import type { PillArrangement } from "./activities/pillArrangementTypes";
 import { PILL_WINDOW_LOGICAL_HEIGHT, PILL_WINDOW_LOGICAL_WIDTH } from "./frontendConstants";
 import {
-  GET_CURRENT_PILL_PRESENTATION_COMMAND,
+  GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
   GET_CURRENT_PILL_VISIBILITY_COMMAND,
+  PILL_ARRANGEMENT_CHANGED_EVENT,
   PILL_DISPLAY_CHANGED_EVENT,
-  PILL_PRESENTATION_CHANGED_EVENT,
   PILL_VISIBILITY_CHANGED_EVENT,
 } from "./ipc/ipcChannelNames";
 import { listenForRustStateChanges } from "./ipc/listenForRustStateChanges";
@@ -70,12 +71,12 @@ async function startPill(): Promise<void> {
   });
 
   let lastAttentionKey: string | null = null;
-  await listenForRustStateChanges<PillPresentation | null>(
-    PILL_PRESENTATION_CHANGED_EVENT,
-    GET_CURRENT_PILL_PRESENTATION_COMMAND,
-    (pillPresentation) => {
-      pillContentPresenter.showPillPresentation(pillPresentation);
-      const attentionKey = pillPresentation?.attentionKey ?? null;
+  await listenForRustStateChanges<PillArrangement>(
+    PILL_ARRANGEMENT_CHANGED_EVENT,
+    GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
+    (pillArrangement) => {
+      pillContentPresenter.showPillArrangement(pillArrangement);
+      const attentionKey = findLeadingActivity(pillArrangement)?.attentionKey ?? null;
       if (attentionKey !== null && attentionKey !== lastAttentionKey) {
         pillStateMachine.handleAttentionRequested();
       }
