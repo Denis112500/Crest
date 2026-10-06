@@ -1,3 +1,6 @@
+//! The trait each OS implements for the overlay window: no taskbar button, show without
+//! taking focus, hide, and the clickable area.
+
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
 
 /// The OS-specific part of making the pill behave like an overlay rather than an app window.

@@ -1,3 +1,6 @@
+//! Watching and controlling media players. The OS-independent rules live here; each OS
+//! brings its own implementation (Windows: SMTC).
+
 mod album_art_settle_gate;
 mod media_app_identifier_label;
 mod media_player_filter;

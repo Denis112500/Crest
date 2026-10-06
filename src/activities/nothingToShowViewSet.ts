@@ -1,3 +1,5 @@
+// The views shown when no activity has anything (rarely seen: the pill hides then).
+
 import type { ActivityViewSet } from "./activityViewSet";
 
 const NOTHING_TO_SHOW_TEXT = "Nothing to show";

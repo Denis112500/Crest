@@ -1,3 +1,5 @@
+//! Readable names for players' app IDs in the settings window ("YouTube Music", "Brave tabs").
+
 use crate::backend_constants::DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT;
 
 const YOUTUBE_MUSIC_LABEL: &str = "YouTube Music";

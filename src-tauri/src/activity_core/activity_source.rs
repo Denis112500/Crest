@@ -1,3 +1,6 @@
+//! The plugin interface every activity (music now; timers, Claude Code later) implements.
+//! The core only talks to this trait, so a new activity never changes the core.
+
 use crate::activity_core::activity_publisher::ActivityPublisher;
 
 /// A plugin that has something to show in the pill: music now; timers or Claude Code

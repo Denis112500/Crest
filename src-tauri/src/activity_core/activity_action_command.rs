@@ -1,3 +1,6 @@
+//! The command the pill page calls when one of an activity's buttons is pressed; it only
+//! routes the action name, the source decides what it means.
+
 use std::sync::PoisonError;
 
 use tauri::State;

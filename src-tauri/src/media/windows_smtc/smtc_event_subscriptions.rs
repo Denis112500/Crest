@@ -1,3 +1,6 @@
+//! Subscribes to SMTC's change events and turns each one into a message for the worker;
+//! unsubscribes automatically when a session goes away.
+
 use std::sync::mpsc::Sender;
 
 use windows::core::{Ref, RuntimeType};

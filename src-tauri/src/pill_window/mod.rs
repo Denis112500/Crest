@@ -1,3 +1,6 @@
+//! The pill's native window: where it sits, which part takes the mouse, and the OS-specific
+//! overlay behavior behind a trait.
+
 // Public (not re-exported) because `tauri::generate_handler!` needs the path where each
 // `#[tauri::command]` is defined: the macro generates hidden helpers next to it.
 pub mod pill_window_commands;

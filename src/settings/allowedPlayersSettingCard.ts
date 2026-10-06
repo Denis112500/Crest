@@ -1,3 +1,5 @@
+// The "Allowed players" card: the every-player switch, the list, and adding open players.
+
 import { invoke } from "@tauri-apps/api/core";
 
 import {

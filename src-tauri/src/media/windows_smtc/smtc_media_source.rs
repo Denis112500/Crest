@@ -1,3 +1,6 @@
+//! The Windows `MediaSource`: starts the SMTC worker thread and passes button presses and
+//! filter changes to it as messages.
+
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;

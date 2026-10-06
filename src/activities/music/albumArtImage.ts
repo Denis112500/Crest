@@ -1,3 +1,5 @@
+// Album art with a loading ring and a music-note placeholder when there's no picture.
+
 import "../../styles/albumArtImage.css";
 
 import { createSvgIconElement } from "../createSvgIconElement";

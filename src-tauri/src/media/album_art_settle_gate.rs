@@ -1,3 +1,6 @@
+//! Holds a new track's album art back for a moment and shows "loading": some players first
+//! send a placeholder (Brave: its logo) and the real cover a moment later.
+
 use std::time::Instant;
 
 use crate::backend_constants::ALBUM_ART_SETTLE_WINDOW;

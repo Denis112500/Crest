@@ -1,3 +1,5 @@
+//! Sends play/pause, next and previous to a player session.
+
 use windows::Media::Control::GlobalSystemMediaTransportControlsSession as SmtcSession;
 
 use crate::media::media_source::MediaTransportCommand;

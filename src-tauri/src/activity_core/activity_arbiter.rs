@@ -1,3 +1,6 @@
+//! Picks which activity the pill shows (highest priority, then most recent) and tells the
+//! frontend only when that changes. The heart of the core.
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 

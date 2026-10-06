@@ -1,3 +1,6 @@
+//! Loads settings.json, keeps the current settings for the commands, and saves every change
+//! safely (temporary file, then rename). Also turns old files' meaning into today's.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;

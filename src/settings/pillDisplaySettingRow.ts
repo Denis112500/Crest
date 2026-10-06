@@ -1,3 +1,5 @@
+// The "Show the pill on" monitor list.
+
 import { invoke } from "@tauri-apps/api/core";
 
 import { CHOOSE_PILL_DISPLAY_COMMAND, LIST_PILL_DISPLAY_OPTIONS_COMMAND } from "../ipc/ipcChannelNames";

@@ -1,3 +1,5 @@
+// Hands the sizes from frontendConstants.ts to the CSS, so both use the same numbers.
+
 import {
   PILL_COMPACT_LOGICAL_HEIGHT,
   PILL_COMPACT_LOGICAL_WIDTH,

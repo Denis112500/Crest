@@ -1,3 +1,6 @@
+//! Lets the pill page ask whether it should be on screen when it starts (same reason as the
+//! presentation command: early events would be lost).
+
 use tauri::State;
 
 use crate::activity_core::pill_visibility_controller::{PillVisibility, PillVisibilityController};

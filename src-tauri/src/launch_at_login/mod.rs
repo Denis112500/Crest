@@ -1,3 +1,5 @@
+//! "Start with Windows": switching it, and repairing it after an update removed it.
+
 mod launch_at_login_repair;
 mod launch_at_login_switch;
 

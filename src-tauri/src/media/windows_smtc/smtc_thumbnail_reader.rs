@@ -1,3 +1,6 @@
+//! Reads the album art bytes and turns them into a data URL the page can show without file
+//! or network access.
+
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
 use windows::Storage::Streams::{DataReader, IRandomAccessStreamReference};

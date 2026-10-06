@@ -1,3 +1,5 @@
+// Asks Rust to size the window and put it at the top of the chosen monitor.
+
 import { invoke } from "@tauri-apps/api/core";
 
 import { PLACE_PILL_WINDOW_COMMAND } from "./ipcChannelNames";

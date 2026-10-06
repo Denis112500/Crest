@@ -1,3 +1,6 @@
+//! The rules for when the pill is on screen (playing, paused, nothing), as one pure function
+//! with no timers or threads, so every rule is unit-tested. The controller runs the countdowns.
+
 use std::time::Duration;
 
 use crate::activity_core::activity_arbiter::PillPresentation;

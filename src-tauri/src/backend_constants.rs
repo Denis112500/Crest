@@ -1,3 +1,6 @@
+//! Every number and fixed name of the Rust side in one place (CLAUDE.md rule), each with the
+//! reason or measurement behind it.
+
 use std::time::Duration;
 
 /// Must match the window `label` in `tauri.conf.json`.

@@ -1,3 +1,5 @@
+// Asks Rust to show the native window without taking focus.
+
 import { invoke } from "@tauri-apps/api/core";
 
 import { REVEAL_PILL_WINDOW_COMMAND } from "./ipcChannelNames";

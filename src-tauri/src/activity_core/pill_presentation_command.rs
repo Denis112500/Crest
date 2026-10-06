@@ -1,3 +1,6 @@
+//! Lets the pill page ask what's showing right now when it starts, because events sent
+//! before the page listened are lost.
+
 use tauri::State;
 
 use crate::activity_core::activity_arbiter::{lock_activity_arbiter, PillPresentation, SharedActivityArbiter};

@@ -1,3 +1,6 @@
+//! Win32 for the pill window: tool-window styles (no taskbar, no Alt+Tab), showing without
+//! focus, hiding, and the window region that decides which part takes the mouse.
+
 // Rule for the pill window on Windows: never call Tauri's `show()`, `hide()` or any
 // setter that changes a window flag (always-on-top, ignore-cursor, resizable, ...).
 // Tauri's window layer (tao 0.37) rewrites the whole extended style from its own

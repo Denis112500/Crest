@@ -1,3 +1,6 @@
+//! Keeps button presses that arrive while the player's session is briefly gone between tracks,
+//! and delivers them when it's back, so quick "next, next" isn't lost.
+
 use std::time::Instant;
 
 use crate::backend_constants::PENDING_MEDIA_TRANSPORT_COMMAND_LIFETIME;

@@ -1,3 +1,5 @@
+// Builds an inline SVG icon from a path, shared by every view that draws icons.
+
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const ICON_VIEW_BOX = "0 0 24 24";
 

@@ -1,3 +1,6 @@
+//! Checks that the front window really covers the pill's monitor, because the shell's signal
+//! doesn't say which monitor (and the desktop itself would count otherwise).
+
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Gdi::{GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST};
 use windows::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetForegroundWindow, GetWindowRect};

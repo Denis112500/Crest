@@ -1,3 +1,6 @@
+//! Windows' media source: System Media Transport Controls (SMTC), the API behind the volume
+//! flyout's media controls (GlobalSystemMediaTransportControlsSessionManager).
+
 mod smtc_event_subscriptions;
 mod smtc_media_source;
 mod smtc_session_tracker;

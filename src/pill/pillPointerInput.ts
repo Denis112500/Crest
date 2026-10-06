@@ -1,3 +1,5 @@
+// Turns the mouse events on the pill into state-machine calls.
+
 import type { PillStateMachine } from "./pillStateMachine";
 
 // The window's interactive area matches the pill, so ordinary DOM mouse events are

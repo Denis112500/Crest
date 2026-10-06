@@ -1,3 +1,6 @@
+//! The core: collects what every activity source reports and decides what the pill shows
+//! and when it's on screen. It never looks inside an activity's content.
+
 mod activity_arbiter;
 mod activity_publisher;
 mod activity_source;

@@ -1,3 +1,6 @@
+//! Keeps every running source by its kind, so a button press from the pill reaches the
+//! source it belongs to.
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 

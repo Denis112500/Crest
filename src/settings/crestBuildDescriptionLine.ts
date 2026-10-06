@@ -1,3 +1,5 @@
+// The About card: which Crest is running (version, build, time, path).
+
 import { invoke } from "@tauri-apps/api/core";
 
 import { READ_CREST_BUILD_DESCRIPTION_COMMAND } from "../ipc/ipcChannelNames";

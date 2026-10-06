@@ -1,3 +1,6 @@
+//! Handles the messages Windows sends the appbar: fullscreen opened/closed, the short settle
+//! timer, and Explorer restarting (which forgets every appbar).
+
 use windows::Win32::Foundation::{E_FAIL, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::Shell::{SHAppBarMessage, ABM_NEW, ABN_FULLSCREENAPP, APPBARDATA};
 use windows::Win32::UI::WindowsAndMessaging::{DefWindowProcW, KillTimer, SetTimer, WM_APP, WM_TIMER};

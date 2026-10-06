@@ -1,3 +1,6 @@
+//! At startup, puts Windows' start-up entry back if an update deleted it or it points at a
+//! removed Crest. The decision is a pure, tested function; the startup step carries it out.
+
 use tauri::{AppHandle, Runtime};
 
 use crate::launch_at_login::launch_at_login_switch::set_launch_at_login;

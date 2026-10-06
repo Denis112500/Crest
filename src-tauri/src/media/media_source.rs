@@ -1,3 +1,6 @@
+//! The trait each OS implements: watch media sessions, send play/pause/next/previous, and
+//! hand out the settings window's filter control.
+
 use crate::media::media_player_filter_control::MediaPlayerFilterControl;
 use crate::media::media_session_snapshot::MediaSessionSnapshot;
 

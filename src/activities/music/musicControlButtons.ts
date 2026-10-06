@@ -1,3 +1,6 @@
+// Previous / play-pause / next; each press goes to the Rust music source, disabled when the
+// player refuses it.
+
 import "../../styles/musicControlButtons.css";
 
 import {

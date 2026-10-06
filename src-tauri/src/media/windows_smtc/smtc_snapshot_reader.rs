@@ -1,3 +1,6 @@
+//! Reads a session's title, artist, state, timeline and allowed buttons from WinRT into the
+//! OS-independent snapshot.
+
 use windows::Foundation::{DateTime, TimeSpan};
 use windows::Media::Control::{
     GlobalSystemMediaTransportControlsSession as SmtcSession,

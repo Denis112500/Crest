@@ -1,3 +1,6 @@
+//! Wires the app together at startup: plugins, settings, the pill window, the core, the
+//! activity sources, the tray and every command the pages may call.
+
 mod activity_core;
 mod activity_sources;
 mod backend_constants;

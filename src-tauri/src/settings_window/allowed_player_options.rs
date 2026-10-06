@@ -1,3 +1,6 @@
+//! What the "Allowed players" card shows: the switch, the saved list, and the open players
+//! that could be added.
+
 use serde::Serialize;
 
 use crate::backend_constants::DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT;

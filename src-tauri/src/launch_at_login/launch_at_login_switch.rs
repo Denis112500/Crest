@@ -1,3 +1,6 @@
+//! Switches starting at login on or off through tauri-plugin-autostart, and always reports
+//! back what Windows really has.
+
 use tauri::{Manager, Runtime};
 use tauri_plugin_autostart::ManagerExt;
 

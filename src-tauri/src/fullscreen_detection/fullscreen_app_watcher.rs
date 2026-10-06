@@ -1,3 +1,5 @@
+//! The trait each OS implements: "tell me when a fullscreen app comes and goes".
+
 use tauri::WebviewWindow;
 
 /// Called with `true` when a fullscreen app (a game, a fullscreen video) comes to the front

@@ -1,3 +1,6 @@
+//! The commands the pill page calls for its window: place it, show it, hide it, set the
+//! clickable area.
+
 use tauri::{State, WebviewWindow};
 
 use crate::pill_window::pill_interactive_area::convert_logical_area_to_physical;

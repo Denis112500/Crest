@@ -1,3 +1,6 @@
+//! The settings window's way into the running media source: list open players, change the
+//! filter. OS-independent, so the settings code never sees Windows details.
+
 use std::sync::{Arc, Mutex, PoisonError};
 
 use crate::media::media_player_filter::MediaPlayerFilter;

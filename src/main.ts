@@ -1,3 +1,6 @@
+// Entry point of the pill page: builds the pill, connects its parts, places the window and
+// starts listening to Rust.
+
 import "./styles/designTokens.css";
 import "./styles/pillShell.css";
 

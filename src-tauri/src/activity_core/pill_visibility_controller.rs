@@ -1,3 +1,6 @@
+//! Carries out the visibility rules: runs the hide countdowns and adds the "a fullscreen app
+//! is in front" rule, then reports to the frontend. Kept apart from the pure rules on purpose.
+
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
 

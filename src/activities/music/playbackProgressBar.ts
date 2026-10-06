@@ -1,3 +1,5 @@
+// The progress bar and times, computed between the player's rare position reports.
+
 import "../../styles/playbackProgressBar.css";
 
 import { PLAYBACK_PROGRESS_REDRAWS_PER_SECOND } from "../../frontendConstants";

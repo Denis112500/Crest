@@ -1,3 +1,6 @@
+//! The message a source sends to the core: priority, still going or not, when to grab
+//! attention, plus the source's own payload that only its frontend view understands.
+
 use serde::Serialize;
 
 /// What an activity source reports to the core. The core only reads the first three

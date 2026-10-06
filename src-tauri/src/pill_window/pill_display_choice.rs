@@ -1,3 +1,6 @@
+//! Which monitor the pill uses (the chosen one, else the main one) and the labels for the
+//! settings list. Plain logic, unit-tested without real monitors.
+
 use serde::Serialize;
 
 /// What the display choice needs to know about a monitor; filled from Tauri's `Monitor`,

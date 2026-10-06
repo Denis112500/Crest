@@ -1,3 +1,6 @@
+//! Picks which of several players the pill shows: allowed ones only, playing over paused,
+//! then the most recently active.
+
 use std::time::Instant;
 
 use crate::media::media_player_filter::MediaPlayerFilter;

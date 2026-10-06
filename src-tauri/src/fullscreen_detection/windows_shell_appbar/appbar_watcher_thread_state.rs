@@ -1,3 +1,6 @@
+//! What the window procedure needs to remember. A window procedure is a plain function
+//! Windows calls, with no `self`, so its state lives in a thread-local variable.
+
 use std::cell::RefCell;
 use std::ffi::c_void;
 

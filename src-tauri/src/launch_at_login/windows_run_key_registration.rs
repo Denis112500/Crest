@@ -1,3 +1,6 @@
+//! Windows: reads the `Run` entry itself and checks whether its program still exists. The
+//! plugin can't tell "missing" from "disabled in Task Manager", the repair must.
+
 use std::path::Path;
 
 use windows::core::{HSTRING, PCWSTR};

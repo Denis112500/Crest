@@ -1,3 +1,5 @@
+//! One listened-to session and how the current list of sessions is subscribed to.
+
 use std::sync::mpsc::Sender;
 
 use windows::Media::Control::GlobalSystemMediaTransportControlsSession as SmtcSession;

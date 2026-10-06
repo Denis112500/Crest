@@ -1,3 +1,6 @@
+//! Starts the watcher's own thread, creates the invisible appbar window and runs its message
+//! loop, which sleeps until Windows has something to say.
+
 use std::thread;
 
 use tauri::WebviewWindow;
