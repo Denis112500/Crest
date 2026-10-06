@@ -10,7 +10,7 @@ A small black notch hanging from the top center of the screen. It shows what's p
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration (there are none yet).
 
-> Status: 0.3.1 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. A settings window for starting with Windows, the monitor it sits on, and which players it shows. See `notes.md` for the running log.
+> Status: 0.3.1 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. A settings window for starting with Windows, the monitor it sits on, and which players it shows.
 
 Crest's tray icon (notification area, possibly behind the ^ arrow) has **Settings…** and **Quit Crest**. Starting Crest again while it runs also opens the settings.
 
@@ -32,7 +32,7 @@ Compact, it's a small notch with the album art, the title and bouncing bars; hov
 
 ## How it's built
 
-I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code helps me with code and debugs, following the rules in `CLAUDE.md`. `notes.md` is the running log of every decision and bug, and the commit history shows which commits were co-authored.
+I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code helps me with code and debugs, following the rules in `CLAUDE.md`. The commit history shows which commits were co-authored.
 
 ## How it works, in plain language
 
@@ -94,7 +94,6 @@ Crest/
 ├─ LICENSE                      MIT
 ├─ dev-tools/                   debugging helpers, not part of the app (see dev-tools/README.md)
 ├─ docs/                        the demo GIF and screenshot shown in this README
-├─ notes.md                     running project log
 ├─ .gitignore                   ignores node_modules, dist, build output
 ├─ .gitattributes               LF line endings everywhere (Windows and Linux)
 ├─ .claude/launch.json          dev-server config for Claude's preview pane (port 1420)
