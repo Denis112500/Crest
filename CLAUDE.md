@@ -9,11 +9,13 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 4. Work milestone by milestone. Each milestone must be runnable. After each one: how to test it, what should be learned, which files changed and what each does, and when to take notes.
 
 ## notes.md
+- Local only: git-ignored, never published. Its backup is a private GitHub repository; on "commit notes", copy it there, commit ("Update notes") and push.
 - "Current state" at the top: three lines — what works, what's in progress, what's broken.
 - Entries newest first: date, milestone/topic, then Done / Learned / Decisions / Problems / Open questions / Next.
 - Update after every milestone and every significant decision, problem or discovery, without being asked.
 - Mark research findings as verified by testing, verified from docs, or unverified.
 - Short and concrete. No filler, no repeating code. Reusable commands go in "Commands" at the bottom.
+- Neutral voice: "Decision:", "Verified by testing:", "Problem:", without "(user)", "(mine)", "I", "my" or "the user" for the people working on the project. Name a place or method instead when it matters ("by hand outside the Claude app"). Never attribute work to a person who didn't do it.
 - Never delete old entries; add corrections under them.
 
 ## Scope and platforms
