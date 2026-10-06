@@ -124,9 +124,10 @@ Crest/
 │  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window
 │  │  ├─ pillVisibilityTypes.ts        the visibility Rust sends (visible? fullscreen app in front?)
 │  │  ├─ waitUntilNextFrameIsPainted.ts  resolves once the current content is on screen
-│  │  └─ pillContentPresenter.ts       puts the current activity's views into the layers
+│  │  └─ pillContentPresenter.ts       puts the leading activity's views into the layers
 │  ├─ activities/
-│  │  ├─ pillPresentationTypes.ts    the shape of what Rust sends
+│  │  ├─ pillArrangementTypes.ts     the shape of what Rust sends (alert, main, companion)
+│  │  ├─ findLeadingActivity.ts      the alert if there is one, else the main activity
 │  │  ├─ activityViewSet.ts          what an activity's views must provide
 │  │  ├─ activityViewRegistry.ts     activity kind → its view set (plugin point)
 │  │  ├─ nothingToShowViewSet.ts     shown when no activity has anything
@@ -176,12 +177,14 @@ Crest/
       ├─ activity_core/
       │  ├─ mod.rs
       │  ├─ activity_source.rs         trait every activity plugin implements
-      │  ├─ activity_update.rs         what a source reports (priority, ongoing, attention key, payload)
+      │  ├─ activity_update.rs         what a source reports (priority, lingering/ongoing/alert, attention key, payload)
       │  ├─ activity_publisher.rs      a source's handle for reporting to the core
-      │  ├─ activity_arbiter.rs        picks what the pill shows and notifies the frontend (unit-tested)
+      │  ├─ activity_arbiter.rs        keeps every source's latest update, notifies the frontend of layout changes (unit-tested)
+      │  ├─ pill_activity_arrangement.rs  where each activity goes: alert, main, companion (pure, unit-tested)
       │  ├─ activity_source_registry.rs   running sources by kind; routes actions (unit-tested)
       │  ├─ activity_action_command.rs    command: a button press for some activity kind
-      │  ├─ pill_presentation_command.rs  lets the frontend ask what's showing right now
+      │  ├─ pill_arrangement_command.rs   lets the frontend ask for the current layout
+      │  ├─ focus_activity_command.rs     command: the companion was clicked, make it the main activity
       │  ├─ pill_visibility_policy.rs     the show/hide rules as a pure function (unit-tested)
       │  ├─ pill_visibility_controller.rs runs the hide countdowns, adds the fullscreen rule, reports changes
       │  └─ pill_visibility_command.rs    lets the frontend ask whether the pill is visible
@@ -214,12 +217,13 @@ Crest/
       │     └─ smtc_thumbnail_reader.rs    album art → data URL, read fresh on every update
       ├─ fullscreen_detection/
       │  ├─ mod.rs
-      │  ├─ fullscreen_app_watcher.rs     trait: tell me when a fullscreen app comes and goes
+      │  ├─ fullscreen_app_watcher.rs     trait: tell me when a fullscreen app comes and goes; "check again" after the pill moves
       │  └─ windows_shell_appbar/
       │     ├─ mod.rs
       │     ├─ appbar_fullscreen_app_watcher.rs   own thread + hidden appbar window that Windows notifies
-      │     ├─ appbar_watcher_window_procedure.rs reacts to the fullscreen notification, a short settle timer, Explorer restarts
+      │     ├─ appbar_watcher_window_procedure.rs reacts to the fullscreen notification, a short settle timer, Explorer restarts, "check again"
       │     ├─ appbar_watcher_thread_state.rs     what the window procedure needs, per thread
+      │     ├─ front_window_change_hook.rs        while a game is reported: re-checks on every front-window change
       │     └─ front_window_fullscreen_check.rs   does the front window cover the pill's monitor?
       ├─ pill_window/
       │  ├─ mod.rs              declares the module; picks this OS's implementation
