@@ -59,7 +59,10 @@ async function startPill(): Promise<void> {
   };
   // Window and interactive area first: a track already playing at startup makes the
   // pill peek, which changes the interactive area and must not be overwritten after.
-  await placePillWindowOnChosenDisplay();
+  // Every startup step from here on catches its own failure, so one failed call to Rust
+  // can't stop the steps after it; above all the last one, without which the pill would
+  // never appear until Crest restarts.
+  await placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
   // The user picked another monitor in the settings window.
   await listen(PILL_DISPLAY_CHANGED_EVENT, () => {
     placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
@@ -82,17 +85,21 @@ async function startPill(): Promise<void> {
       }
       lastAttentionKey = attentionKey;
     },
-  );
+  ).catch(reportStartupStepFailure("follow the pill's layout"));
   // Rust decides whether the pill is on screen; the window stays hidden until it says so.
   await listenForRustStateChanges<PillVisibility>(
     PILL_VISIBILITY_CHANGED_EVENT,
     GET_CURRENT_PILL_VISIBILITY_COMMAND,
     (pillVisibility) => pillVisibilityController.showPillVisibility(pillVisibility),
-  );
+  ).catch(reportStartupStepFailure("follow whether the pill is on screen"));
 }
 
 function reportPlacementFailure(placementError: unknown): void {
   console.error("Crest could not place the pill on the chosen display:", placementError);
+}
+
+function reportStartupStepFailure(failedStepDescription: string): (startupStepError: unknown) => void {
+  return (startupStepError) => console.error(`Crest could not ${failedStepDescription}:`, startupStepError);
 }
 
 startPill().catch((startupError: unknown) => {
