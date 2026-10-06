@@ -3,6 +3,7 @@
 
 use tauri::{State, WebviewWindow};
 
+use crate::fullscreen_detection::FullscreenAppRecheckTrigger;
 use crate::pill_window::pill_interactive_area::convert_logical_area_to_physical;
 use crate::pill_window::pill_window_placement::apply_top_center_placement_to_pill_window;
 use crate::pill_window::pill_window_platform::PillWindowPlatform;
@@ -11,15 +12,20 @@ use crate::user_settings_store::CrestUserSettingsStore;
 
 /// The frontend owns the pill's dimensions, so it tells Rust how big the window must be;
 /// Rust knows which monitor the user chose. Called at startup and after the choice changes.
+/// Afterwards the fullscreen watcher looks again: a game may cover the new monitor, or no
+/// longer cover the pill's monitor now that it moved away from it.
 #[tauri::command]
 pub fn place_pill_window_at_top_center(
     pill_window: WebviewWindow,
     settings_store: State<'_, CrestUserSettingsStore>,
+    fullscreen_app_recheck_trigger: State<'_, FullscreenAppRecheckTrigger>,
     logical_width: f64,
     logical_height: f64,
 ) -> Result<(), String> {
     let chosen_display_name = settings_store.read_current_settings().pill_display_name;
-    apply_top_center_placement_to_pill_window(&pill_window, logical_width, logical_height, chosen_display_name.as_deref())
+    apply_top_center_placement_to_pill_window(&pill_window, logical_width, logical_height, chosen_display_name.as_deref())?;
+    fullscreen_app_recheck_trigger.request_fullscreen_recheck();
+    Ok(())
 }
 
 /// Called by the frontend once its first frame is painted, so the window never

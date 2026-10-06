@@ -20,7 +20,7 @@ use tauri::{Emitter, Manager};
 use activity_core::{ActivityArbiter, ActivitySourceRegistry, PillVisibilityController, SharedActivityArbiter};
 use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
-use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppWatcher};
+use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppRecheckTrigger, FullscreenAppWatcher};
 use ipc_channel_names::{PILL_ARRANGEMENT_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
 use launch_at_login::repair_launch_at_login_after_update;
 use media::{CurrentPlatformMediaSource, MediaSource};
@@ -65,14 +65,18 @@ pub fn run_crest_app() {
 
             let fullscreen_visibility_controller = pill_visibility_controller.clone();
             // Not fatal: without it the pill only stays on top of games, as before.
-            if let Err(watch_error) = CurrentPlatformFullscreenAppWatcher::start_watching_fullscreen_apps(
+            let fullscreen_app_recheck_trigger = CurrentPlatformFullscreenAppWatcher::start_watching_fullscreen_apps(
                 &pill_window,
                 Box::new(move |is_fullscreen_app_in_front| {
                     fullscreen_visibility_controller.handle_fullscreen_app_change(is_fullscreen_app_in_front);
                 }),
-            ) {
+            )
+            .unwrap_or_else(|watch_error| {
                 eprintln!("Crest: could not start watching for fullscreen apps: {watch_error}");
-            }
+                FullscreenAppRecheckTrigger::without_watcher()
+            });
+            // Before the pill page can ask for its placement, which uses it.
+            crest_app.manage(fullscreen_app_recheck_trigger);
 
             let arrangement_app_handle = crest_app.handle().clone();
             let shared_activity_arbiter: SharedActivityArbiter =
