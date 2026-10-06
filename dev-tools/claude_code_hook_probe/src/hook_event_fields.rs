@@ -21,10 +21,15 @@ pub fn summarize_hook_event(hook_event_json: &str) -> HookEventSummary {
         let folder_name = working_folder.rsplit(['\\', '/']).find(|part| !part.is_empty()).unwrap_or_default();
         detail_parts.push(format!("folder={folder_name}"));
     }
-    for field_name in ["permission_mode", "tool_name", "notification_type", "source", "reason", "message"] {
+    for field_name in ["permission_mode", "tool_name", "notification_type", "source", "reason", "message", "error", "error_type"] {
         if let Some(field_value) = read_string_field(hook_event_json, field_name) {
             detail_parts.push(format!("{field_name}={field_value}"));
         }
+    }
+    // A boolean, so the string reader can't see it; how an interrupted tool call is marked.
+    if let Some(interrupt_flag_start) = find_value_start(hook_event_json, "is_interrupt") {
+        let interrupt_flag: String = hook_event_json[interrupt_flag_start..].chars().take_while(char::is_ascii_alphabetic).collect();
+        detail_parts.push(format!("is_interrupt={interrupt_flag}"));
     }
     if let Some(tool_input) = read_object_field(hook_event_json, "tool_input") {
         let preview: String = tool_input.chars().take(TOOL_INPUT_PREVIEW_CHARACTERS).collect();

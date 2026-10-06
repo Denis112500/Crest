@@ -29,8 +29,8 @@ function New-ProbeHook([bool]$waitsForAnswer) {
     $probeHook
 }
 
-$toolEventNames = 'PreToolUse', 'PostToolUse'
-$otherStatusEventNames = 'SessionStart', 'UserPromptSubmit', 'Stop', 'Notification', 'SessionEnd'
+$toolEventNames = 'PreToolUse', 'PostToolUse', 'PostToolUseFailure'
+$otherStatusEventNames = 'SessionStart', 'UserPromptSubmit', 'Stop', 'StopFailure', 'Notification', 'SessionEnd'
 $hooksByEventName = [ordered]@{}
 foreach ($eventName in $otherStatusEventNames) {
     $hooksByEventName[$eventName] = @([ordered]@{ hooks = @(New-ProbeHook $false) })
