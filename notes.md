@@ -7,7 +7,13 @@
 
 ---
 
-## 2026-10-05 — 0.3.1: every player by default for new installs
+## 2026-10-06 - Comments next to every component
+- **Request (user):** a comment next to each component, to understand the code. Option (b) chosen on my recommendation: a short header at the top of each file (what it's for, where it fits, why it's its own piece), the README file tree stays the overview. Fits CLAUDE.md's "comments explain WHY, not what" because the headers explain role and reason.
+- **Done (branch `file-headers`):** 62 new headers (Rust `//!` module docs, TypeScript `//` at the top). 11 files already started with a role comment (e.g. `ipcChannelNames.ts`, `frontendConstants.ts`, `classic_frame_painting_blocker.rs`); 32 more had a role comment on their main type that the new header repeated almost word for word (found by word overlap ≥ 0.5), so their header was removed again: every file is explained once, either by its header or by the comment on its main type. Only comment lines added, no code changed; tsc, vite build, clippy, 55/55 tests, `cargo doc` clean.
+- **Learned:** Rust's `//!` comments are module documentation: `cargo doc --no-deps --open` (in `src-tauri`) turns them into a clickable website of all modules (`target/doc/crest_lib/`).
+- **Noticed:** all headings in this file changed from "—" to "-" outside my edits (editor or formatter, presumably); kept as they are.
+
+## 2026-10-05 - 0.3.1: every player by default for new installs
 - **Why (decided with the user):** before a soft launch (Tauri Discord, r/tauri; the big launch waits for Phase 3's Claude Code integration), a stranger with Spotify or a normal browser tab would install Crest, play music and see nothing, because only YouTube Music was allowed by default.
 - **Done (branch `every-player-default`):** `CrestUserSettings::default()` (used only when there is no `settings.json`, i.e. a fresh install) now has `show_every_media_player: Some(true)`; the list still starts with YouTube Music, so switching "Show every player" off gives the old behavior. Existing files keep their choice (an older file with a list and no switch still means "only the list", test). 2 new tests; 55/55, clippy clean, tsc. README: "any player that appears in Windows' own media controls (built and tested with YouTube Music and Brave)", status 0.3.1, the Allowed players paragraph. Version 0.3.0 → 0.3.1 (6 places); installer `Crest_0.3.1_x64-setup.exe` built 18:27.
 - **Also pushed before:** `118b607` Ignore local demo helper (`.gitignore`: `dev-tools/readme_demo_pointer.py`).
@@ -15,10 +21,13 @@
 - **Verified by testing (user, real install, own Windows Terminal):** 0.3.0 → 0.3.1 with the installer's preselected "Uninstall before installing" (the first real upgrade outside the Claude container), then Crest started from the Start menu: About = 0.3.1, built 18:27; `Run\Crest` = `C:\Users\<user>\AppData\Local\Crest\crest.exe`. The check right after the installer (entry deleted) wasn't reported; the end result is the one that matters.
 - **Published (2026-10-05):** commits `5c2ff15` Show every player on new installs, `5e77a85` Update README, `2317eb9` Update notes on `main`; GitHub Release v0.3.1 "Crest 0.3.1", tag on `2317eb9`, asset `Crest_0.3.1_x64-setup.exe` (1 457 435 bytes, the tested 18:27 build), marked Latest, text approved by the user. `dev-tools/record_readme_demo.py` stays uncommitted on purpose (its local version needs the unpublished mouse helper).
 - **Next:** soft launch (Tauri Discord "showcase", r/tauri), then Phase 3; the big launch after the Claude Code integration.
+- **Soft launch (2026-10-05):** posted in the Tauri Discord showcase (tag "app", GIF attached; the forum title is limited to 100 characters). Feedback from a commenter: "(no scraping, no network)" read as AI-generated; better to name the API: Crest uses `GlobalSystemMediaTransportControlsSessionManager` (via the `windows` crate, event-driven: `SessionsChanged`, `MediaPropertiesChanged`, `PlaybackInfoChanged`, `TimelinePropertiesChanged`). Post text rewritten in plain words ("around 20 MB of RAM" instead of "~16–32 MB … thanks to…").
+- The commenter's verdict after the edit: "Nice thing though." Then posted on **r/tauri** (Images & Video post with the demo GIF; title "Made a little "now playing" notch for Windows 11 with Tauri"; short casual text: "like the iPhone's Dynamic Island", "Windows' media session API (SMTC)", "around 20 MB of RAM when hidden"); 33 views in the first minutes. Naming: call it a notch and mention the Dynamic Island only as a comparison (Apple's name).
+- **Learned:** for developer audiences, name the exact API and keep the tone plain; a marketing-style checklist makes people suspicious. The README's "Private by default… no scraping, no unofficial APIs, no cookies" has the same tone (rewrite offered, not done).
 
 ---
 
-## 2026-10-05 — Going public: README demo, anonymized notes
+## 2026-10-05 - Going public: README demo, anonymized notes
 - **Decision (user):** make Crest more popular but "faceless" (pseudonymous posts, a demo GIF instead of a person). `notes.md` stays public but is anonymized from now on (option b): the Windows user name in paths becomes `<user>`, specific installed apps become "other startup apps". Older versions stay in the git history (rewriting it was option c, not chosen). GitHub URLs (`Denis112500/Crest`) stay; the user name is a separate decision.
 - **Done:** `dev-tools/record_readme_demo.py` (new): records a 12 s GIF and a still of the open pill, capturing only a rectangle around the pill window (412×184 + margins), merging unchanged frames; uses Pillow 12.1.1 (already installed). A test frame showed the user's animated wallpaper behind the transparent corners → record in front of an empty maximized Notepad.
 - **Song for the demo:** an NCS (NoCopyrightSounds) release, free to use in public content with credit, played from an NCS playlist so the "next track" in the GIF is NCS too.
@@ -31,7 +40,7 @@
 
 ---
 
-## 2026-10-05 — Release 0.3.0 published
+## 2026-10-05 - Release 0.3.0 published
 - **Done:** commits on `main` (pushed): `70ef6f6` Restore Start with Windows after updates, `963547d` Fix bugs from code review, `7d508ba` Add reveal delay probe, `14b1b7a` Update dev-tools README, `b7353c1` Update README, `6376f44` Update notes. The two files touched by both code commits (`settingsWindowMain.ts`, `backend_constants.rs`) were split so each commit holds only what its name says.
 - **Published (2026-10-05):** GitHub Release v0.3.0 "Crest 0.3.0" with `gh release create`, tag `v0.3.0` on `6376f44`, asset `Crest_0.3.0_x64-setup.exe` (1 457 395 bytes, built 10:54 from that exact code; the copy the user has installed), marked Latest; text approved by the user. It says updating from 0.2.0 with the preselected option removes Start with Windows once (from Tauri's installer script + the same-version "Uninstall Crest" test on a real install; a real 0.2.0 → 0.3.0 update outside the container wasn't run).
 - **Phase 2 is complete:** items 6, 6b, 7, 8 + the autostart repair and the code review.
@@ -40,7 +49,7 @@
 
 ---
 
-## 2026-10-05 — Full code review before releasing 0.3.0
+## 2026-10-05 - Full code review before releasing 0.3.0
 - **Request (user):** analyze the whole code with much attention before the last push of 0.3.0, fix every bug, take notes.
 - **Reviewed:** all ~5,900 lines: Rust core (arbiter, visibility policy/controller, publisher, registry, commands), music source + grace period, the SMTC worker/tracker/reader/thumbnails/transport commands, album-art gate, held presses, pill window (placement, display choice, region, Win32 styles, frame blocker, memory target), fullscreen appbar watcher, settings store, launch-at-login repair, settings window (opener, commands, player options, build description), `lib.rs` setup order, capabilities; frontend pill (state machine, morph, visibility, presenter, IPC), music views (bars, progress, buttons, album art), settings page. Also searched for panics/unchecked indexing/casts outside tests (none that can fire) and checked lock ordering (always grace period → arbiter → visibility; no cycle).
 - **Bugs found and fixed (all verified from code):**
@@ -57,7 +66,7 @@
 - **Bug 1 verified by testing (installed builds, user's real install, CPU time of each Crest process over 60 s with the pill hidden):** procedure: music playing with bouncing bars → Settings → Remove YouTube Music while it plays → close Settings → pill hides → measure. Old build (01:05): pill renderer **78 ms**; fixed build (10:54): **0 ms**. A first try that closed the YouTube Music window instead showed 0 ms in the old build too (10 s sample; Brave probably reports "paused" before the session goes, so the bars stopped normally; Windows counts CPU time in ~15.6 ms steps, too coarse for 10 s). Crest's Rust process uses ~0.1 s per minute meanwhile: the removed player keeps playing and its updates are read and dropped (expected).
 - **Learned:** **replacing a component must also shut it down.** Timers live in the page, not in the elements; dropping elements from the DOM doesn't stop the intervals that update them.
 
-## 2026-10-05 — Install tests were inside the Claude app's container (results invalid)
+## 2026-10-05 - Install tests were inside the Claude app's container (results invalid)
 - **Found (verified):** after the "Uninstall Crest" + reinstall test, the running Crest's path was `C:\Users\<user>\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local\Crest\crest.exe`. The Claude desktop app is an **MSIX package** (`Get-AppxPackage`: `Claude_pzs8sxrjxfjjc`, signature "Developer"). Every process it starts (my tools, also with the sandbox disabled, and the app's terminal panel) runs in its container: Windows redirects writes to `AppData` (and HKCU registry writes) into the package's `LocalCache`, and reads inside the container see that copy merged with the real one.
 - **Consequences:** every installer I launched installed into `LocalCache\Local\Crest` (the user found no Crest in the real `AppData\Local`); the uninstall entry, `Run` entries and test results I read from inside the container can't be trusted. Probably also behind the earlier "tray checked but no `Run` entry" and the vanished/reappearing install folder (unverified).
 - **Still valid:** the installer behavior read from Tauri's NSIS script (an upgrade with the preselected choice deletes `Run\Crest`), the code of the repair (50 tests), the About line.
@@ -76,7 +85,7 @@
 - **Rule from now on:** installers, the installed Crest, autostart and registry checks are done by the user outside the Claude app (Explorer, Start menu, a normal Windows Terminal), with exact commands from me. A Crest path under `Packages\Claude_…\LocalCache` = the containerized copy.
 - **Learned:** **packaged-app containers (MSIX)**: a Store-style app's child processes inherit its virtual file system and registry. A test is only as real as the environment it runs in; check the path of what's actually running.
 
-## 2026-10-05 — Release 0.3.0: build + install test over 0.2.0
+## 2026-10-05 - Release 0.3.0: build + install test over 0.2.0
 - **Done:** version 0.2.0 → 0.3.0 (`package.json`, `package-lock.json` ×2, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`), commit `c93511f` "Release 0.3.0" on `main` (pushed). Installer `Crest_0.3.0_x64-setup.exe` (1.39 MiB), built in 2 min 16 s. A "Create PR" press opened PR #2; the user wants "push to main as usual" instead, so `main` was pushed and GitHub marked #2 merged by itself; branches `release-0.3.0` deleted locally and on GitHub. Not published yet.
 - **Before the test:** Start with Windows was **off** in the installed 0.2.0 (no `Run\Crest`). The user switched it on once and reported it checked, but `Run\Crest` was still missing (also checked outside the sandbox, same user account, Startup folder/RunOnce/scheduled tasks empty). Re-test with Crest 0.2.0 started by me with its error output logged: checkmark at start = off (matched the registry), one click → `Run\Crest` = `C:\Users\<user>\AppData\Local\Crest\crest.exe ` (note the trailing space from `auto-launch`'s "{path} {args}"), error log empty. **Unexplained:** the first "checked without a `Run` entry"; not reproduced.
 - **Update test (verified by testing):** 0.3.0 installed over 0.2.0 with the preselected **"Uninstall before installing"** → **`Run\Crest` deleted**; Crest no longer starts at login. Uninstall entry says 0.3.0; Crest 0.3.0 runs.
@@ -92,7 +101,7 @@
 - **Not tested yet:** Crest actually starting at login (needs `Run\Crest` back and a restart).
 - **Learned:** **read the installer before trusting "settings survive updates".** Two different things are deleted on an upgrade: the autostart entry (always, with the default choice) and the app data (only if the box is ticked). An app can't stop the installer, but it can notice at startup what got lost and repair it.
 
-## 2026-10-04 — Phase 2, item 8: several activities at once (design only, no code)
+## 2026-10-04 - Phase 2, item 8: several activities at once (design only, no code)
 - **Today (verified from code):** `activity_arbiter.rs` keeps one update per source and exactly one wins (highest `display_priority`, then most recent); the pill shows only that one.
 - **Activities expected from Phase 3:** long-running (music, a running timer, Claude Code working), alerts that need the user now (timer done, Claude Code Allow/Deny, meeting starting), ambient (weather, next event).
 - **Options considered:**
@@ -112,11 +121,11 @@
   - Unchanged: one notch shape, one rectangular interactive area, window size (the expanded view is already wider than compact + companion), the music source apart from the new field.
 - **Learned:** separate **what an activity is** (lingering / ongoing / alert) from **where it goes** (the arrangement): sources describe themselves, one pure function decides the layout, as the visibility policy already does for show/hide.
 
-## 2026-10-04 — Phase 2, item 7: README brought up to date
+## 2026-10-04 - Phase 2, item 7: README brought up to date
 - **Done:** `README.md` was still at v1 in places. Updated: notch description and status (0.2.0 published, 0.3.0 in progress); tray = Settings… + Quit, second launch opens Settings; privacy wording from the new CLAUDE.md rules; memory while hidden (16–32 MB, measured); fullscreen hide in the visibility rules; `MediaPlayerFilter`; the window now moves only when another monitor is chosen; new "The settings window" section (on demand, per-window permissions); the whole file tree (added `settings.html`, `src/settings/`, `capabilities/settings_window.json`, `fullscreen_detection/`, `settings_window/`, `launch_at_login.rs`, the new media and pill_window files; `user_settings_file.rs` → `user_settings_store.rs`); the Settings section rewritten for the settings window, the file's fields, the new matching rule and what changed for hand-written files from before 0.3.0.
 - **Next:** user reviews the README; commit ("Update README", no co-author), then merge `settings-window` into `main` and push when the user says so. Then item 8 (design only).
 
-## 2026-10-04 — Phase 2, item 7, step 3: allowed players
+## 2026-10-04 - Phase 2, item 7, step 3: allowed players
 - **Done (branch `settings-window`):**
   - `media/media_player_filter_control.rs` (new, platform-neutral): `MediaPlayerFilterControl` lists the players open now and replaces the allowed-player filter while the media source runs. Created by `MediaSource::create_player_filter_control()` (new trait method) before the source goes into the music activity; managed by Tauri for the settings commands.
   - Windows side: `SmtcMediaSource` now creates its channel in `new()` (so the control exists before watching starts). New worker message `AllowedAppFilterReplaced`; the tracker swaps the filter and the worker publishes right after, so the pill follows **at once** (no restart, no polling). The tracker also writes every session's app ID into the shared "open players" list whenever Windows reports a session-list change. Listing sessions + subscribing moved from the tracker into `smtc_tracked_session.rs` (`subscribe_to_current_sessions`), because the tracker had grown to 162 lines; it's 153 now.
@@ -138,7 +147,7 @@
 - **Verified by testing (user):** tested the fixed dev build and reported "it works" (results not reported item by item).
 - **Learned:** **make "all" its own case.** Using an empty list to mean "everything" was fine while the list was only edited by hand, but a Remove button makes "empty" a normal state, and then it silently meant the opposite of what the user did. An enum says what it means.
 
-## 2026-10-04 — Phase 2, item 7, step 2: General + Display settings
+## 2026-10-04 - Phase 2, item 7, step 2: General + Display settings
 - **Decisions (user):** "Start with Windows" leaves the tray (tray = "Settings…" + "Quit Crest"). New: choose the monitor the pill sits on, as a setting (option A); dragging the pill between monitors (B) maybe later, it would write the same setting.
 - **Measured before designing (verified by testing):** DISPLAY1 2560×1440 at x 0 (main), DISPLAY2 1920×1080 at x 2560 (right), **both 100 % scaling**. So moving between them never changes the pill's pixel size here; the rescale path is written but can't be tested on this PC.
 - **Done (branch `settings-window`):**
@@ -154,7 +163,7 @@
 - **Not tested yet:** the settings rows in the real window, moving the pill to DISPLAY2, persistence across a restart.
   - **Update (same day):** the user tested the dev build against the test list (tray, switch, display choice, restart, fullscreen on DISPLAY2, light/dark) and reported "it works"; results weren't reported item by item. The different-scaling path stays untested (both monitors at 100 %).
 
-## 2026-10-04 — Phase 2, item 7, step 1: empty settings window + memory
+## 2026-10-04 - Phase 2, item 7, step 1: empty settings window + memory
 - **Decisions (user):** A second Tauri window, created on demand and destroyed on close (not kept alive hidden: no memory held for a rarely used window). "Start with Windows" moves from the tray into the window (step 2). Starting Crest again while it runs opens Settings. Later there will be more ways to open Settings (a settings wheel), so there's exactly one opener function.
 - **Done (branch `settings-window`):**
   - `settings_window/settings_window_opener.rs` (new): `open_or_focus_settings_window` focuses an open window or builds a new one on its own thread (verified from Tauri docs: building a webview window inside a menu/event handler deadlocks on Windows). Window: "Crest Settings", 480×560, not resizable, centered.
@@ -177,7 +186,7 @@
 - **Unexplained:** never-opened settles at ~32 MB, after-close at ~16 MB. Maybe closing a webview makes WebView2 trim the shared processes (unverified). Both are far below the 78 MB before the fix.
 - **Learned:** **multi-window apps in Tauri:** windows from `tauri.conf.json` exist from the start; windows built in Rust with `WebviewWindowBuilder` exist only while open. Closing a Tauri window destroys it (and here, its renderer process) unless the close is intercepted.
 
-## 2026-10-04 — Phase 2, item 6: CLAUDE.md rules for v2
+## 2026-10-04 - Phase 2, item 6: CLAUDE.md rules for v2
 - **Decisions (user approved the exact wording):** in CLAUDE.md "Scope and platforms":
   - "Not in v1: …" → scope follows the roadmap here; not planned yet: Linux (Phase 5), notifications, volume/brightness popups; integrations one at a time, each approved first. (The old line also excluded a settings UI, which item 7 needs.)
   - "No network calls, no API keys" → network only for an integration the user switched on, only to that service, all off by default; free APIs only (no paid plans, no free tiers that need a payment method); keys/tokens only in Windows Credential Manager behind a trait, never in files, settings.json, logs, the repo or the page (the page may hand a token to Rust once, never reads it back); network calls only from Rust, the page's CSP stays closed; no telemetry, analytics or remote crash reports. SMTC-only music rule unchanged.
@@ -186,7 +195,7 @@
 - **Open (Phase 3):** Credential Manager access either via the `keyring` crate (new install → ask) or the `Win32_Security_Credentials` feature of the `windows` crate we already have (nothing new downloaded).
 - **Also fixed:** a broken path in "Release build 0.2.0" below (`target\release` had been saved with `\r` as a real line break).
 
-## 2026-10-04 — Phase 2, item 6b (new): notch look, decided
+## 2026-10-04 - Phase 2, item 6b (new): notch look, decided
 - **Request (user):** the pill should be glued to the top edge (no 8 px gap) and look like a notch.
 - **Decisions (user):** option B: flat top, rounded bottom corners, plus curved "shoulders" that flare into the screen edge; hiding slides up into the edge instead of shrinking and fading. Rejected: A (flat top without shoulders).
 - **Expected trade-off (to watch in daily use):** pushing the mouse into the top center now lands on the pill and expands it after 150 ms; that's where a maximized window's title bar or a browser tab would be.
@@ -204,7 +213,7 @@
 
 ---
 
-## 2026-10-04 — Release build 0.2.0
+## 2026-10-04 - Release build 0.2.0
 - **Done:** version 0.1.2 → 0.2.0 (`package.json`, `package-lock.json` ×2, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`), on branch `release-0.2.0`. `npm run tauri build` in 127 s → `Crest_0.2.0_x64-setup.exe` (1.36 MiB). Contains Phase 1 items 1–4.
 - **Problem avoided:** the running Crest was `target\release\crest.exe`; a build can't overwrite a running exe on Windows, so Crest was stopped first.
 - **Install test:** no Crest was installed any more (no `%LOCALAPPDATA%\Crest`, no uninstall entry), so this was a **fresh install**, not an update over 0.1.2. Installed 20:01 → `%LOCALAPPDATA%\Crest\crest.exe`, uninstall entry "Crest 0.2.0"; the user confirmed it works (pill, buttons, fullscreen hide).
@@ -215,7 +224,7 @@
 
 ---
 
-## 2026-10-04 — Phase 1, item 4: WebView2 memory (measured)
+## 2026-10-04 - Phase 1, item 4: WebView2 memory (measured)
 - **Correction to earlier notes:** "388 MB, of which ~330 MB WebView2" (milestone g) was the **sum of the processes' working sets**. That counts the WebView2/Edge program code, which Windows loads once and shares, once per process (7 processes). What Crest really occupies in RAM is the **private working set** (Task Manager's "Memory" column): ~81–86 MB.
 - **Done:**
   - `dev-tools/measure_crest_memory.ps1` (new): finds Crest and every WebView2 process it started, names their role (manager, renderer, GPU, network/storage helpers, crash reporter) and averages private working set, private bytes and working set over N samples.
@@ -239,7 +248,7 @@
 
 ---
 
-## 2026-10-03 — Phase 1, item 3: grey out buttons the player doesn't accept
+## 2026-10-03 - Phase 1, item 3: grey out buttons the player doesn't accept
 - **Measured (verified by testing, `list_media_sessions.ps1 -WatchSeconds`, YouTube Music in Brave, 6 quick skips, pause/play):**
   - `next`, `previous` and `toggle` are **always** enabled, also around track changes: between tracks the session disappears for 0.1–0.8 s and comes back with every flag on. Crest's 1.5 s grace period already bridges that gap, so the buttons can't flicker.
   - `play` / `pause` flip with the state (`play=False` while playing, `pause=False` while paused). Tying the play/pause button to them would grey it out all the time → it follows `IsPlayPauseToggleEnabled`, matching the toggle command it sends.
@@ -258,7 +267,7 @@
 
 ---
 
-## 2026-10-02 — Phase 1, item 2: "Start with Windows" in the tray
+## 2026-10-02 - Phase 1, item 2: "Start with Windows" in the tray
 - **Done:**
   - Installed `tauri-plugin-autostart` 2.7.0 (user approved; Rust only, no npm package). 3.0.0-alpha.2 exists on crates.io but is a pre-release. New in `Cargo.lock`: `auto-launch` 0.6, `windows-registry` 0.6, `os_info`; macOS/Linux-only crates are listed but not compiled on Windows; `tauri-utils` 2.10.0 → 2.10.1 (patch, needed by the plugin).
   - `launch_at_login.rs` (new): `is_launch_at_login_enabled` / `toggle_launch_at_login`; always reads the real state back from Windows.
@@ -282,7 +291,7 @@
 
 ---
 
-## 2026-10-02 — Phase 1, item 1b: the pill steps aside for fullscreen apps
+## 2026-10-02 - Phase 1, item 1b: the pill steps aside for fullscreen apps
 - **Decision (user):** from now on, work goes through **pull requests**: one short-named branch per milestone, PR into `main` with `gh`. Replaces "no pull requests for now" (Roadmap entry).
 - **Done:**
   - `fullscreen_detection/` (new): `fullscreen_app_watcher.rs` (trait `FullscreenAppWatcher`, like the other platform traits); Windows in `windows_shell_appbar/`: `appbar_fullscreen_app_watcher.rs` (own thread + hidden window + message loop), `appbar_watcher_window_procedure.rs` (reacts to `ABN_FULLSCREENAPP`, the settle timer and `TaskbarCreated`), `appbar_watcher_thread_state.rs` (what the window procedure needs, in a `thread_local`), `front_window_fullscreen_check.rs` (front window covers the **pill's** monitor and isn't the desktop `Progman`/`WorkerW`). Split in four because one file was ~190 lines mixing setup, message handling and state.
@@ -302,7 +311,7 @@
 
 ---
 
-## 2026-10-02 — GitHub CLI installed
+## 2026-10-02 - GitHub CLI installed
 - **Done:** `winget install --id GitHub.cli --exact --source winget` → `gh` 2.102.0 in `C:\Program Files\GitHub CLI\` (user asked for it). Not logged in yet: the user runs `gh auth login` once (browser login; the token is stored by `gh` in Windows Credential Manager, never in the repo).
 - **Learned:** a newly installed program's folder is added to PATH only for terminals opened *after* the install; old windows still say "gh is not recognized".
 - **Open questions:** should the app's "Create PR" button now open real pull requests (branch per milestone) instead of committing to `main`? Until the user decides, the old decision (no PRs, commits to `main`) stands.
@@ -310,7 +319,7 @@
 
 ---
 
-## 2026-10-02 — Phase 1, item 1a: fullscreen probe
+## 2026-10-02 - Phase 1, item 1a: fullscreen probe
 - **Decisions (user):** probe before building; when a fullscreen app comes to the front, the pill disappears **instantly** (no fade over the game); it comes back with the normal animation.
 - **Done:** `dev-tools/fullscreen_event_watcher/` (Rust, same `windows` 0.62 as Crest, no new downloads): a hidden window registered as an appbar logs every `ABN_*` notification, plus an out-of-context `EVENT_SYSTEM_FOREGROUND` hook; each line has the front window's class/title, its monitor, `covers_monitor`, and `SHQueryUserNotificationState`. Ctrl+C or the time limit removes the appbar cleanly; re-registers on `TaskbarCreated`. Added to `dev-tools/README.md` and `.gitignore`. clippy clean.
 - **Verified by testing (smoke run, 6 s):** with Valorant in front, the probe reported `quns=busy`, `covers_monitor=true` on `\\.\DISPLAY1(primary)` at 2560×1440, window class `VALORANTUnrealWindow`. So Valorant in its current mode counts as a normal (borderless/optimized) fullscreen window, not exclusive Direct3D (`d3d_exclusive_fullscreen`).
@@ -327,7 +336,7 @@
 
 ---
 
-## 2026-10-02 — Phase 1, item 1: how to detect a fullscreen app (research, no code yet)
+## 2026-10-02 - Phase 1, item 1: how to detect a fullscreen app (research, no code yet)
 - **Decision (user):** Phase 1 confirmed in this order: fullscreen hide → autostart → greyed-out buttons → WebView2 memory → v0.2.0 release on GitHub.
 - **Options found:**
   - **A. `SHQueryUserNotificationState`** (verified from docs): returns `QUNS_BUSY` (fullscreen app or presentation mode) or `QUNS_RUNNING_D3D_FULL_SCREEN` (exclusive Direct3D). A question you have to ask, never a notification → only usable with polling. No monitor information.
@@ -339,7 +348,7 @@
 
 ---
 
-## 2026-10-02 — Roadmap (proposed, order not confirmed yet)
+## 2026-10-02 - Roadmap (proposed, order not confirmed yet)
 - **Phase 1: daily-driver polish → v0.2.0**
   1. Hide the pill (and stop the bars) while a fullscreen app or game is in front (the pill sits on Valorant's round timer).
   2. Start with Windows, toggled from the tray (`tauri-plugin-autostart` → ask before installing).
@@ -360,12 +369,12 @@
 
 ---
 
-## 2026-10-02 — "Toy project" → "hobby project"
+## 2026-10-02 - "Toy project" → "hobby project"
 - **Decision (user):** the README now calls Crest a personal hobby project instead of a toy project; it had outgrown "toy" (public releases, tests, plugin architecture). The disclaimer stays: works on the author's setup (Windows 11, YouTube Music in Brave), shared as-is, no support guaranteed.
 
 ---
 
-## 2026-10-02 — Direction: integrations later, free APIs only
+## 2026-10-02 - Direction: integrations later, free APIs only
 - **Decisions (user):** Crest will grow toward a Coucou-like app with integrations, but **only free APIs, never paid ones**. Not started yet; no integration chosen.
 - **Open questions (decide before the first integration):**
   - CLAUDE.md currently says "no network calls, no API keys" and "not in v1: other activity sources". It must be updated first. Proposed: network only for integrations the user enables; keys in Windows Credential Manager, never in files or the repo; still no telemetry.
@@ -374,7 +383,7 @@
 
 ---
 
-## 2026-10-01 — Release build 0.1.2
+## 2026-10-01 - Release build 0.1.2
 - **Done:** version 0.1.1 → 0.1.2 (`package.json`, `package-lock.json`, `tauri.conf.json`, `Cargo.toml`, `Cargo.lock`); `npm run tauri build` in 3 min 44 s → `Crest_0.1.2_x64-setup.exe` (1.35 MiB). Contains all of today's fixes (title bar, layer fades, loading ring, single instance, held button presses).
 - **Verified by testing:** with the dev copy running, the release `crest.exe` exits by itself (exit code 0): dev and release share the identifier `dev.crest.pill`, so the single-instance guard covers both. A full release startup wasn't re-tested (it would have meant closing the user's dev copy).
 - **Learned:** the single-instance lock is per app identifier, not per exe file: to try the installed version, quit the dev copy first (and the reverse).
@@ -382,7 +391,7 @@
 
 ---
 
-## 2026-10-01 — Button presses during a track change are no longer lost
+## 2026-10-01 - Button presses during a track change are no longer lost
 - **Problem:** "no media session to send PreviousTrack to" ×4 in the user's log. Brave drops the media session for about 0.5 s on every track change; a press in that gap had no session to go to and was thrown away, so fast repeated next/previous skipped fewer tracks than pressed.
 - **Done:**
   - `media/pending_transport_commands.rs` (platform-independent, 2 tests): holds presses in order with their time; `take_still_relevant` hands back those younger than `PENDING_MEDIA_TRANSPORT_COMMAND_LIFETIME` (2 s) and empties the list.
@@ -394,7 +403,7 @@
 
 ---
 
-## 2026-10-01 — Loading ring instead of Brave's logo on skip
+## 2026-10-01 - Loading ring instead of Brave's logo on skip
 - **Problem (user):** after the cache fix, Brave's logo still flashed briefly on every skip. User's idea: show a loading wheel while it's the logo.
 - **Measured (verified by testing, 6 skips, throwaway Rust probe reading SMTC every 60 ms):** on every skip the session disappears for ~0.5 s, comes back with the **same** 18 844-byte 256×256 PNG (Brave's logo) and the real cover (150×84 PNG) arrives **60–130 ms** later.
 - **Done:**
@@ -411,7 +420,7 @@
 
 ---
 
-## 2026-10-01 — Fixes from the user's screenshots: title bar, overlapping layers, Brave logo
+## 2026-10-01 - Fixes from the user's screenshots: title bar, overlapping layers, Brave logo
 - **Problems (user screenshots):** (1) a white classic title bar ("Crest" + ✕) across the top of the window, the real source of the "white corners"; (2) the small pill drawn on top of the big one ("songs overlap"); (3) the Brave logo as album art.
 - **How they were found:** a recorder script polled the window style and the page state every ~120 ms with a screen capture per change while the user used the pill with the real mouse. Synthetic DOM events did *not* reproduce (1): it needs Windows' real click/focus handling.
 - **Causes:**
@@ -431,7 +440,7 @@
 
 ---
 
-## 2026-10-01 — Only one Crest at a time (single-instance plugin)
+## 2026-10-01 - Only one Crest at a time (single-instance plugin)
 - **Problem (reported by the user):** in a test right after the corner fix, songs overlapped, the pill lagged, buttons barely worked, play/pause didn't work, and the corners were still there. Most likely cause (unverified, the copies were gone before I could check): two older release copies from 21:47 were still running under the new dev copy, so three pills were stacked in one spot. Each animates on its own; a click goes to whichever window is on top at that point; the old copies don't have the corner fix.
 - **Done:** added the official `tauri-plugin-single-instance` 2.5 (Rust only, no npm package; user approved the install). Registered first in `lib.rs`; the "another copy was started" callback does nothing, because the pill only appears with music, so there's nothing to bring forward. Verified by testing: with one copy running, a second `crest.exe` exits by itself (exit code 0) within 4 s; clippy clean, 23/23 tests.
 - **Learned:** a Tauri plugin is added on the Rust side with `.plugin(…)` on the builder; some plugins also have an npm package for a JS API, this one doesn't. The plugin must be registered first so the second copy exits before creating windows or a tray icon. On Windows it uses a named mutex plus a message to the first copy.
@@ -439,7 +448,7 @@
 
 ---
 
-## 2026-10-01 — Fix: white "old app" corners after clicking the pill
+## 2026-10-01 - Fix: white "old app" corners after clicking the pill
 - **Problem (reported by the user):** after the first click on the pill, white square corners appeared around it, like a classic-Windows app frame.
 - **Cause (verified from the window's styles; the visual link is unverified until the user retests):** the pill window still had `WS_CAPTION` and `WS_SYSMENU` (style `0x4C80000`). Tauri/tao hides an undecorated window's title bar by giving the frame zero size, but keeps the caption styles. Our `SetWindowRgn` (interactive area) makes Windows stop drawing the modern DWM frame, so on a click or activation change it paints the classic frame instead.
 - **Done:** `windows_pill_window_platform.rs` → `prepare_pill_window_as_overlay` also clears `WS_CAPTION | WS_SYSMENU` from `GWL_STYLE`, then calls `SetWindowPos(SWP_FRAMECHANGED …)` so Windows re-reads the frame. Verified by testing: the dev window's style is now `0x4000000` (no caption), position and size unchanged; clippy clean, 23/23 tests pass.
@@ -452,7 +461,7 @@
 
 ---
 
-## 2026-10-01 — Publishing on GitHub
+## 2026-10-01 - Publishing on GitHub
 - **Done:** added `LICENSE` (MIT); README gained "Installing" (installer from Releases, SmartScreen note), build command, and a "License" section (toy project, not affiliated with Apple/Google/YouTube). Checked the tracked files for personal data before publishing: no emails, no personal paths, no build output.
 - **Decisions:** public repo, MIT license. The user creates the empty repo on github.com; no GitHub CLI installed. The installer goes into a GitHub Release (uploaded by hand), not into git: build output never belongs in the repo.
 - **Done (later):** pushed to https://github.com/Denis112500/Crest. Before the push, every commit's author email was changed from the personal Gmail to the GitHub private address (`196484913+Denis112500@users.noreply.github.com`, set as this repo's `user.email`); commit hashes changed, dates and messages didn't.
@@ -461,7 +470,7 @@
 
 ---
 
-## 2026-10-01 — First release build (version 0.1.1)
+## 2026-10-01 - First release build (version 0.1.1)
 - **Done:**
   - Version raised from 0.1.0 to 0.1.1 in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
   - `npm run tauri build`: Rust release compile took 4 min 59 s; the result is `crest.exe` (4.4 MB) and the installer `Crest_0.1.1_x64-setup.exe` (1.34 MB).
@@ -478,7 +487,7 @@
 
 ---
 
-## 2026-09-30 — Milestone (g): hide/show logic, tray icon, app icon, edge cases
+## 2026-09-30 - Milestone (g): hide/show logic, tray icon, app icon, edge cases
 - **Done:**
   - Rust core: `pill_visibility_policy.rs` (pure rules; 5 tests), `pill_visibility_controller.rs` (hide countdowns on sleeping threads with a generation counter; emits `pill-visibility-changed`), `pill_visibility_command.rs` (`get_current_pill_visibility`). The arbiter's listener in `lib.rs` now also feeds the visibility controller.
   - Rust window: `hide_pill_window` in the platform trait + Windows `ShowWindow(SW_HIDE)`; command `conceal_pill_window`.
@@ -513,7 +522,7 @@
   - Linux (KDE Plasma, Wayland): `media/linux_mpris/` (MPRIS over D-Bus) and `pill_window/linux_layer_shell/` (layer-shell for position, always-on-top and input region).
 - **Next:** v1 is done. Pick from the ideas above, or start the Linux port.
 
-## 2026-09-30 — Milestone (f): control buttons + CPU fix for animations
+## 2026-09-30 - Milestone (f): control buttons + CPU fix for animations
 - **Done:**
   - Rust media: `media_source.rs` adds `MediaTransportCommand` and `send_media_transport_command` (and `MediaSource: Send`); `windows_smtc/smtc_worker_message.rs` (moved the message enum out of `smtc_event_subscriptions.rs`, adds `TransportCommandRequested`); `windows_smtc/smtc_transport_commands.rs` (`TryTogglePlayPauseAsync` / `TrySkipNextAsync` / `TrySkipPreviousAsync`); `smtc_media_source.rs` now creates the channel and keeps a sender; `smtc_worker_thread.rs` handles commands; `smtc_session_tracker.rs` remembers the shown session and sends commands to it.
   - Rust core: `activity_source.rs` adds `perform_activity_action` (and `ActivitySource: Send`); new `activity_source_registry.rs` (kind → running source; starts sources; 2 tests); new `activity_action_command.rs` (`perform_activity_action` command). `music_activity_source.rs` maps action names to commands (1 test). `ipc_channel_names.rs` adds the three action names. `lib.rs` uses the registry.
@@ -538,7 +547,7 @@
 - **Open questions:** should the bars stop when a fullscreen app or game is in front (the pill isn't visible there anyway)? Candidate for (g) or later.
 - **Next:** milestone (g): visibility policy (hide after 30 s paused / 3 s without session, reappear on track change), tray icon with Quit, own app icon, edge-case pass.
 
-## 2026-09-30 — Milestone (e): compact and expanded states with animation
+## 2026-09-30 - Milestone (e): compact and expanded states with animation
 - **Done:**
   - Rust: `pill_window_platform.rs` gets `set_pill_window_interactive_area`; Windows implementation with `CreateRectRgn` + `SetWindowRgn` (`Win32_Graphics_Gdi` feature); `pill_interactive_area.rs` (CSS px → physical px, rounded outward, 1 test); command `set_pill_interactive_area`.
   - Frontend pill: `pillStateMachine.ts` (hover 150 ms → expand, leave 350 ms → collapse, click → expand, attention → 4 s peek), `pillPointerInput.ts`, `pillMorphController.ts` (order of class change vs interactive area), `pillContentPresenter.ts` (mounts one view set per activity kind), `pillShellElements.ts` (renamed from `pillShellElement.ts`: shell + compact/expanded layers), `pillDimensionCssVariables.ts`.
@@ -566,7 +575,7 @@
   - **Correction (milestone f):** CPU while playing was 34.7% of one core with the CSS-animated bars (239 Hz monitor). Fixed in (f) with timer-driven bars at 15 fps → 4.7%. The user confirmed (e) works ("Ok it works").
 - **Next:** milestone (f): buttons send play/pause/next/previous to the player through Rust.
 
-## 2026-09-30 — Milestone (d): live data reaches the frontend
+## 2026-09-30 - Milestone (d): live data reaches the frontend
 - **Done:**
   - Core (`activity_core/`): `activity_update.rs` (what a source reports: priority, is-ongoing, attention key, JSON payload), `activity_source.rs` (plugin trait), `activity_publisher.rs` (a source's handle to the core), `activity_arbiter.rs` (keeps the latest update per source, picks the winner, notifies only on change; 3 tests), `pill_presentation_command.rs` (`get_current_pill_presentation`).
   - Music plugin (`activity_sources/music/`): `music_activity_source.rs` (snapshot → activity update; attention key = title + artist), `session_loss_grace_period.rs` (ignores a session gap shorter than 1.5 s; 2 tests).
@@ -592,7 +601,7 @@
 - **Open questions:** none new.
 - **Next:** milestone (e): compact view with tiny album art + animated bars, expanded view on hover/click, 4 s peek on track change, spring animations, window resize between the two sizes.
 
-## 2026-09-30 — Milestone (c): Rust reads the media session
+## 2026-09-30 - Milestone (c): Rust reads the media session
 - **Done:**
   - Platform-neutral: `media/media_session_snapshot.rs` (what the pill needs to know), `media/media_source.rs` (`MediaSource` trait + listener type), `media/media_session_selector.rs` (app-ID filter + choose playing / most recently active, 4 tests), `user_settings_file.rs` (optional `settings.json`).
   - Windows: `media/windows_smtc/` with `smtc_media_source.rs` (starts the worker thread), `smtc_worker_thread.rs` (MTA init + message loop with 50 ms coalescing), `smtc_event_subscriptions.rs` (event handlers → channel messages; unsubscribe on drop), `smtc_session_tracker.rs` (sessions, last activity, dedup), `smtc_snapshot_reader.rs` (WinRT → snapshot, 2 tests), `smtc_thumbnail_reader.rs` (album art → base64 data URL, cached per track, 1 test).
@@ -620,7 +629,7 @@
 - **Open questions:** can WebView2's memory be reduced (for example with browser arguments or by suspending the webview when hidden)? Look at in (g). Behavior with several allowed sessions at once is only unit-tested.
 - **Next:** milestone (d): core + music activity source, emit updates to the frontend as Tauri events, show plain text in the pill.
 
-## 2026-09-30 — Milestone (b): pill window behavior with fake content
+## 2026-09-30 - Milestone (b): pill window behavior with fake content
 - **Done:**
   - Rust: `backend_constants.rs`; `pill_window/` with `pill_window_platform.rs` (trait), `pill_window_placement.rs` (top-center math + 2 unit tests), `pill_window_commands.rs` (`place_pill_window_at_top_center`, `reveal_pill_window`), `windows_native/windows_pill_window_platform.rs`; `lib.rs` prepares the window in `setup` and registers the commands.
   - Config: `tauri.conf.json` window is hidden at start, frameless, transparent, no shadow, always on top, skipTaskbar, not focusable, not resizable. `Cargo.toml` adds `windows` 0.62 for Windows only.
@@ -649,7 +658,7 @@
 - **Verified by testing (user, visually):** clean black rounded capsule with no border or corner artifacts; no taskbar icon; not in Alt+Tab; clicking it keeps typing focus in Notepad; stays above other windows.
 - **Next:** milestone (c), the `MediaSource` trait + SMTC implementation printing snapshots to the console.
 
-## 2026-09-30 — Milestone (a): empty Tauri app runs
+## 2026-09-30 - Milestone (a): empty Tauri app runs
 - **Done:**
   - Scaffolded from `create-tauri-app` 4.7.4 (template `vanilla-ts`) in a scratch folder, then copied only what we need.
   - Removed the demo "greet" command, the `opener` plugin and the logo assets.
@@ -675,7 +684,7 @@
 - **Open questions:** does the page render under the production CSP inside the Tauri window? In the plain-browser preview, "Crest is running" renders with no console errors (verified by testing), but the browser doesn't apply Tauri's CSP.
 - **Next:** first commit, then milestone (b): turn this window into the pill (transparent, frameless, on top, top-center, no focus, not in the taskbar or Alt+Tab).
 
-## 2026-09-30 — Toolchain installed
+## 2026-09-30 - Toolchain installed
 - **Done:** installed Visual Studio Build Tools 2022 (workload "Desktop development with C++", includes Windows SDK 10.0.26100) and Rustup 1.29.1 via winget. `rustup default stable-msvc` → rustc/cargo 1.98.1. A hello-world compiled and ran (verified by testing), so the linker and SDK are found.
 - **Learned:**
   - `rustup` is the installer/updater for Rust toolchains; `cargo` builds and runs Rust projects; `rustc` is the compiler that cargo calls.
@@ -684,7 +693,7 @@
 - **Problems:** the previous session was cut off mid-install, and the log confirmed both installs finished (exit 0).
 - **Next:** finish milestone (a).
 
-## 2026-09-30 — Plan approved
+## 2026-09-30 - Plan approved
 - **Decisions:**
   - File tree and milestones (a)–(g) approved as proposed (see the architecture entry below).
   - On track change the pill **expands for 4 s** ("peek"), then returns to compact.
@@ -692,7 +701,7 @@
   - Working name **Crest**, identifier `dev.crest.pill`. The user may rename it later: name in `tauri.conf.json` (`productName`, `identifier`), `package.json`, `Cargo.toml`, README.
 - **Next:** finish the toolchain install, then scaffold milestone (a).
 
-## 2026-09-30 — Proposed architecture decisions (pending approval)
+## 2026-09-30 - Proposed architecture decisions (pending approval)
 - **Done:** proposed file tree and milestones in chat. No code written.
 - **Decisions (proposed):**
   - SMTC runs on its own worker thread in the multithreaded COM apartment (MTA). WinRT event handlers only send a "something changed" message over a channel; the worker re-reads the session. Idle cost = a thread blocked on `recv()` = zero CPU. Rejected: polling on a timer.
@@ -705,7 +714,7 @@
 - **Open questions:** see "Open questions" in the entries below.
 - **Next:** approval of the tree and plan, then toolchain install, then milestone (a).
 
-## 2026-09-30 — Research: reference project Coucou (read-only clone in `../reference/coucou`, commit 5ae7bd9)
+## 2026-09-30 - Research: reference project Coucou (read-only clone in `../reference/coucou`, commit 5ae7bd9)
 - **Learned (verified by reading its code):**
   - Window: one Tauri window labelled `island`, configured in `tauri.conf.json` with `transparent`, `decorations: false`, `shadow: false`, `alwaysOnTop`, `skipTaskbar`, `focus: false`. The black shape is drawn by CSS inside a large transparent window.
   - After creation it adds Win32 extended styles itself: `WS_EX_NOACTIVATE` (clicks don't steal focus) and `WS_EX_TOOLWINDOW` (not in Alt+Tab). Why: Tauri's options alone don't guarantee this on Windows (matches the open Tauri issues below).
@@ -718,7 +727,7 @@
 - **Decisions:** adopt the extended-styles approach, DPI-aware placement, the no-op-outside-Tauri IPC wrapper idea, and a DOM-free state machine. Don't adopt the fixed big window + cursor polling (see architecture entry), and don't copy its file organisation.
 - **Problems found in it:** `lib.rs` (389 lines) and `island.rs` mix many concerns; `island.ts` is 785 lines; short names (`w`, `h`, `cv`, `p`, `m`); inline magic numbers; it depends on `windows 0.61` while Tauri uses `0.62`, so two copies compile. Only window and event patterns apply; it has no media code.
 
-## 2026-09-30 — Research: Tauri 2 window behavior on Windows 11
+## 2026-09-30 - Research: Tauri 2 window behavior on Windows 11
 - **Verified from docs** (tauri-utils `config.rs`, Tauri 2.12.0 current):
   - Keys: `transparent`, `decorations`, `alwaysOnTop`, `skipTaskbar`, `focus`, `focusable`, `shadow`, `resizable`, `visible`, `x`, `y`, `width`, `height`, `center`.
   - `shadow: true` on an undecorated window adds a 1 px white border and rounded corners on Windows 11 → we need `shadow: false`.
@@ -736,7 +745,7 @@
   - On any flag change (show, hide, always-on-top, ignore-cursor, ...) tao rewrites the whole extended style from its own flags, which never include `WS_EX_TOOLWINDOW`.
   - Consequence: add `WS_EX_TOOLWINDOW` ourselves while hidden, and show with our own `ShowWindow(SW_SHOWNOACTIVATE)`.
 
-## 2026-09-30 — Research: what YouTube Music exposes through SMTC (verified by testing)
+## 2026-09-30 - Research: what YouTube Music exposes through SMTC (verified by testing)
 Setup: YouTube Music installed as a PWA in **Brave**. Probe: PowerShell 5.1 calling the same WinRT API, script in the session scratchpad.
 - **App ID:** `Brave._crx_cinhimbnkkghhklpknlkffjgod`. `cinhimbnkkghhklpknlkffjgod` is the YT Music web-app ID; the prefix is the browser. Whether the suffix is identical in Chrome/Edge is **unverified**.
 - **Present:** Title; Artist (joined, e.g. "Azahriah and DESH"); AlbumTitle; PlaybackType = Music; PlaybackStatus (Playing/Paused); Timeline Start/End/Position/LastUpdated/MinSeek/MaxSeek (End = duration); Controls flags (pause, toggle, next, previous, seek enabled; play disabled while playing).
@@ -753,7 +762,7 @@ Setup: YouTube Music installed as a PWA in **Brave**. Probe: PowerShell 5.1 call
   - **Also learned (milestone c):** when a session is paused, `LastUpdatedTime` can be very old (an hour, in our test). That's correct for a paused position, but the UI must not extrapolate from it.
 - **Learned:** docs list the `globalMediaControl` capability, but an unpackaged desktop process (the probe) reads sessions without it.
 
-## 2026-09-30 — Research: calling SMTC from Rust (verified from docs)
+## 2026-09-30 - Research: calling SMTC from Rust (verified from docs)
 - `windows` crate **0.62.2** is the latest published (GitHub master says 0.100.0, but that's not on crates.io yet). Tauri 2.12.0 depends on `windows ^0.62`.
 - Cargo features: `Media_Control`, `Foundation`, `Foundation_Collections`, `Storage_Streams`.
 - Manager: `GlobalSystemMediaTransportControlsSessionManager::RequestAsync()` → async op; `GetSessions()`, `GetCurrentSession()` ("the session the system believes the user would most likely want to control").
@@ -763,7 +772,7 @@ Setup: YouTube Music installed as a PWA in **Brave**. Probe: PowerShell 5.1 call
 - Waiting on async ops (windows-future 0.3): `.join()` blocks until done; `.await` also works (`IntoFuture`); `.when(callback)` runs a callback on completion.
 - **Open question:** exact Rust type and units of `TimeSpan`/`DateTime` fields (WinRT uses 100 ns ticks; confirm in c).
 
-## 2026-09-30 — Environment check (Windows 11 Home 26200)
+## 2026-09-30 - Environment check (Windows 11 Home 26200)
 - **Done:** checked installed tools, installed nothing.
 - **Found:** Node v24.15.0, npm 11.12.1, git 2.55.0, WebView2 153.0.4234.32, winget 1.29. **Missing:** Rust (rustup/cargo/rustc), MSVC C++ Build Tools + Windows SDK (the Visual Studio installer exists but has no products).
 - **Learned:** Tauri on Windows needs (1) Rust with the MSVC toolchain and (2) Microsoft C++ Build Tools with "Desktop development with C++", because Rust uses Microsoft's linker (`link.exe`) and the Windows SDK libraries. WebView2 ships with Windows 11.
