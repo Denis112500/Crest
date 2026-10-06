@@ -32,7 +32,7 @@ Compact, it's a small notch with the album art, the title and bouncing bars; hov
 
 ## How it's built
 
-I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code helps me with code and debugs, following the rules in `CLAUDE.md`. The commit history shows which commits were co-authored.
+I build Crest with [Claude Code](https://claude.com/claude-code) as my coding agent. I decide what Crest should do and how it should behave, test every change on my own setup, and report what I see; Claude Code helps me with code and debugs, following the rules in `CLAUDE.md`.
 
 ## How it works, in plain language
 
@@ -132,6 +132,13 @@ Crest/
 │  │  ├─ activityViewRegistry.ts     activity kind → its view set (plugin point)
 │  │  ├─ nothingToShowViewSet.ts     shown when no activity has anything
 │  │  ├─ createSvgIconElement.ts     builds an inline SVG icon
+│  │  ├─ claudeCode/
+│  │  │  ├─ claudeCodeStatusTypes.ts     the Claude Code payload's shape
+│  │  │  ├─ claudeCodeViewSet.ts         the Claude Code activity's compact + expanded views
+│  │  │  ├─ compactClaudeCodeView.ts     terminal mark, what the session is doing, "+N"
+│  │  │  ├─ expandedClaudeCodeView.ts    project, status, other sessions
+│  │  │  ├─ describeClaudeCodeStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Needs your OK"
+│  │  │  └─ claudeCodeTerminalIconPath.ts  a plain ">_" (not Anthropic's logo)
 │  │  └─ music/
 │  │     ├─ nowPlayingTypes.ts       the music payload's shape
 │  │     ├─ musicViewSet.ts          the music activity's compact + expanded views
@@ -147,13 +154,15 @@ Crest/
 │  │  ├─ launchAtLoginSettingRow.ts  "Start with Windows" switch
 │  │  ├─ pillDisplaySettingRow.ts    "Show the pill on" monitor list
 │  │  ├─ allowedPlayersSettingCard.ts  "Show every player", the player list, adding open players
+│  │  ├─ claudeCodeIntegrationSettingCard.ts  the Claude Code switch + exactly what it adds to Claude Code's settings
 │  │  └─ crestBuildDescriptionLine.ts  the About card: which Crest is running
 │  └─ styles/
 │     ├─ designTokens.css       every color, spacing, duration and the spring curve (pill and settings)
 │     ├─ pillShell.css          transparent page, notch shape, the morph and slide animations
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
 │     └─ albumArtImage.css, compactMusicView.css, expandedMusicView.css,
-│        playbackBarsIndicator.css, playbackProgressBar.css, musicControlButtons.css
+│        playbackBarsIndicator.css, playbackProgressBar.css, musicControlButtons.css,
+│        compactClaudeCodeView.css, expandedClaudeCodeView.css
 └─ src-tauri/
    ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step; lists Crest's commands so each gets a permission
@@ -163,11 +172,12 @@ Crest/
    │  └─ settings_window.json   what the settings page may call
    ├─ icons/                    app icons generated from crest-icon-source.svg (`npx tauri icon ...`)
    └─ src/
-      ├─ main.rs                program entry; calls run_crest_app
+      ├─ main.rs                program entry; `--claude-code-hook` runs the hook and exits before Tauri starts
       ├─ lib.rs                 wires the app: plugins, pill window, core, activity sources, commands
       ├─ backend_constants.rs   every Rust constant (windows, settings, priorities, timings)
       ├─ ipc_channel_names.rs   event, activity-kind and action names shared with the frontend
       ├─ user_settings_store.rs settings.json: loads it, keeps the current settings, saves safely (unit-tested)
+      ├─ text_file_atomic_replacement.rs  writes a temporary file, then renames it over the real one
       ├─ launch_at_login/
       │  ├─ mod.rs
       │  ├─ launch_at_login_switch.rs       "Start with Windows" on/off through tauri-plugin-autostart
@@ -190,6 +200,19 @@ Crest/
       │  └─ pill_visibility_command.rs    lets the frontend ask whether the pill is visible
       ├─ activity_sources/
       │  ├─ mod.rs
+      │  ├─ claude_code/
+      │  │  ├─ mod.rs
+      │  │  ├─ claude_code_activity_source.rs     hook events → Claude Code activity; exists only while switched on
+      │  │  ├─ claude_code_hook_event.rs          the hook fields Crest reads; which events it asks for
+      │  │  ├─ claude_code_session_tracker.rs     every session's state; which one the pill shows (pure, unit-tested)
+      │  │  ├─ claude_code_tool_summary.rs        "Editing notes.md", "Running cargo test" (unit-tested)
+      │  │  ├─ claude_code_hook_registration.rs   adds/removes Crest's hooks in Claude Code's settings, nothing else (unit-tested)
+      │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
+      │  │  ├─ claude_code_integration_switch.rs  hooks and listening always switch on and off together
+      │  │  ├─ claude_code_status_message.rs      what wakes the status thread (event, transcript change, stop)
+      │  │  ├─ claude_code_interrupt_watch.rs     while a session works: watches its transcript for an interrupt
+      │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt line (Claude Code sends no hook for it; unit-tested)
+      │  │  └─ transcript_tail_reader.rs          reads only the lines added since the last look (unit-tested)
       │  └─ music/
       │     ├─ mod.rs
       │     ├─ music_activity_source.rs     media snapshots → music activity
@@ -215,6 +238,21 @@ Crest/
       │     ├─ smtc_tracked_session.rs     subscribes to every session; one listened-to session + lookup by app
       │     ├─ smtc_snapshot_reader.rs     WinRT properties → snapshot
       │     └─ smtc_thumbnail_reader.rs    album art → data URL, read fresh on every update
+      ├─ claude_code_hook_channel/
+      │  ├─ mod.rs
+      │  ├─ claude_code_hook_channel_trait.rs  trait: carry a hook event to Crest and the answer back, no network
+      │  ├─ claude_code_hook_process.rs        what `crest.exe --claude-code-hook` does
+      │  ├─ length_prefixed_message.rs         the message format on the channel (unit-tested)
+      │  └─ windows_named_pipe/
+      │     ├─ mod.rs
+      │     ├─ named_pipe_claude_code_hook_channel.rs  the pipe's per-user name (a real round trip is unit-tested)
+      │     ├─ named_pipe_hook_event_server.rs  Crest's end: waits for hooks, refuses to share the name
+      │     ├─ named_pipe_hook_event_client.rs  the hook's end: only talks to a Crest of the same user
+      │     └─ windows_user_identity.rs         user SIDs; the pipe's "this user only" access rule
+      ├─ folder_change_watching/
+      │  ├─ mod.rs
+      │  ├─ folder_change_watch.rs         trait: tell me when a file in this folder is written
+      │  └─ windows_change_notification.rs Windows: FindFirstChangeNotificationW, one sleeping thread (tested for real)
       ├─ fullscreen_detection/
       │  ├─ mod.rs
       │  ├─ fullscreen_app_watcher.rs     trait: tell me when a fullscreen app comes and goes; "check again" after the pill moves
@@ -242,6 +280,7 @@ Crest/
          ├─ mod.rs
          ├─ settings_window_opener.rs    opens the window or brings it to the front (tray, second launch)
          ├─ settings_window_commands.rs  the commands the settings page calls
+         ├─ claude_code_integration_commands.rs  the Claude Code switch and its preview
          ├─ crest_build_description.rs   version, release/dev, build time and path for the About card
          └─ allowed_player_options.rs    what the player card shows (unit-tested)
 ```
