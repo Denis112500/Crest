@@ -12,6 +12,8 @@
     "allow-choose-pill-display",
     "allow-list-allowed-player-options",
     "allow-change-allowed-players",
-    "allow-change-show-every-player"
+    "allow-change-show-every-player",
+    "allow-read-claude-code-integration-setting",
+    "allow-change-claude-code-integration-setting"
   ]
 }

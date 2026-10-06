@@ -4,6 +4,8 @@
 mod activity_core;
 mod activity_sources;
 mod backend_constants;
+mod claude_code_hook_channel;
+mod folder_change_watching;
 mod fullscreen_detection;
 mod ipc_channel_names;
 mod launch_at_login;
@@ -11,6 +13,7 @@ mod media;
 mod pill_window;
 mod settings_window;
 mod system_tray;
+mod text_file_atomic_replacement;
 mod user_settings_store;
 
 use std::sync::{Arc, Mutex};
@@ -18,6 +21,7 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
 use activity_core::{ActivityArbiter, ActivitySourceRegistry, PillVisibilityController, SharedActivityArbiter};
+use activity_sources::claude_code::turn_claude_code_integration_on;
 use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
 use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppRecheckTrigger, FullscreenAppWatcher};
@@ -28,6 +32,9 @@ use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
 use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
 use user_settings_store::CrestUserSettingsStore;
+
+pub use backend_constants::CLAUDE_CODE_HOOK_ARGUMENT;
+pub use claude_code_hook_channel::run_as_claude_code_hook;
 
 pub fn run_crest_app() {
     tauri::Builder::default()
@@ -98,6 +105,14 @@ pub fn run_crest_app() {
             let mut activity_source_registry = ActivitySourceRegistry::default();
             activity_source_registry
                 .start_and_register(Box::new(MusicActivitySource::new(Box::new(media_source))), &shared_activity_arbiter)?;
+            // Only when switched on; otherwise nothing of the integration starts.
+            if crest_user_settings.is_claude_code_integration_on {
+                if let Err(integration_error) =
+                    turn_claude_code_integration_on(&mut activity_source_registry, &shared_activity_arbiter)
+                {
+                    eprintln!("Crest: the Claude Code integration could not start: {integration_error}");
+                }
+            }
             crest_app.manage(Mutex::new(activity_source_registry));
             Ok(())
         })
@@ -118,6 +133,8 @@ pub fn run_crest_app() {
             settings_window::settings_window_commands::list_allowed_player_options,
             settings_window::settings_window_commands::change_allowed_players,
             settings_window::settings_window_commands::change_show_every_player,
+            settings_window::claude_code_integration_commands::read_claude_code_integration_setting,
+            settings_window::claude_code_integration_commands::change_claude_code_integration_setting,
         ])
         .run(tauri::generate_context!())
         .expect("Crest failed to start the Tauri application");

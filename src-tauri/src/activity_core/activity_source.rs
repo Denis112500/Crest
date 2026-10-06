@@ -13,6 +13,10 @@ pub trait ActivitySource: Send {
     /// Starts reporting in the background through `activity_publisher` and returns immediately.
     fn start_publishing(&mut self, activity_publisher: ActivityPublisher) -> Result<(), String>;
 
+    /// Stops reporting and withdraws the activity, for sources the user can switch off. Sources
+    /// that run as long as Crest does (music) keep this default.
+    fn stop_publishing(&mut self) {}
+
     /// Handles a user action from this activity's views (e.g. a button). The action names
     /// are this source's own vocabulary; the core only routes them.
     fn perform_activity_action(&self, activity_action: &str) -> Result<(), String>;

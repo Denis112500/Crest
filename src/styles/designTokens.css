@@ -39,6 +39,19 @@
   --expanded-music-title-font-size: 15px;
   --expanded-music-artist-font-size: 13px;
 
+  /* Claude Code views. The accent is a calm terminal green, not Anthropic's brand color. */
+  --claude-code-accent-color: #7ee2a8;
+  --claude-code-terminal-icon-size: 18px;
+  --compact-claude-code-padding-start: 12px;
+  --compact-claude-code-padding-end: 14px;
+  --compact-claude-code-gap: 8px;
+  --expanded-claude-code-padding: 16px;
+  --expanded-claude-code-section-gap: 12px;
+  --expanded-claude-code-header-gap: 12px;
+  --expanded-claude-code-icon-size: 28px;
+  --expanded-claude-code-title-font-size: 15px;
+  --expanded-claude-code-status-font-size: 15px;
+
   /* Playing bars */
   --playback-bar-color: #f5f5f7;
   --playback-bar-width: 3px;
@@ -98,6 +111,10 @@
   --settings-disabled-opacity: 0.5;
   --settings-row-separator-color: #ebebeb;
   --settings-button-padding: 5px 12px;
+  --settings-code-font-family: "Cascadia Mono", Consolas, monospace;
+  --settings-code-font-size: 11px;
+  --settings-code-preview-max-height: 160px;
+  --settings-error-color: #c42b1c;
 }
 
 @media (prefers-color-scheme: dark) {

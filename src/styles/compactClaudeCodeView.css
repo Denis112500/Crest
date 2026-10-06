@@ -1,0 +1,30 @@
+.compact-claude-code-view {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--compact-claude-code-gap);
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--compact-claude-code-padding-end) 0 var(--compact-claude-code-padding-start);
+}
+
+.claude-code-terminal-icon {
+  flex: none;
+  width: var(--claude-code-terminal-icon-size);
+  height: var(--claude-code-terminal-icon-size);
+  color: var(--claude-code-accent-color);
+}
+
+/* Long tool lines end in "…". min-width: 0 lets a flex child shrink below its text width. */
+.compact-claude-code-status {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.claude-code-other-session-count {
+  flex: none;
+  opacity: var(--pill-secondary-text-opacity);
+}

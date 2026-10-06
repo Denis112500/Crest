@@ -19,6 +19,8 @@ const CREST_COMMAND_NAMES: &[&str] = &[
     "list_allowed_player_options",
     "change_allowed_players",
     "change_show_every_player",
+    "read_claude_code_integration_setting",
+    "change_claude_code_integration_setting",
 ];
 
 fn main() {

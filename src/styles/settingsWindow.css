@@ -39,19 +39,13 @@ body {
   font-weight: var(--settings-title-font-weight);
 }
 
-/* The cards and the empty note share one look. */
-.settings-card,
-.settings-empty-note {
+.settings-card {
   margin: 0;
-  padding: var(--settings-card-padding);
+  padding: 0;
   border: 1px solid var(--settings-card-border-color);
   border-radius: var(--settings-card-radius);
   background: var(--settings-card-background);
   color: var(--settings-secondary-text-color);
-}
-
-.settings-card {
-  padding: 0;
 }
 
 .setting-row {
@@ -152,6 +146,37 @@ body {
 }
 
 /* The About card holds plain text lines, padded like a setting row. */
+/* "What switching on adds": collapsed by default, so music-only users never have to read it. */
+.setting-details {
+  padding: 0 16px 12px;
+  color: var(--settings-secondary-text-color);
+  font-size: var(--settings-description-font-size);
+}
+
+.setting-details summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.setting-code-preview {
+  max-height: var(--settings-code-preview-max-height);
+  overflow: auto;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--settings-row-separator-color);
+  border-radius: var(--settings-control-radius);
+  font-family: var(--settings-code-font-family);
+  font-size: var(--settings-code-font-size);
+}
+
+.setting-error {
+  margin: 0;
+  padding: 0 16px 12px;
+  color: var(--settings-error-color);
+  font-size: var(--settings-description-font-size);
+  overflow-wrap: anywhere;
+}
+
 .settings-about-card {
   padding: var(--settings-card-padding);
   overflow-wrap: anywhere;

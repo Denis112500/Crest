@@ -34,6 +34,18 @@ impl ActivitySourceRegistry {
         Ok(())
     }
 
+    pub fn is_registered(&self, activity_kind: &str) -> bool {
+        self.activity_sources_by_kind.contains_key(activity_kind)
+    }
+
+    /// For integrations the user switches off: the source stops and leaves the registry, so
+    /// nothing of it keeps running.
+    pub fn stop_and_unregister(&mut self, activity_kind: &str) {
+        if let Some(mut activity_source) = self.activity_sources_by_kind.remove(activity_kind) {
+            activity_source.stop_publishing();
+        }
+    }
+
     pub fn perform_activity_action(&self, activity_kind: &str, activity_action: &str) -> Result<(), String> {
         self.activity_sources_by_kind
             .get(activity_kind)
@@ -57,6 +69,9 @@ mod tests {
         }
         fn start_publishing(&mut self, _activity_publisher: ActivityPublisher) -> Result<(), String> {
             Ok(())
+        }
+        fn stop_publishing(&mut self) {
+            self.performed_actions.lock().unwrap().push("stopped".to_string());
         }
         fn perform_activity_action(&self, activity_action: &str) -> Result<(), String> {
             self.performed_actions.lock().unwrap().push(activity_action.to_string());
@@ -82,6 +97,15 @@ mod tests {
         let (activity_source_registry, performed_actions) = registry_with_recording_source();
         activity_source_registry.perform_activity_action("recording", "do-something").unwrap();
         assert_eq!(*performed_actions.lock().unwrap(), vec!["do-something".to_string()]);
+    }
+
+    #[test]
+    fn a_stopped_source_is_told_to_stop_and_leaves_the_registry() {
+        let (mut activity_source_registry, performed_actions) = registry_with_recording_source();
+        activity_source_registry.stop_and_unregister("recording");
+        assert!(!activity_source_registry.is_registered("recording"));
+        assert_eq!(*performed_actions.lock().unwrap(), vec!["stopped".to_string()]);
+        assert!(activity_source_registry.perform_activity_action("recording", "do-something").is_err());
     }
 
     #[test]

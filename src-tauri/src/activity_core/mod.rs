@@ -19,6 +19,6 @@ pub mod pill_visibility_command;
 pub use activity_arbiter::{ActivityArbiter, SharedActivityArbiter};
 pub use activity_publisher::ActivityPublisher;
 pub use activity_source::ActivitySource;
-pub use activity_source_registry::ActivitySourceRegistry;
+pub use activity_source_registry::{ActivitySourceRegistry, SharedActivitySourceRegistry};
 pub use activity_update::{ActivityPresence, ActivityUpdate};
 pub use pill_visibility_controller::PillVisibilityController;

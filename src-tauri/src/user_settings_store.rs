@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::backend_constants::{DEFAULT_ALLOWED_MEDIA_APP_IDENTIFIER_FRAGMENT, USER_SETTINGS_FILE_NAME};
 use crate::media::MediaPlayerFilter;
+use crate::text_file_atomic_replacement::replace_text_file_atomically;
 
 /// Crest's settings, kept in `settings.json` in its config folder (%APPDATA%\dev.crest.pill).
 /// The folder is outside the install folder, so updates don't touch it. Every field is
@@ -32,6 +33,9 @@ pub struct CrestUserSettings {
     /// Windows' name of the monitor the pill sits on (e.g. `\\.\DISPLAY2`). `None`, or a
     /// monitor that isn't connected, means the main display.
     pub pill_display_name: Option<String>,
+    /// Off by default: while off, nothing of the integration runs and Claude Code's settings are
+    /// untouched.
+    pub is_claude_code_integration_on: bool,
 }
 
 /// Used when there is no settings file yet, i.e. on a fresh install. Since 0.3.1 it shows every
@@ -45,6 +49,7 @@ impl Default for CrestUserSettings {
             show_every_media_player: Some(true),
             should_launch_at_login: None,
             pill_display_name: None,
+            is_claude_code_integration_on: false,
         }
     }
 }
@@ -107,17 +112,9 @@ fn read_settings_file(settings_file_path: &Path) -> CrestUserSettings {
     loaded_settings
 }
 
-/// Writes a temporary file next to the real one, then renames it over the real one. A rename
-/// replaces the file in one step, so a crash mid-write leaves the old settings intact instead
-/// of a half-written file.
 fn write_settings_file_safely(settings_file_path: &Path, settings: &CrestUserSettings) -> Result<(), String> {
     let settings_file_text = serde_json::to_string_pretty(settings).map_err(|error| error.to_string())?;
-    if let Some(crest_config_directory) = settings_file_path.parent() {
-        fs::create_dir_all(crest_config_directory).map_err(|error| error.to_string())?;
-    }
-    let temporary_settings_file_path = settings_file_path.with_extension("json.tmp");
-    fs::write(&temporary_settings_file_path, settings_file_text).map_err(|error| error.to_string())?;
-    fs::rename(&temporary_settings_file_path, settings_file_path).map_err(|error| error.to_string())
+    replace_text_file_atomically(settings_file_path, &settings_file_text)
 }
 
 #[cfg(test)]
