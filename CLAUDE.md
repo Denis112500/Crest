@@ -5,7 +5,7 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 ## Every session
 1. Read `notes.md` first. It is the project log and the source of truth for current state and decisions.
 2. If this file conflicts with the user's request, say so instead of choosing silently.
-3. Don't install anything without asking.
+3. Tools for Claude's own work (Claude Code plugins, skills, dev-tools helpers) may be installed without asking; say what and why afterwards. Anything that ships inside Crest (Rust crates, npm packages) or installs a program system-wide is named first, in one line: what, why, size.
 4. Work milestone by milestone. Each milestone must be runnable. After each one: how to test it, what should be learned, which files changed and what each does, and when to take notes.
 
 ## notes.md
