@@ -7,6 +7,7 @@ export const SET_PILL_INTERACTIVE_AREA_COMMAND = "set_pill_interactive_area";
 export const GET_CURRENT_PILL_ARRANGEMENT_COMMAND = "get_current_pill_arrangement";
 export const GET_CURRENT_PILL_VISIBILITY_COMMAND = "get_current_pill_visibility";
 export const PERFORM_ACTIVITY_ACTION_COMMAND = "perform_activity_action";
+export const FOCUS_ACTIVITY_COMMAND = "focus_activity";
 // Settings window only (see src-tauri/capabilities/settings_window.json).
 export const READ_CREST_BUILD_DESCRIPTION_COMMAND = "read_crest_build_description";
 export const READ_LAUNCH_AT_LOGIN_SETTING_COMMAND = "read_launch_at_login_setting";

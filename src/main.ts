@@ -7,7 +7,6 @@ import "./styles/pillShell.css";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-import { findLeadingActivity } from "./activities/findLeadingActivity";
 import type { PillArrangement } from "./activities/pillArrangementTypes";
 import { PILL_WINDOW_LOGICAL_HEIGHT, PILL_WINDOW_LOGICAL_WIDTH } from "./frontendConstants";
 import {
@@ -18,7 +17,9 @@ import {
   PILL_VISIBILITY_CHANGED_EVENT,
 } from "./ipc/ipcChannelNames";
 import { listenForRustStateChanges } from "./ipc/listenForRustStateChanges";
+import { requestActivityFocus } from "./ipc/requestActivityFocus";
 import { requestPillWindowPlacement } from "./ipc/requestPillWindowPlacement";
+import { PillAttentionDetector } from "./pill/pillAttentionDetector";
 import { PillContentPresenter } from "./pill/pillContentPresenter";
 import { applyPillDimensionCssVariables } from "./pill/pillDimensionCssVariables";
 import { PillMorphController } from "./pill/pillMorphController";
@@ -37,7 +38,11 @@ async function startPill(): Promise<void> {
   const pillShellElements = createPillShellElements();
   pillRootElement.append(pillShellElements.pillNotchElement);
 
-  const pillContentPresenter = new PillContentPresenter(pillShellElements);
+  // The presenter reports what its content needs from the pill's shape (open height, companion
+  // segment); it only does so once arrangements arrive, after the morph controller below exists.
+  const pillContentPresenter = new PillContentPresenter(pillShellElements, (pillContentLayout) =>
+    pillMorphController.showContentLayout(pillContentLayout),
+  );
   const pillMorphController = new PillMorphController(pillShellElements, (isExpandedContentVisible) =>
     pillContentPresenter.setExpandedContentVisible(isExpandedContentVisible),
   );
@@ -46,7 +51,15 @@ async function startPill(): Promise<void> {
   );
   // Before the visibility controller: its "pointer left" handler relies on the state
   // machine having seen the same event first.
-  connectPillPointerInput(pillShellElements.pillShellElement, pillStateMachine);
+  connectPillPointerInput(pillShellElements, pillStateMachine, () => {
+    // The pill's own click handler opens it right after; this picks what it opens on, and asks
+    // Rust to make that activity the main one (or, for news on a paused one, to mark it seen).
+    const companionActivityKind = pillContentPresenter.currentCompanionActivityKind;
+    if (companionActivityKind !== null) {
+      pillContentPresenter.showActivityInExpandedView(companionActivityKind);
+      requestActivityFocus(companionActivityKind).catch(reportCompanionFocusFailure);
+    }
+  });
   const pillVisibilityController = new PillVisibilityController(
     pillShellElements,
     pillStateMachine,
@@ -73,17 +86,18 @@ async function startPill(): Promise<void> {
     placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
   });
 
-  let lastAttentionKey: string | null = null;
+  const pillAttentionDetector = new PillAttentionDetector();
   await listenForRustStateChanges<PillArrangement>(
     PILL_ARRANGEMENT_CHANGED_EVENT,
     GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
     (pillArrangement) => {
       pillContentPresenter.showPillArrangement(pillArrangement);
-      const attentionKey = findLeadingActivity(pillArrangement)?.attentionKey ?? null;
-      if (attentionKey !== null && attentionKey !== lastAttentionKey) {
+      const activityAskingForAttention = pillAttentionDetector.findActivityAskingForAttention(pillArrangement);
+      if (activityAskingForAttention) {
+        // Before the peek opens the pill, so it opens straight to that activity at its height.
+        pillContentPresenter.showActivityInExpandedView(activityAskingForAttention.activityKind);
         pillStateMachine.handleAttentionRequested();
       }
-      lastAttentionKey = attentionKey;
     },
   ).catch(reportStartupStepFailure("follow the pill's layout"));
   // Rust decides whether the pill is on screen; the window stays hidden until it says so.
@@ -96,6 +110,10 @@ async function startPill(): Promise<void> {
 
 function reportPlacementFailure(placementError: unknown): void {
   console.error("Crest could not place the pill on the chosen display:", placementError);
+}
+
+function reportCompanionFocusFailure(focusError: unknown): void {
+  console.error("Crest could not bring the clicked companion forward:", focusError);
 }
 
 function reportStartupStepFailure(failedStepDescription: string): (startupStepError: unknown) => void {

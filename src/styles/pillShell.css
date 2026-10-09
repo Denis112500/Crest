@@ -87,6 +87,14 @@ body {
     border-radius var(--pill-morph-duration) var(--pill-spring-easing);
 }
 
+/* A companion sits next to the main activity: the compact pill widens by its segment. Before
+   .is-expanded, which wins while open (same specificity, later rule). */
+.pill-shell.has-companion {
+  width: calc(var(--pill-compact-width) + var(--pill-companion-segment-width));
+}
+
+/* --pill-expanded-height follows the shown activity's content; PillMorphController sets it on
+   the shell, so the expanded layer inside inherits it. */
 .pill-shell.is-expanded {
   width: var(--pill-expanded-width);
   height: var(--pill-expanded-height);
@@ -107,9 +115,35 @@ body {
 /* The two layers take turns, never fading at the same time: the outgoing one fades out,
    then the incoming one fades in. Overlapping fades showed two songs on top of each other. */
 .pill-compact-layer {
-  width: var(--pill-compact-width);
+  display: flex;
   height: var(--pill-compact-height);
   transition-delay: var(--pill-content-fade-duration);
+}
+
+.pill-compact-main-slot {
+  flex: none;
+  width: var(--pill-compact-width);
+  height: 100%;
+}
+
+/* A separate, clickable segment: a thin divider on its left and a lighter background under the
+   pointer say "this is its own thing". It doesn't open the pill on hover; a click does. */
+.pill-companion-segment {
+  display: none;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--pill-companion-segment-width);
+  height: 100%;
+  border-left: 1px solid var(--pill-companion-divider-color);
+  cursor: pointer;
+}
+
+.pill-shell.has-companion .pill-companion-segment {
+  display: flex;
+}
+
+.pill-companion-segment:hover {
+  background: var(--pill-companion-hover-background);
 }
 
 .pill-expanded-layer {

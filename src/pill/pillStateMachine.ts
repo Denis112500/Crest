@@ -26,6 +26,23 @@ export class PillStateMachine {
     window.clearTimeout(this.pendingCollapseTimer);
     // While hovered, a running peek must not close the pill under the pointer.
     window.clearTimeout(this.attentionPeekEndTimer);
+    this.startHoverExpandCountdownIfCompact();
+  }
+
+  /** Over the companion segment the pill doesn't open by itself: hover and a click there would
+      fight (it would open before most clicks land). A click on it opens the pill instead. */
+  handlePointerEnteredCompanion(): void {
+    window.clearTimeout(this.pendingHoverExpandTimer);
+  }
+
+  /** Back over the main segment (or leaving the pill, which handlePointerLeft settles). */
+  handlePointerLeftCompanion(): void {
+    if (this.isPointerCurrentlyOverPill) {
+      this.startHoverExpandCountdownIfCompact();
+    }
+  }
+
+  private startHoverExpandCountdownIfCompact(): void {
     if (this.currentExpansionState === "compact") {
       window.clearTimeout(this.pendingHoverExpandTimer);
       this.pendingHoverExpandTimer = window.setTimeout(

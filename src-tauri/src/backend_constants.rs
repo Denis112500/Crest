@@ -87,6 +87,10 @@ pub const CLAUDE_CODE_SESSION_SILENCE_TIMEOUT: Duration = Duration::from_secs(10
 /// The tool line in the pill ("Running cargo test --release …") is cut to this many characters.
 pub const CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS: usize = 40;
 
+/// The open pill lists at most this many sessions, then "+N more"; its height budget
+/// (`PILL_EXPANDED_MAX_LOGICAL_HEIGHT` in `frontendConstants.ts`) has room for this many rows.
+pub const CLAUDE_CODE_LISTED_SESSION_MAX_COUNT: usize = 3;
+
 /// Claude Code's own settings file, inside the user's `.claude` folder (or `CLAUDE_CONFIG_DIR`).
 pub const CLAUDE_CODE_SETTINGS_FOLDER_NAME: &str = ".claude";
 pub const CLAUDE_CODE_SETTINGS_FILE_NAME: &str = "settings.json";

@@ -38,23 +38,31 @@ impl ActivityArbiter {
     pub fn record_activity_update(&mut self, activity_kind: &'static str, activity_update: ActivityUpdate) {
         // A repeated identical update isn't news: counting it as "most recent" would let a source
         // that re-sends the same state push a newer lingering activity out of the main place.
-        let is_repeat = self
-            .recorded_activity_by_kind
-            .get(activity_kind)
-            .is_some_and(|recorded| recorded.activity_update == activity_update);
-        if is_repeat {
+        let previous_record = self.recorded_activity_by_kind.get(activity_kind);
+        if previous_record.is_some_and(|recorded| recorded.activity_update == activity_update) {
             return;
         }
         let arrival_order = self.next_arrival_order;
         self.next_arrival_order += 1;
+        // Only a changed attention key is news; an update that changes just the payload keeps the
+        // news where it was in time, and news the user has seen stays seen.
+        let latest_attention_order = match previous_record {
+            Some(recorded) if recorded.activity_update.attention_key == activity_update.attention_key => {
+                recorded.latest_attention_order
+            }
+            Some(_) => Some(arrival_order),
+            None => None,
+        };
         // Focus lasts while the activity is happening; once it pauses, the usual order returns.
         if self.focused_activity_kind == Some(activity_kind)
             && activity_update.activity_presence != ActivityPresence::Ongoing
         {
             self.focused_activity_kind = None;
         }
-        self.recorded_activity_by_kind
-            .insert(activity_kind, RecordedActivity { activity_kind, activity_update, arrival_order });
+        self.recorded_activity_by_kind.insert(
+            activity_kind,
+            RecordedActivity { activity_kind, activity_update, arrival_order, latest_attention_order },
+        );
         self.present_current_arrangement();
     }
 
@@ -66,13 +74,18 @@ impl ActivityArbiter {
         self.present_current_arrangement();
     }
 
-    /// The user clicked the companion segment: that activity becomes the main one.
+    /// The user clicked the companion segment. Something ongoing becomes the main one; news on a
+    /// lingering activity counts as seen, so it leaves the companion place.
     pub fn focus_activity(&mut self, activity_kind: &str) -> Result<(), String> {
-        let (&known_activity_kind, _) = self
+        let recorded_activity = self
             .recorded_activity_by_kind
-            .get_key_value(activity_kind)
+            .get_mut(activity_kind)
             .ok_or_else(|| format!("no activity of kind \"{activity_kind}\" is showing"))?;
-        self.focused_activity_kind = Some(known_activity_kind);
+        if recorded_activity.activity_update.activity_presence == ActivityPresence::Ongoing {
+            self.focused_activity_kind = Some(recorded_activity.activity_kind);
+        } else {
+            recorded_activity.latest_attention_order = None;
+        }
         self.present_current_arrangement();
         Ok(())
     }
@@ -171,6 +184,38 @@ mod tests {
         activity_arbiter.record_activity_update("claude-code", activity_update(ActivityPresence::Lingering, 40, "done"));
         activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Lingering, 50, "song"));
         assert_eq!(main_kind(&activity_arbiter), Some("claude-code"));
+    }
+
+    fn companion_kind(activity_arbiter: &ActivityArbiter) -> Option<&'static str> {
+        activity_arbiter.current_arrangement().companion_activity.map(|companion_activity| companion_activity.activity_kind)
+    }
+
+    #[test]
+    fn news_sits_next_to_the_music_until_it_is_clicked_and_comes_back_with_new_news() {
+        let (mut activity_arbiter, _) = arbiter_recording_main_kinds();
+        activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Ongoing, 50, "song"));
+        activity_arbiter.record_activity_update("claude-code", activity_update(ActivityPresence::Ongoing, 40, "0"));
+        activity_arbiter.record_activity_update("claude-code", activity_update(ActivityPresence::Lingering, 40, "1"));
+        assert_eq!(companion_kind(&activity_arbiter), Some("claude-code"));
+        // Same key, different payload: still the same news.
+        let mut same_news_new_payload = activity_update(ActivityPresence::Lingering, 40, "1");
+        same_news_new_payload.activity_payload = serde_json::json!({ "sessions": 2 });
+        activity_arbiter.record_activity_update("claude-code", same_news_new_payload);
+        assert_eq!(companion_kind(&activity_arbiter), Some("claude-code"));
+        activity_arbiter.focus_activity("claude-code").unwrap();
+        assert_eq!((main_kind(&activity_arbiter), companion_kind(&activity_arbiter)), (Some("music"), None));
+        activity_arbiter.record_activity_update("claude-code", activity_update(ActivityPresence::Lingering, 40, "2"));
+        assert_eq!(companion_kind(&activity_arbiter), Some("claude-code"));
+        activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Ongoing, 50, "next song"));
+        assert_eq!(companion_kind(&activity_arbiter), None);
+    }
+
+    #[test]
+    fn a_first_lingering_update_is_not_news() {
+        let (mut activity_arbiter, _) = arbiter_recording_main_kinds();
+        activity_arbiter.record_activity_update("music", activity_update(ActivityPresence::Ongoing, 50, "song"));
+        activity_arbiter.record_activity_update("claude-code", activity_update(ActivityPresence::Lingering, 40, "3"));
+        assert_eq!(companion_kind(&activity_arbiter), None);
     }
 
     #[test]

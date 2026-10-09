@@ -14,6 +14,12 @@
   border-radius: var(--album-art-compact-radius);
 }
 
+.album-art-companion {
+  width: var(--album-art-companion-size);
+  height: var(--album-art-companion-size);
+  border-radius: var(--album-art-companion-radius);
+}
+
 .album-art-expanded {
   width: var(--album-art-expanded-size);
   height: var(--album-art-expanded-size);

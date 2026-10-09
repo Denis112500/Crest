@@ -3,7 +3,7 @@ import "../../styles/compactClaudeCodeView.css";
 import { createSvgIconElement } from "../createSvgIconElement";
 import type { ClaudeCodeStatusPayload } from "./claudeCodeStatusTypes";
 import { CLAUDE_CODE_TERMINAL_ICON_PATH } from "./claudeCodeTerminalIconPath";
-import { describeClaudeCodeStatus } from "./describeClaudeCodeStatus";
+import { describeClaudeCodeSessionStatus } from "./describeClaudeCodeSessionStatus";
 
 export interface CompactClaudeCodeView {
   compactViewElement: HTMLElement;
@@ -26,9 +26,9 @@ export function createCompactClaudeCodeView(): CompactClaudeCodeView {
     compactViewElement,
     showClaudeCodeStatus(claudeCodeStatus) {
       // textContent, never innerHTML: file names and commands must not be able to inject markup.
-      compactStatusElement.textContent = describeClaudeCodeStatus(claudeCodeStatus);
+      compactStatusElement.textContent = describeClaudeCodeSessionStatus(claudeCodeStatus.listedSessions[0]);
       otherSessionCountElement.textContent =
-        claudeCodeStatus.otherSessionCount > 0 ? `+${claudeCodeStatus.otherSessionCount}` : "";
+        claudeCodeStatus.otherBusySessionCount > 0 ? `+${claudeCodeStatus.otherBusySessionCount}` : "";
     },
   };
 }

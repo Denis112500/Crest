@@ -14,6 +14,9 @@ pub struct RecordedActivity {
     pub activity_update: ActivityUpdate,
     /// Grows with every update; tells which of two activities reported last.
     pub arrival_order: u64,
+    /// The arrival order of the update that last changed the attention key: when this activity
+    /// last had news. `None` until its key first changes, and again once the user has seen it.
+    pub latest_attention_order: Option<u64>,
 }
 
 /// An activity placed in the pill: which source it came from and its latest update.
@@ -50,8 +53,10 @@ impl PillArrangement {
 ///   as companion) first, then priority, then the most recent; among lingering ones only the
 ///   most recent counts, whatever its priority: "Claude Code is done" just now says more than
 ///   a song paused minutes ago;
-/// - companion: the next ongoing activity; lingering ones never sit next to the main one,
-///   because a paused player would otherwise stay on screen forever.
+/// - companion: the next ongoing activity; failing that, next to an ongoing main one, a
+///   lingering activity with news newer than the main one's ("Claude Code is done" next to the
+///   music), until the main one has news of its own or the user has seen it. Otherwise lingering
+///   ones never sit next to the main one: a paused player would stay on screen forever.
 pub fn arrange_pill_activities(
     recorded_activities: &[&RecordedActivity],
     focused_activity_kind: Option<&str>,
@@ -74,14 +79,33 @@ pub fn arrange_pill_activities(
         Reverse((is_ongoing, is_focused, ranking_priority, recorded.arrival_order))
     });
     let mut ordered_candidates = main_candidates.into_iter();
-    let main_activity = ordered_candidates.next().map(place_in_pill);
-    let remaining_ongoing: Vec<&RecordedActivity> = ordered_candidates
-        .filter(|recorded| recorded.activity_update.activity_presence == ActivityPresence::Ongoing)
-        .collect();
-    let companion_activity = remaining_ongoing.first().map(|recorded| place_in_pill(recorded));
+    let main_record = ordered_candidates.next();
+    let (remaining_ongoing, remaining_lingering): (Vec<&RecordedActivity>, Vec<&RecordedActivity>) =
+        ordered_candidates.partition(|recorded| recorded.activity_update.activity_presence == ActivityPresence::Ongoing);
+    let companion_activity = remaining_ongoing
+        .first()
+        .copied()
+        .or_else(|| find_notice_companion(main_record, &remaining_lingering))
+        .map(place_in_pill);
+    let main_activity = main_record.map(place_in_pill);
     let other_ongoing_count = remaining_ongoing.len().saturating_sub(1);
 
     PillArrangement { alert_activity, main_activity, companion_activity, other_ongoing_count }
+}
+
+/// The lingering activity with the newest news, if that is newer than the main one's and the
+/// main one is ongoing.
+fn find_notice_companion<'a>(
+    main_record: Option<&RecordedActivity>,
+    remaining_lingering: &[&'a RecordedActivity],
+) -> Option<&'a RecordedActivity> {
+    let ongoing_main_record =
+        main_record.filter(|recorded| recorded.activity_update.activity_presence == ActivityPresence::Ongoing)?;
+    remaining_lingering
+        .iter()
+        .copied()
+        .filter(|recorded| recorded.latest_attention_order > ongoing_main_record.latest_attention_order)
+        .max_by_key(|recorded| recorded.latest_attention_order)
 }
 
 fn place_in_pill(recorded_activity: &RecordedActivity) -> PillActivity {
@@ -110,7 +134,13 @@ mod tests {
                 activity_payload: serde_json::Value::Null,
             },
             arrival_order,
+            latest_attention_order: None,
         }
+    }
+
+    fn with_news(mut recorded_activity: RecordedActivity, latest_attention_order: u64) -> RecordedActivity {
+        recorded_activity.latest_attention_order = Some(latest_attention_order);
+        recorded_activity
     }
 
     fn kind_of(pill_activity: &Option<PillActivity>) -> Option<&'static str> {
@@ -171,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    fn a_lingering_activity_never_becomes_the_companion() {
+    fn a_lingering_activity_without_news_never_becomes_the_companion() {
         let paused_music = recorded("music", ActivityPresence::Lingering, 50, 0);
         let claude_code = recorded("claude-code", ActivityPresence::Ongoing, 40, 1);
         let arrangement = arrange_pill_activities(&[&paused_music, &claude_code], None);
@@ -202,5 +232,44 @@ mod tests {
         let urgent_alert = recorded("timer", ActivityPresence::Alert, 90, 3);
         let arrangement = arrange_pill_activities(&[&earlier_alert, &urgent_alert], None);
         assert_eq!(kind_of(&arrangement.alert_activity), Some("timer"));
+    }
+
+    #[test]
+    fn news_on_a_lingering_activity_sits_next_to_the_playing_main_one() {
+        let music = with_news(recorded("music", ActivityPresence::Ongoing, 50, 3), 0);
+        let finished_session = with_news(recorded("claude-code", ActivityPresence::Lingering, 40, 4), 4);
+        let arrangement = arrange_pill_activities(&[&music, &finished_session], None);
+        assert_eq!(kind_of(&arrangement.main_activity), Some("music"));
+        assert_eq!(kind_of(&arrangement.companion_activity), Some("claude-code"));
+        assert_eq!(arrangement.other_ongoing_count, 0);
+    }
+
+    #[test]
+    fn news_never_sits_next_to_a_paused_main_one() {
+        let paused_music = recorded("music", ActivityPresence::Lingering, 50, 5);
+        let finished_session = with_news(recorded("claude-code", ActivityPresence::Lingering, 40, 4), 4);
+        let arrangement = arrange_pill_activities(&[&paused_music, &finished_session], None);
+        assert_eq!(kind_of(&arrangement.main_activity), Some("music"));
+        assert_eq!(arrangement.companion_activity, None);
+    }
+
+    #[test]
+    fn news_leaves_when_the_main_one_has_newer_news_or_it_was_seen() {
+        let music_with_new_track = with_news(recorded("music", ActivityPresence::Ongoing, 50, 6), 6);
+        let finished_session = with_news(recorded("claude-code", ActivityPresence::Lingering, 40, 4), 4);
+        assert_eq!(arrange_pill_activities(&[&music_with_new_track, &finished_session], None).companion_activity, None);
+
+        let music = recorded("music", ActivityPresence::Ongoing, 50, 3);
+        let seen_session = recorded("claude-code", ActivityPresence::Lingering, 40, 4);
+        assert_eq!(arrange_pill_activities(&[&music, &seen_session], None).companion_activity, None);
+    }
+
+    #[test]
+    fn an_ongoing_companion_goes_before_news() {
+        let music = recorded("music", ActivityPresence::Ongoing, 50, 0);
+        let timer = recorded("timer", ActivityPresence::Ongoing, 40, 1);
+        let finished_session = with_news(recorded("claude-code", ActivityPresence::Lingering, 40, 2), 2);
+        let arrangement = arrange_pill_activities(&[&music, &timer, &finished_session], None);
+        assert_eq!(kind_of(&arrangement.companion_activity), Some("timer"));
     }
 }

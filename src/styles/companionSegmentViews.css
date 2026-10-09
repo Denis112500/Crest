@@ -1,0 +1,34 @@
+/* The narrow views in the companion segment (companionMusicView.ts, companionClaudeCodeView.ts). */
+.companion-segment-view {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--companion-segment-gap);
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--companion-segment-padding-end) 0 var(--companion-segment-padding-start);
+}
+
+.companion-segment-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The terminal mark takes the colour of the most urgent session, like the open list's dots. */
+.companion-claude-code-icon {
+  flex: none;
+  width: var(--companion-claude-code-icon-size);
+  height: var(--companion-claude-code-icon-size);
+  color: var(--claude-code-idle-session-color);
+}
+
+.companion-claude-code-view[data-session-status="working"] .companion-claude-code-icon {
+  color: var(--claude-code-accent-color);
+}
+
+.companion-claude-code-view[data-session-status="needsPermission"] .companion-claude-code-icon {
+  color: var(--claude-code-needs-permission-color);
+}

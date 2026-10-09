@@ -1,9 +1,9 @@
 import "../../styles/expandedClaudeCodeView.css";
 
 import { createSvgIconElement } from "../createSvgIconElement";
+import { createClaudeCodeSessionRowElement } from "./claudeCodeSessionRowElement";
 import type { ClaudeCodeStatusPayload } from "./claudeCodeStatusTypes";
 import { CLAUDE_CODE_TERMINAL_ICON_PATH } from "./claudeCodeTerminalIconPath";
-import { describeClaudeCodeStatus } from "./describeClaudeCodeStatus";
 
 const CLAUDE_CODE_PRODUCT_NAME = "Claude Code";
 
@@ -12,7 +12,8 @@ export interface ExpandedClaudeCodeView {
   showClaudeCodeStatus(claudeCodeStatus: ClaudeCodeStatusPayload): void;
 }
 
-// The open pill: which project, what the session is doing, and how many others are active.
+// The open pill: how many sessions there are, one row per listed session (most urgent first)
+// and "+N more" for the rest. Its height is calculateClaudeCodeExpandedHeight.ts's job.
 export function createExpandedClaudeCodeView(): ExpandedClaudeCodeView {
   const expandedViewElement = document.createElement("div");
   expandedViewElement.className = "expanded-claude-code-view";
@@ -21,30 +22,29 @@ export function createExpandedClaudeCodeView(): ExpandedClaudeCodeView {
   headerElement.className = "expanded-claude-code-header";
   const terminalIconElement = createSvgIconElement(CLAUDE_CODE_TERMINAL_ICON_PATH);
   terminalIconElement.classList.add("claude-code-terminal-icon", "expanded-claude-code-icon");
-  const headerTextElement = document.createElement("div");
-  headerTextElement.className = "expanded-claude-code-header-text";
-  const projectNameElement = document.createElement("div");
-  projectNameElement.className = "expanded-claude-code-project";
   const productNameElement = document.createElement("div");
   productNameElement.className = "expanded-claude-code-product";
   productNameElement.textContent = CLAUDE_CODE_PRODUCT_NAME;
-  headerTextElement.append(projectNameElement, productNameElement);
-  headerElement.append(terminalIconElement, headerTextElement);
+  const sessionCountElement = document.createElement("div");
+  sessionCountElement.className = "expanded-claude-code-session-count";
+  headerElement.append(terminalIconElement, productNameElement, sessionCountElement);
 
-  const statusElement = document.createElement("div");
-  statusElement.className = "expanded-claude-code-status";
-  const otherSessionsElement = document.createElement("div");
-  otherSessionsElement.className = "expanded-claude-code-other-sessions";
-  expandedViewElement.append(headerElement, statusElement, otherSessionsElement);
+  const sessionListElement = document.createElement("div");
+  sessionListElement.className = "claude-code-session-list";
+  const unlistedSessionsElement = document.createElement("div");
+  unlistedSessionsElement.className = "claude-code-unlisted-sessions";
+  expandedViewElement.append(headerElement, sessionListElement, unlistedSessionsElement);
 
   return {
     expandedViewElement,
     showClaudeCodeStatus(claudeCodeStatus) {
-      projectNameElement.textContent = claudeCodeStatus.projectFolderName || CLAUDE_CODE_PRODUCT_NAME;
-      statusElement.textContent = describeClaudeCodeStatus(claudeCodeStatus);
-      const otherSessionCount = claudeCodeStatus.otherSessionCount;
-      otherSessionsElement.textContent =
-        otherSessionCount === 0 ? "" : `+${otherSessionCount} other session${otherSessionCount === 1 ? "" : "s"}`;
+      const unlistedSessionCount = claudeCodeStatus.unlistedSessionCount;
+      const sessionCount = claudeCodeStatus.listedSessions.length + unlistedSessionCount;
+      sessionCountElement.textContent = `${sessionCount} session${sessionCount === 1 ? "" : "s"}`;
+      sessionListElement.replaceChildren(...claudeCodeStatus.listedSessions.map(createClaudeCodeSessionRowElement));
+      // Hidden, not just empty: a hidden element adds no gap, which the height calculation relies on.
+      unlistedSessionsElement.hidden = unlistedSessionCount === 0;
+      unlistedSessionsElement.textContent = `+${unlistedSessionCount} more`;
     },
   };
 }

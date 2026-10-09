@@ -1,47 +1,93 @@
+/* Every height and gap here comes from frontendConstants.ts, because
+   calculateClaudeCodeExpandedHeight.ts adds up the same numbers to size the open pill. */
 .expanded-claude-code-view {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: var(--expanded-claude-code-section-gap);
+  gap: var(--claude-code-expanded-section-gap);
   width: 100%;
   height: 100%;
-  padding: var(--expanded-claude-code-padding);
+  padding: var(--claude-code-expanded-padding);
 }
 
 .expanded-claude-code-header {
+  flex: none;
   display: flex;
   align-items: center;
   gap: var(--expanded-claude-code-header-gap);
+  height: var(--claude-code-expanded-header-height);
 }
 
 .expanded-claude-code-icon {
-  width: var(--expanded-claude-code-icon-size);
-  height: var(--expanded-claude-code-icon-size);
+  width: var(--claude-code-expanded-header-height);
+  height: var(--claude-code-expanded-header-height);
 }
 
-.expanded-claude-code-header-text {
+.expanded-claude-code-product {
   flex: 1;
   min-width: 0;
+  font-size: var(--expanded-claude-code-title-font-size);
+  font-weight: var(--pill-title-font-weight);
 }
 
-.expanded-claude-code-project,
-.expanded-claude-code-product,
-.expanded-claude-code-status {
+.expanded-claude-code-session-count,
+.claude-code-unlisted-sessions,
+.claude-code-session-status {
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+.claude-code-session-list {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--claude-code-session-row-gap);
+}
+
+.claude-code-session-row {
+  display: flex;
+  align-items: center;
+  gap: var(--claude-code-session-row-inner-gap);
+  height: var(--claude-code-session-row-height);
+}
+
+.claude-code-session-status-dot {
+  flex: none;
+  width: var(--claude-code-session-status-dot-size);
+  height: var(--claude-code-session-status-dot-size);
+  border-radius: 50%;
+  background: var(--claude-code-idle-session-color);
+}
+
+.claude-code-session-row[data-session-status="working"] .claude-code-session-status-dot {
+  background: var(--claude-code-accent-color);
+}
+
+.claude-code-session-row[data-session-status="needsPermission"] .claude-code-session-status-dot {
+  background: var(--claude-code-needs-permission-color);
+}
+
+/* Long folder names and tool lines end in "…". min-width: 0 lets a flex child shrink below
+   its text width. */
+.claude-code-session-project,
+.claude-code-session-status {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.expanded-claude-code-project {
-  font-size: var(--expanded-claude-code-title-font-size);
+.claude-code-session-project {
+  flex: none;
+  max-width: var(--claude-code-session-project-max-width);
   font-weight: var(--pill-title-font-weight);
 }
 
-.expanded-claude-code-product,
-.expanded-claude-code-other-sessions {
-  opacity: var(--pill-secondary-text-opacity);
+.claude-code-session-status {
+  flex: 1;
 }
 
-.expanded-claude-code-status {
-  font-size: var(--expanded-claude-code-status-font-size);
+.claude-code-unlisted-sessions {
+  flex: none;
+  height: var(--claude-code-unlisted-sessions-height);
+  line-height: var(--claude-code-unlisted-sessions-height);
 }

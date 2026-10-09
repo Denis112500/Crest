@@ -1,6 +1,6 @@
 /* Every color and visual constant of Crest's pages (the pill and the settings window).
    Pill and window sizes come from frontendConstants.ts (as --pill-compact-*,
-   --pill-expanded-*, --pill-morph-duration). */
+   --pill-companion-segment-width, --pill-expanded-*, --pill-morph-duration). */
 :root {
   /* Pill */
   --pill-background-color: #000000;
@@ -13,6 +13,16 @@
   --pill-content-fade-duration: 180ms;
   /* A damped spring (damping ratio 0.75, about 3% overshoot), sampled into CSS linear(). */
   --pill-spring-easing: linear(0, 0.036, 0.123, 0.239, 0.365, 0.489, 0.604, 0.705, 0.79, 0.86, 0.914, 0.955, 0.985, 1.005, 1.018, 1.025, 1.028, 1.028, 1.026, 1.023, 1.02, 1.016, 1.013, 1.01, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 0.999, 1);
+
+  /* Companion segment (right of the main activity in the compact pill) */
+  --pill-companion-divider-color: rgba(255, 255, 255, 0.14);
+  --pill-companion-hover-background: rgba(255, 255, 255, 0.08);
+  --companion-segment-padding-start: 10px;
+  --companion-segment-padding-end: 14px;
+  --companion-segment-gap: 6px;
+  --album-art-companion-size: 18px;
+  --album-art-companion-radius: 5px;
+  --companion-claude-code-icon-size: 16px;
 
   /* Album art */
   --album-art-placeholder-background: #2c2c2e;
@@ -45,12 +55,14 @@
   --compact-claude-code-padding-start: 12px;
   --compact-claude-code-padding-end: 14px;
   --compact-claude-code-gap: 8px;
-  --expanded-claude-code-padding: 16px;
-  --expanded-claude-code-section-gap: 12px;
   --expanded-claude-code-header-gap: 12px;
-  --expanded-claude-code-icon-size: 28px;
   --expanded-claude-code-title-font-size: 15px;
-  --expanded-claude-code-status-font-size: 15px;
+  /* Session rows (their heights and gaps come from frontendConstants.ts). */
+  --claude-code-session-row-inner-gap: 8px;
+  --claude-code-session-status-dot-size: 8px;
+  --claude-code-session-project-max-width: 45%;
+  --claude-code-needs-permission-color: #ffc861;
+  --claude-code-idle-session-color: rgba(245, 245, 247, 0.45);
 
   /* Playing bars */
   --playback-bar-color: #f5f5f7;

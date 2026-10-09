@@ -5,6 +5,11 @@ export interface PillShellElements {
   /** The black capsule; its size and corner radius animate between compact and expanded. */
   pillShellElement: HTMLElement;
   compactLayerElement: HTMLElement;
+  /** Inside the compact layer: the main activity's small view. */
+  compactMainSlotElement: HTMLElement;
+  /** Inside the compact layer, right of the main slot: the companion's view; shown only while
+      there is a companion. Clicking it makes that activity the one the pill opens on. */
+  companionSegmentElement: HTMLElement;
   expandedLayerElement: HTMLElement;
 }
 
@@ -19,9 +24,21 @@ export function createPillShellElements(): PillShellElements {
   pillShellElement.className = "pill-shell";
   const compactLayerElement = document.createElement("div");
   compactLayerElement.className = "pill-compact-layer";
+  const compactMainSlotElement = document.createElement("div");
+  compactMainSlotElement.className = "pill-compact-main-slot";
+  const companionSegmentElement = document.createElement("div");
+  companionSegmentElement.className = "pill-companion-segment";
+  compactLayerElement.append(compactMainSlotElement, companionSegmentElement);
   const expandedLayerElement = document.createElement("div");
   expandedLayerElement.className = "pill-expanded-layer";
   pillShellElement.append(compactLayerElement, expandedLayerElement);
   pillNotchElement.append(pillShellElement);
-  return { pillNotchElement, pillShellElement, compactLayerElement, expandedLayerElement };
+  return {
+    pillNotchElement,
+    pillShellElement,
+    compactLayerElement,
+    compactMainSlotElement,
+    companionSegmentElement,
+    expandedLayerElement,
+  };
 }
