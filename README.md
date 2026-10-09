@@ -73,7 +73,7 @@ Which players the pill may show is a `MediaPlayerFilter`: every player, or only 
 
 ### The window and the animation
 
-The native window is always as big as the expanded pill (plus a little room for the spring's overshoot and the notch's curved shoulders), sits at the very top of the chosen monitor, and only moves when you choose another monitor. What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. Growing: the area widens first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
+The open pill is as tall as what the activity shows (music and Claude Code differ), and the native window is always as big as the tallest open pill (plus a little room for the spring's overshoot and the notch's curved shoulders), sits at the very top of the chosen monitor, and only moves when you choose another monitor. What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. Growing (opening, or taller content while open): the area grows first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
 
 On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (hover, leave, click, a new track), and `pillMorphController.ts` carries it out. Endless animations (the playing bars, the progress bar) run on slow timers (15 and 4 updates per second) rather than at the monitor's refresh rate; on a 240 Hz screen that is the difference between about 35% and 5% of a CPU core while music plays. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
 
@@ -114,17 +114,20 @@ Crest/
 │  │  ├─ requestPillInteractiveArea.ts  asks Rust which rectangle takes the mouse
 │  │  ├─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
 │  │  ├─ requestPillWindowConceal.ts    asks Rust to hide the window
-│  │  └─ requestActivityAction.ts       sends a button press to the activity's Rust source
+│  │  ├─ requestActivityAction.ts       sends a button press to the activity's Rust source
+│  │  └─ requestActivityFocus.ts        the companion was clicked: make it main, or mark its news seen
 │  ├─ pill/
-│  │  ├─ pillShellElements.ts          the notch (with its shoulders), the capsule and its compact/expanded layers
+│  │  ├─ pillShellElements.ts          the notch (with its shoulders), the capsule, its compact layer (main slot + companion segment) and expanded layer
 │  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
 │  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek)
-│  │  ├─ pillPointerInput.ts           mouse events → state machine
-│  │  ├─ pillMorphController.ts        animates a state change and keeps the interactive area in step
+│  │  ├─ pillPointerInput.ts           mouse events → state machine; a click on the companion segment
+│  │  ├─ pillMorphController.ts        animates a state or height change and keeps the interactive area in step
+│  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse, compact or open at a given height
 │  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window
 │  │  ├─ pillVisibilityTypes.ts        the visibility Rust sends (visible? fullscreen app in front?)
 │  │  ├─ waitUntilNextFrameIsPainted.ts  resolves once the current content is on screen
-│  │  └─ pillContentPresenter.ts       puts the leading activity's views into the layers
+│  │  ├─ pillAttentionDetector.ts      whose news opens the pill: the leading activity's, else the companion's
+│  │  └─ pillContentPresenter.ts       puts the views in place: leading in the main slot, companion next to it, the open one: whoever has news or was clicked
 │  ├─ activities/
 │  │  ├─ pillArrangementTypes.ts     the shape of what Rust sends (alert, main, companion)
 │  │  ├─ findLeadingActivity.ts      the alert if there is one, else the main activity
@@ -135,14 +138,18 @@ Crest/
 │  │  ├─ claudeCode/
 │  │  │  ├─ claudeCodeStatusTypes.ts     the Claude Code payload's shape
 │  │  │  ├─ claudeCodeViewSet.ts         the Claude Code activity's compact + expanded views
-│  │  │  ├─ compactClaudeCodeView.ts     terminal mark, what the session is doing, "+N"
-│  │  │  ├─ expandedClaudeCodeView.ts    project, status, other sessions
-│  │  │  ├─ describeClaudeCodeStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Needs your OK"
+│  │  │  ├─ compactClaudeCodeView.ts     terminal mark, what the most urgent session is doing, "+N"
+│  │  │  ├─ companionClaudeCodeView.ts   next to the music: terminal mark coloured by status, one word
+│  │  │  ├─ expandedClaudeCodeView.ts    every session, most urgent first, "+N more"
+│  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status dot, project folder, what it's doing
+│  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its number of rows
+│  │  │  ├─ describeClaudeCodeSessionStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Needs your OK"
 │  │  │  └─ claudeCodeTerminalIconPath.ts  a plain ">_" (not Anthropic's logo)
 │  │  └─ music/
 │  │     ├─ nowPlayingTypes.ts       the music payload's shape
 │  │     ├─ musicViewSet.ts          the music activity's compact + expanded views
 │  │     ├─ compactMusicView.ts      tiny art, title, bars
+│  │     ├─ companionMusicView.ts    next to another activity: tiny art and bars
 │  │     ├─ expandedMusicView.ts     large art, title, artist, progress, buttons
 │  │     ├─ albumArtImage.ts         album art with a placeholder when missing and a ring while loading
 │  │     ├─ playbackBarsIndicator.ts bouncing bars while playing
@@ -162,7 +169,7 @@ Crest/
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
 │     └─ albumArtImage.css, compactMusicView.css, expandedMusicView.css,
 │        playbackBarsIndicator.css, playbackProgressBar.css, musicControlButtons.css,
-│        compactClaudeCodeView.css, expandedClaudeCodeView.css
+│        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionSegmentViews.css
 └─ src-tauri/
    ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step; lists Crest's commands so each gets a permission
@@ -194,7 +201,7 @@ Crest/
       │  ├─ activity_source_registry.rs   running sources by kind; routes actions (unit-tested)
       │  ├─ activity_action_command.rs    command: a button press for some activity kind
       │  ├─ pill_arrangement_command.rs   lets the frontend ask for the current layout
-      │  ├─ focus_activity_command.rs     command: the companion was clicked, make it the main activity
+      │  ├─ focus_activity_command.rs     command: the companion was clicked (ongoing → main; news → seen)
       │  ├─ pill_visibility_policy.rs     the show/hide rules as a pure function (unit-tested)
       │  ├─ pill_visibility_controller.rs runs the hide countdowns, adds the fullscreen rule, reports changes
       │  └─ pill_visibility_command.rs    lets the frontend ask whether the pill is visible
@@ -204,7 +211,8 @@ Crest/
       │  │  ├─ mod.rs
       │  │  ├─ claude_code_activity_source.rs     hook events → Claude Code activity; exists only while switched on
       │  │  ├─ claude_code_hook_event.rs          the hook fields Crest reads; which events it asks for
-      │  │  ├─ claude_code_session_tracker.rs     every session's state; which one the pill shows (pure, unit-tested)
+      │  │  ├─ claude_code_session_tracker.rs     every session's state from its hook events; news counter (pure, unit-tested)
+      │  │  ├─ claude_code_session_list.rs        the sessions the pill lists: order, how many, "+N" (pure, unit-tested)
       │  │  ├─ claude_code_tool_summary.rs        "Editing notes.md", "Running cargo test" (unit-tested)
       │  │  ├─ claude_code_hook_registration.rs   adds/removes Crest's hooks in Claude Code's settings, nothing else (unit-tested)
       │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
