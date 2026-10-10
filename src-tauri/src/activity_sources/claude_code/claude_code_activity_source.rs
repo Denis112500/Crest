@@ -95,7 +95,7 @@ fn publish_claude_code_status(
             }
             Ok(ClaudeCodeStatusMessage::StopPublishing) | Err(RecvTimeoutError::Disconnected) => break,
         }
-        interrupt_watch.follow_working_sessions(session_tracker.working_session_transcripts());
+        interrupt_watch.follow_busy_sessions(session_tracker.busy_session_transcripts());
         match session_tracker.describe_activity() {
             Some(claude_code_update) => activity_publisher.publish_activity_update(claude_code_update),
             None => activity_publisher.withdraw_activity(),

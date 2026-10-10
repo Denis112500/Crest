@@ -1,12 +1,14 @@
 //! Recognizes the transcript line Claude Code writes when the user interrupts a turn. Claude Code
 //! sends no hook event for an interrupt (measured 2026-10-07 with Claude Code 2.1.289: no Stop,
 //! no StopFailure, no PostToolUseFailure, no idle notification), so its session transcript is the
-//! only place it shows up. The transcript is Claude Code's internal format: if it ever changes,
+//! only place it shows up. Denying a permission ends the turn the same way, with no hook event
+//! either (seen 2026-10-10). The transcript is Claude Code's internal format: if it ever changes,
 //! nothing matches and Crest falls back to forgetting the session after a silence.
 
 use serde_json::Value;
 
-/// Seen as `[Request interrupted by user]`; matched by its start so variants still count.
+/// Seen as `[Request interrupted by user]` (Esc) and `[Request interrupted by user for tool use]`
+/// (a denied permission); matched by its start so both count.
 const INTERRUPT_MARKER_START: &str = "[Request interrupted by user";
 
 /// True for a user entry whose text starts with the interrupt marker, e.g.

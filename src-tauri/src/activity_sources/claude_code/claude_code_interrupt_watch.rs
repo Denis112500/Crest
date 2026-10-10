@@ -1,6 +1,6 @@
-//! Notices interrupted turns: while a session is working, its transcript's folder is watched and
-//! only the newly added lines are checked for the interrupt line. Nothing is watched while no
-//! session works.
+//! Notices interrupted turns and denied permissions (both write the same line): while a session is
+//! busy (working or waiting for an OK), its transcript's folder is watched and only the newly
+//! added lines are checked for the interrupt line. Nothing is watched while no session is busy.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -22,13 +22,13 @@ impl ClaudeCodeInterruptWatch {
         Self { transcript_tails_by_session_id: HashMap::new(), folder_watches_by_folder: HashMap::new(), status_message_sender }
     }
 
-    /// Follows exactly the given working sessions: new ones are read from their transcript's
-    /// current end, sessions that stopped working are dropped, and so are unneeded folder watches.
-    pub fn follow_working_sessions(&mut self, working_session_transcripts: Vec<(String, PathBuf)>) {
+    /// Follows exactly the given busy sessions: new ones are read from their transcript's current
+    /// end, sessions that are no longer busy are dropped, and so are unneeded folder watches.
+    pub fn follow_busy_sessions(&mut self, busy_session_transcripts: Vec<(String, PathBuf)>) {
         self.transcript_tails_by_session_id.retain(|session_id, _| {
-            working_session_transcripts.iter().any(|(working_session_id, _)| working_session_id == session_id)
+            busy_session_transcripts.iter().any(|(busy_session_id, _)| busy_session_id == session_id)
         });
-        for (session_id, transcript_path) in working_session_transcripts {
+        for (session_id, transcript_path) in busy_session_transcripts {
             self.transcript_tails_by_session_id
                 .entry(session_id)
                 .or_insert_with(|| TranscriptTailReader::starting_at_end(&transcript_path));
