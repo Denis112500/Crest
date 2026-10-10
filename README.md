@@ -218,7 +218,7 @@ Crest/
       │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
       │  │  ├─ claude_code_integration_switch.rs  hooks and listening always switch on and off together
       │  │  ├─ claude_code_status_message.rs      what wakes the status thread (event, transcript change, stop)
-      │  │  ├─ claude_code_interrupt_watch.rs     while a session works: watches its transcript for an interrupt
+      │  │  ├─ claude_code_interrupt_watch.rs     while a session is busy: watches its transcript for an interrupt or a deny
       │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt line (Claude Code sends no hook for it; unit-tested)
       │  │  └─ transcript_tail_reader.rs          reads only the lines added since the last look (unit-tested)
       │  └─ music/
