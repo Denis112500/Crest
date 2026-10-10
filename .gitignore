@@ -17,6 +17,8 @@ dev-tools/claude_code_hook_probe/Cargo.lock
 
 # The project log stays local (backed up in a private repository)
 notes.md
+STATE.md
+notes/
 
 # Local helper for recording the README demo (moves the mouse); kept off GitHub on purpose
 dev-tools/readme_demo_pointer.py
