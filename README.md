@@ -45,7 +45,7 @@ They talk through **Tauri events** (backend → frontend: "here's what to show n
 
 ### Activities and sources (the plugin idea)
 
-The pill always shows one **activity**: right now, "music is playing". Activities come from **sources**. Music is the first source; a timer or Claude Code events could be others later.
+The pill shows **activities**, like "music is playing" or "Claude Code is working". Activities come from **sources**. Music and Claude Code are the two sources today; a timer could be another later.
 
 - Every source implements the same small Rust trait, `ActivitySource`. It reports updates ("this is what I'd show, this is how important it is, is it still ongoing?") and handles actions (like "next-track"). A button press travels as `(activity kind, action name)`; the `ActivitySourceRegistry` hands it to the source of that kind, and the result comes back as an ordinary update.
 - The **core** (`activity_core/`) keeps the latest update from each source and decides what the pill shows and whether it's visible. It never looks inside a source's content, so adding a new source doesn't change the core.
@@ -144,7 +144,10 @@ Crest/
 │  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status dot, project folder, what it's doing
 │  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its number of rows
 │  │  │  ├─ claudeCodePermissionAlertView.ts  a permission request: session, command or action, Allow / Deny
-│  │  │  ├─ calculateClaudeCodePermissionAlertHeight.ts  the alert's height for the request's lines
+│  │  │  ├─ claudeCodePermissionCommandBox.ts  the command, wrapped, 3 rows tall and scrolling; knows when all was seen
+│  │  │  ├─ claudeCodePermissionAnswerButtons.ts  Deny / Allow: a short pause, one answer, Allow only once all was seen
+│  │  │  ├─ estimateClaudeCodeCommandRowCount.ts  how many rows a command wraps into (sizes the box)
+│  │  │  ├─ calculateClaudeCodePermissionAlertHeight.ts  the alert's height for the request's rows
 │  │  │  ├─ describeClaudeCodeSessionStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Needs your OK"
 │  │  │  └─ claudeCodeTerminalIconPath.ts  a plain ">_" (not Anthropic's logo)
 │  │  └─ music/
@@ -163,7 +166,7 @@ Crest/
 │  │  ├─ launchAtLoginSettingRow.ts  "Start with Windows" switch
 │  │  ├─ pillDisplaySettingRow.ts    "Show the pill on" monitor list
 │  │  ├─ allowedPlayersSettingCard.ts  "Show every player", the player list, adding open players
-│  │  ├─ claudeCodeIntegrationSettingCard.ts  the Claude Code switch + exactly what it adds to Claude Code's settings
+│  │  ├─ claudeCodeIntegrationSettingCard.ts  the Claude Code switches + exactly what they add to Claude Code's settings
 │  │  └─ crestBuildDescriptionLine.ts  the About card: which Crest is running
 │  └─ styles/
 │     ├─ designTokens.css       every color, spacing, duration and the spring curve (pill and settings)
@@ -216,7 +219,9 @@ Crest/
       │  │  ├─ claude_code_status_thread.rs       owns the tracker and the permission queue, answers the hooks
       │  │  ├─ claude_code_permission_queue.rs    permission requests waiting for Allow / Deny, each hook answered once (pure, unit-tested)
       │  │  ├─ claude_code_permission_answer.rs   the alert's button actions and the hook's allow / deny JSON (unit-tested)
-      │  │  ├─ claude_code_permission_description.rs  what the alert shows: the command's lines or "Edit notes.md" (unit-tested)
+      │  │  ├─ claude_code_permission_description.rs  what the alert shows: the whole command, hidden characters made visible (unit-tested)
+      │  │  ├─ claude_code_permission_action_wording.rs  other tools in a few words: "Edit notes.md", "Open github.com" (unit-tested)
+      │  │  ├─ claude_code_permission_answering_switch.rs  "Answer permission requests in the pill", shared with the status thread
       │  │  ├─ claude_code_hook_event.rs          the hook fields Crest reads; which events it asks for
       │  │  ├─ claude_code_session_tracker.rs     every session's state from its hook events; news counter (pure, unit-tested)
       │  │  ├─ claude_code_session_list.rs        the sessions the pill lists: order, how many, "+N" (pure, unit-tested)
@@ -298,7 +303,7 @@ Crest/
          ├─ mod.rs
          ├─ settings_window_opener.rs    opens the window or brings it to the front (tray, second launch)
          ├─ settings_window_commands.rs  the commands the settings page calls
-         ├─ claude_code_integration_commands.rs  the Claude Code switch and its preview
+         ├─ claude_code_integration_commands.rs  the Claude Code switches and their preview
          ├─ crest_build_description.rs   version, release/dev, build time and path for the About card
          └─ allowed_player_options.rs    what the player card shows (unit-tested)
 ```
@@ -323,6 +328,8 @@ Open them from the tray icon (**Settings…**) or by starting Crest again while 
 
 - **Start with Windows**: Crest starts in the background when you sign in. Off by default. Crest remembers your choice: Windows' installer removes the start-up entry when an update uninstalls the old version first, and Crest puts it back the next time it starts.
 - **Show the pill on**: the main display, or a specific monitor. If that monitor is unplugged, the pill goes to the main display.
+- **Claude Code**: shows what your Claude Code sessions are doing (see [Claude Code](#claude-code)). Off by default.
+- **Answer permission requests in the pill**: Allow / Deny right in the pill while Claude Code is on. On by default; off, the pill only shows the status.
 - **Allowed players**: which players the pill shows. A new install shows **every player**; switch that off to show only the list (it starts with YouTube Music), and add any player while it's open (a video in a normal browser tab counts as one player per browser, e.g. "Brave tabs"). With an empty list and the switch off, the pill shows no music.
 
 The **About** card at the bottom shows which Crest is running (version, release or dev build, when it was built, and the file's location).
@@ -334,11 +341,36 @@ Changes apply at once and are saved in `%APPDATA%\dev.crest.pill\settings.json`,
   "allowedMediaAppIdentifierFragments": ["_crx_cinhimbnkkghhklpknlkffjgod"],
   "showEveryMediaPlayer": false,
   "shouldLaunchAtLogin": false,
-  "pillDisplayName": null
+  "pillDisplayName": null,
+  "isClaudeCodeIntegrationOn": false,
+  "isClaudeCodePermissionAnsweringOn": true
 }
 ```
 
 Before 0.3.0 entries matched any app ID that *contained* them, and an empty list meant every player. A file without `showEveryMediaPlayer` keeps that meaning for an empty list; a hand-written part of an ID (like `spotify`) now needs to be the full ID (`Spotify.exe`), which the settings window fills in for you.
+
+## Claude Code
+
+Not in a release yet (coming in 0.4.0); available when running from source. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it takes a small segment of the notch (`[ music | >_ Working ]`); opened, it lists every session, most urgent first.
+
+**Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as an alert with the project folder, the command (or "Edit notes.md", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
+
+- the buttons ignore clicks for half a second after the alert appears or the next request moves up (which also flashes once);
+- a command longer than 3 rows scrolls, and Allow works only once you've scrolled to its end;
+- a command too long to send to the pill (over 4,000 characters) can only be denied there: answer it in Claude Code;
+- invisible characters and characters that change the text's direction show as `�`, so what you read is what runs;
+- a web page is named by its real host (`https://github.com@evil.example/` shows as evil.example).
+
+Claude Code's own deny and ask rules still apply after an Allow from the pill. Claude's questions to you (AskUserQuestion) and plan approval stay in Claude Code: the pill only says the session needs you.
+
+**What it changes.** Switching on adds hook entries to Claude Code's user settings (`~/.claude/settings.json`); the settings window shows exactly which before you switch, keeps a copy of the file first, and switching off removes only Crest's entries. Each hook runs `crest.exe --claude-code-hook`, which hands the event to the running Crest through a named pipe that only your Windows user can open (the hook also checks the pipe belongs to your user) and exits. Nothing leaves your PC: no network, no account. A Claude Code session keeps the hooks it read when it started, so after switching on (or changing the second switch) restart the sessions that are already running.
+
+## Known limits
+
+- A prompt cancelled with Esc right after sending it leaves the pill on "Working" until the session's next prompt, or for up to 10 minutes: Claude Code reports no event for it.
+- A terminal closed hard (without ending Claude Code) stays in the session list for up to 10 minutes.
+- While a fullscreen app covers the pill's monitor, the pill (and a permission alert) is hidden: answer in Claude Code.
+- Plugging in or unplugging a monitor needs a restart of Crest to place the pill again.
 
 ## License
 
