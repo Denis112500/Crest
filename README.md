@@ -119,7 +119,7 @@ Crest/
 │  ├─ pill/
 │  │  ├─ pillShellElements.ts          the notch (with its shoulders), the capsule, its compact layer (main slot + companion segment) and expanded layer
 │  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
-│  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek)
+│  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek, held open by an alert)
 │  │  ├─ pillPointerInput.ts           mouse events → state machine; a click on the companion segment
 │  │  ├─ pillMorphController.ts        animates a state or height change and keeps the interactive area in step
 │  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse, compact or open at a given height
@@ -137,12 +137,14 @@ Crest/
 │  │  ├─ createSvgIconElement.ts     builds an inline SVG icon
 │  │  ├─ claudeCode/
 │  │  │  ├─ claudeCodeStatusTypes.ts     the Claude Code payload's shape
-│  │  │  ├─ claudeCodeViewSet.ts         the Claude Code activity's compact + expanded views
+│  │  │  ├─ claudeCodeViewSet.ts         the Claude Code activity's views; the open one is the list or the alert
 │  │  │  ├─ compactClaudeCodeView.ts     terminal mark, what the most urgent session is doing, "+N"
 │  │  │  ├─ companionClaudeCodeView.ts   next to the music: terminal mark coloured by status, one word
 │  │  │  ├─ expandedClaudeCodeView.ts    every session, most urgent first, "+N more"
 │  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status dot, project folder, what it's doing
 │  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its number of rows
+│  │  │  ├─ claudeCodePermissionAlertView.ts  a permission request: session, command or action, Allow / Deny
+│  │  │  ├─ calculateClaudeCodePermissionAlertHeight.ts  the alert's height for the request's lines
 │  │  │  ├─ describeClaudeCodeSessionStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Needs your OK"
 │  │  │  └─ claudeCodeTerminalIconPath.ts  a plain ">_" (not Anthropic's logo)
 │  │  └─ music/
@@ -169,7 +171,8 @@ Crest/
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
 │     └─ albumArtImage.css, compactMusicView.css, expandedMusicView.css,
 │        playbackBarsIndicator.css, playbackProgressBar.css, musicControlButtons.css,
-│        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionSegmentViews.css
+│        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionSegmentViews.css,
+│        claudeCodePermissionAlertView.css
 └─ src-tauri/
    ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step; lists Crest's commands so each gets a permission
@@ -210,6 +213,10 @@ Crest/
       │  ├─ claude_code/
       │  │  ├─ mod.rs
       │  │  ├─ claude_code_activity_source.rs     hook events → Claude Code activity; exists only while switched on
+      │  │  ├─ claude_code_status_thread.rs       owns the tracker and the permission queue, answers the hooks
+      │  │  ├─ claude_code_permission_queue.rs    permission requests waiting for Allow / Deny, each hook answered once (pure, unit-tested)
+      │  │  ├─ claude_code_permission_answer.rs   the alert's button actions and the hook's allow / deny JSON (unit-tested)
+      │  │  ├─ claude_code_permission_description.rs  what the alert shows: the command's lines or "Edit notes.md" (unit-tested)
       │  │  ├─ claude_code_hook_event.rs          the hook fields Crest reads; which events it asks for
       │  │  ├─ claude_code_session_tracker.rs     every session's state from its hook events; news counter (pure, unit-tested)
       │  │  ├─ claude_code_session_list.rs        the sessions the pill lists: order, how many, "+N" (pure, unit-tested)
@@ -217,9 +224,10 @@ Crest/
       │  │  ├─ claude_code_hook_registration.rs   adds/removes Crest's hooks in Claude Code's settings, nothing else (unit-tested)
       │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
       │  │  ├─ claude_code_integration_switch.rs  hooks and listening always switch on and off together
-      │  │  ├─ claude_code_status_message.rs      what wakes the status thread (event, transcript change, stop)
+      │  │  ├─ claude_code_status_message.rs      what wakes the status thread (event, transcript change, answer, stop)
       │  │  ├─ claude_code_interrupt_watch.rs     while a session is busy: watches its transcript for an interrupt or a deny
       │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt line (Claude Code sends no hook for it; unit-tested)
+      │  │  ├─ claude_code_transcript_continuation.rs  a session Claude Code continued under a new id leaves the list (unit-tested)
       │  │  └─ transcript_tail_reader.rs          reads only the lines added since the last look (unit-tested)
       │  └─ music/
       │     ├─ mod.rs
@@ -251,10 +259,12 @@ Crest/
       │  ├─ claude_code_hook_channel_trait.rs  trait: carry a hook event to Crest and the answer back, no network
       │  ├─ claude_code_hook_process.rs        what `crest.exe --claude-code-hook` does
       │  ├─ length_prefixed_message.rs         the message format on the channel (unit-tested)
+      │  ├─ pending_hook_reply.rs              trait: a hook's answer sent later (a permission request waits for a click)
       │  └─ windows_named_pipe/
       │     ├─ mod.rs
       │     ├─ named_pipe_claude_code_hook_channel.rs  the pipe's per-user name (a real round trip is unit-tested)
       │     ├─ named_pipe_hook_event_server.rs  Crest's end: waits for hooks, refuses to share the name
+      │     ├─ named_pipe_pending_hook_reply.rs  a connected hook waiting for its answer; dropped = "no decision"
       │     ├─ named_pipe_hook_event_client.rs  the hook's end: only talks to a Crest of the same user
       │     └─ windows_user_identity.rs         user SIDs; the pipe's "this user only" access rule
       ├─ folder_change_watching/
