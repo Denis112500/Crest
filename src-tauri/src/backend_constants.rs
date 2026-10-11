@@ -84,6 +84,25 @@ pub const CLAUDE_CODE_HOOK_ARGUMENT: &str = "--claude-code-hook";
 /// sends `SessionEnd`. Long enough for a slow tool (a full build) that reports nothing meanwhile.
 pub const CLAUDE_CODE_SESSION_SILENCE_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 
+/// A permission request nobody answered leaves the pill this long after it came, and its hook
+/// gets "no decision". The session's silence timeout restarts with each of its events, so it
+/// can't bound a request on its own.
+pub const CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE: Duration = Duration::from_secs(10 * 60);
+
+/// Claude Code's timeout for Crest's permission hook: above the request's maximum age, so Crest
+/// always ends the waiting hook itself and never answers a hook Claude Code already killed.
+pub const CLAUDE_CODE_PERMISSION_HOOK_TIMEOUT: Duration = Duration::from_secs(11 * 60);
+
+/// A command waiting for permission shows at most this many lines in the alert, each cut to
+/// this many characters (the page cuts them again to its width, with "…").
+pub const CLAUDE_CODE_PERMISSION_COMMAND_MAX_LINES: usize = 3;
+pub const CLAUDE_CODE_PERMISSION_COMMAND_LINE_MAX_CHARACTERS: usize = 160;
+
+/// How much of a transcript's end is searched for the line saying Claude Code continued the
+/// conversation under a new session id: that line comes last, after a cost summary (681 bytes
+/// measured; the line started 176 bytes before the end).
+pub const CLAUDE_CODE_TRANSCRIPT_CONTINUATION_SEARCH_BYTES: u64 = 16 * 1024;
+
 /// The tool line in the pill ("Running cargo test --release …") is cut to this many characters.
 pub const CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS: usize = 40;
 

@@ -25,6 +25,17 @@ export const CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT = 24;
 export const CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP = 4;
 export const CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT = 16;
 
+// The permission alert: the same padding, header and gaps as above, then the request (a command
+// shows up to 3 lines, cut in Rust's CLAUDE_CODE_PERMISSION_COMMAND_MAX_LINES) in a box with
+// this inner padding, then the Allow / Deny row. 3 lines = 182, inside
+// PILL_EXPANDED_MAX_LOGICAL_HEIGHT (calculateClaudeCodePermissionAlertHeight.ts adds it up).
+export const CLAUDE_CODE_PERMISSION_DESCRIPTION_LINE_LOGICAL_HEIGHT = 18;
+export const CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING = 6;
+export const CLAUDE_CODE_PERMISSION_BUTTON_LOGICAL_HEIGHT = 32;
+// Allow / Deny ignore clicks this long after the alert becomes visible, so a click meant for
+// whatever was under the pointer can't land on them (decided 2026-10-10).
+export const CLAUDE_CODE_PERMISSION_BUTTON_ARMING_DELAY_MILLISECONDS = 500;
+
 // The spring overshoots its target by about 3%; this much spare room around the expanded
 // pill keeps the overshoot from being cut off by the window edge.
 export const PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN = 8;

@@ -1,0 +1,104 @@
+/* Every height and gap here comes from frontendConstants.ts, because
+   calculateClaudeCodePermissionAlertHeight.ts adds up the same numbers to size the open pill. */
+.claude-code-permission-alert-view {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--claude-code-expanded-section-gap);
+  width: 100%;
+  height: 100%;
+  padding: var(--claude-code-expanded-padding);
+}
+
+.claude-code-permission-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--claude-code-permission-header-gap);
+  height: var(--claude-code-expanded-header-height);
+}
+
+.claude-code-permission-icon {
+  flex: none;
+  width: var(--claude-code-expanded-header-height);
+  height: var(--claude-code-expanded-header-height);
+  color: var(--claude-code-needs-permission-color);
+}
+
+.claude-code-permission-product {
+  flex: none;
+  font-size: var(--expanded-claude-code-title-font-size);
+  font-weight: var(--pill-title-font-weight);
+}
+
+/* Long folder names end in "…"; min-width: 0 lets a flex child shrink below its text width. */
+.claude-code-permission-project {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+.claude-code-permission-waiting-count {
+  flex: none;
+  color: var(--claude-code-needs-permission-color);
+}
+
+.claude-code-permission-description {
+  flex: none;
+  padding: var(--claude-code-permission-description-padding) var(--claude-code-permission-description-padding-inline);
+  border-radius: var(--claude-code-permission-description-radius);
+  background: var(--claude-code-permission-description-background);
+}
+
+/* Each line keeps its spaces (indentation in a command matters) and ends in "…" at the edge
+   instead of wrapping, so the box is exactly as tall as the height calculation says. */
+.claude-code-permission-description-line {
+  height: var(--claude-code-permission-description-line-height);
+  line-height: var(--claude-code-permission-description-line-height);
+  overflow: hidden;
+  white-space: pre;
+  text-overflow: ellipsis;
+}
+
+.claude-code-permission-description[data-description-kind="command"] {
+  font-family: var(--claude-code-command-font-family);
+  font-size: var(--claude-code-command-font-size);
+}
+
+.claude-code-permission-buttons {
+  flex: none;
+  display: flex;
+  gap: var(--claude-code-permission-button-gap);
+  height: var(--claude-code-permission-button-height);
+}
+
+.claude-code-permission-button {
+  flex: 1;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-radius: calc(var(--claude-code-permission-button-height) / 2);
+  background: var(--claude-code-permission-deny-background);
+  color: var(--pill-text-color);
+  font: inherit;
+  font-weight: var(--pill-title-font-weight);
+  cursor: default;
+  transition: opacity var(--pill-content-fade-duration);
+}
+
+.claude-code-permission-button.is-allow {
+  background: var(--claude-code-accent-color);
+  color: var(--pill-background-color);
+}
+
+.claude-code-permission-button:hover:enabled {
+  filter: brightness(var(--claude-code-permission-button-hover-brightness));
+}
+
+/* The first moment after the alert appears, and after a click: not answerable. */
+.claude-code-permission-button:disabled {
+  opacity: var(--control-button-disabled-opacity);
+}

@@ -4,6 +4,9 @@ import {
   CLAUDE_CODE_EXPANDED_HEADER_LOGICAL_HEIGHT,
   CLAUDE_CODE_EXPANDED_LOGICAL_PADDING,
   CLAUDE_CODE_EXPANDED_SECTION_LOGICAL_GAP,
+  CLAUDE_CODE_PERMISSION_BUTTON_LOGICAL_HEIGHT,
+  CLAUDE_CODE_PERMISSION_DESCRIPTION_LINE_LOGICAL_HEIGHT,
+  CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING,
   CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP,
   CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT,
   CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT,
@@ -35,4 +38,13 @@ export function applyPillDimensionCssVariables(): void {
     "--claude-code-unlisted-sessions-height",
     `${CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT}px`,
   );
+  rootStyle.setProperty(
+    "--claude-code-permission-description-line-height",
+    `${CLAUDE_CODE_PERMISSION_DESCRIPTION_LINE_LOGICAL_HEIGHT}px`,
+  );
+  rootStyle.setProperty(
+    "--claude-code-permission-description-padding",
+    `${CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING}px`,
+  );
+  rootStyle.setProperty("--claude-code-permission-button-height", `${CLAUDE_CODE_PERMISSION_BUTTON_LOGICAL_HEIGHT}px`);
 }

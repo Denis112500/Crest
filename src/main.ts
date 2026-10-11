@@ -87,17 +87,27 @@ async function startPill(): Promise<void> {
   });
 
   const pillAttentionDetector = new PillAttentionDetector();
+  let wasAlertLeading = false;
   await listenForRustStateChanges<PillArrangement>(
     PILL_ARRANGEMENT_CHANGED_EVENT,
     GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
     (pillArrangement) => {
       pillContentPresenter.showPillArrangement(pillArrangement);
+      const alertActivity = pillArrangement.alertActivity;
+      const hasAlertJustEnded = wasAlertLeading && alertActivity === null;
+      wasAlertLeading = alertActivity !== null;
+      if (alertActivity) {
+        // Even if the pill is open on another activity (a clicked companion): the alert wins.
+        pillContentPresenter.showActivityInExpandedView(alertActivity.activityKind);
+      }
       const activityAskingForAttention = pillAttentionDetector.findActivityAskingForAttention(pillArrangement);
-      if (activityAskingForAttention) {
+      // Right after an alert, whatever leads again isn't news: the answered pill just closes.
+      if (activityAskingForAttention && !hasAlertJustEnded) {
         // Before the peek opens the pill, so it opens straight to that activity at its height.
         pillContentPresenter.showActivityInExpandedView(activityAskingForAttention.activityKind);
         pillStateMachine.handleAttentionRequested();
       }
+      pillStateMachine.setHeldOpenByAlert(alertActivity !== null);
     },
   ).catch(reportStartupStepFailure("follow the pill's layout"));
   // Rust decides whether the pill is on screen; the window stays hidden until it says so.

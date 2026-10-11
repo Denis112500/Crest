@@ -4,6 +4,7 @@
 mod named_pipe_claude_code_hook_channel;
 mod named_pipe_hook_event_client;
 mod named_pipe_hook_event_server;
+mod named_pipe_pending_hook_reply;
 mod windows_user_identity;
 
 pub use named_pipe_claude_code_hook_channel::NamedPipeClaudeCodeHookChannel;

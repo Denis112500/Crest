@@ -1,5 +1,6 @@
 // Mirrors `ClaudeCodeStatusPayload` and `ClaudeCodeSessionRow` in
-// src-tauri/src/activity_sources/claude_code/claude_code_session_list.rs.
+// src-tauri/src/activity_sources/claude_code/claude_code_session_list.rs, and the permission
+// alert in claude_code_permission_queue.rs and claude_code_permission_description.rs.
 export type ClaudeCodeSessionStatus = "working" | "done" | "waitingForInput" | "needsPermission";
 
 export interface ClaudeCodeSessionRow {
@@ -7,6 +8,21 @@ export interface ClaudeCodeSessionRow {
   /** Only while working on a tool, e.g. "Editing notes.md". */
   toolSummary: string | null;
   projectFolderName: string;
+}
+
+/** A command as it will run (its first lines, the last one ending in "…" when more were left
+    out), or a short action like "Edit notes.md". */
+export type ClaudeCodePermissionDescription =
+  | { descriptionKind: "command"; commandLines: string[] }
+  | { descriptionKind: "action"; actionText: string };
+
+export interface ClaudeCodePermissionAlert {
+  /** Sent back with the click, so it can only answer this request. */
+  requestId: number;
+  projectFolderName: string;
+  requestDescription: ClaudeCodePermissionDescription;
+  /** Requests behind this one, from any session ("+1 waiting"). */
+  otherWaitingRequestCount: number;
 }
 
 export interface ClaudeCodeStatusPayload {
@@ -17,4 +33,7 @@ export interface ClaudeCodeStatusPayload {
   unlistedSessionCount: number;
   /** Sessions after the first that are working or need an OK ("+1" in the compact pill). */
   otherBusySessionCount: number;
+  /** The permission request waiting for Allow or Deny; while there is one, the activity is
+      the pill's alert and the open pill shows this instead of the session list. */
+  permissionAlert: ClaudeCodePermissionAlert | null;
 }

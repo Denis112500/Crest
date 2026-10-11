@@ -1,5 +1,12 @@
 /* Every height and gap here comes from frontendConstants.ts, because
    calculateClaudeCodeExpandedHeight.ts adds up the same numbers to size the open pill. */
+
+/* The slot holding the open Claude Code view (this session list, or the permission alert) takes
+   no part in the layout: its child sizes itself against the pill's expanded layer. */
+.claude-code-expanded-slot {
+  display: contents;
+}
+
 .expanded-claude-code-view {
   box-sizing: border-box;
   display: flex;

@@ -1,6 +1,8 @@
 //! Crest's end of the pipe: a thread that waits for a hook to connect (sleeping, no CPU), reads
-//! its event, answers, and waits for the next one. Hooks are answered one after another; each
-//! takes a moment, and a hook that finds the pipe busy retries.
+//! its event, hands it over with the connection as a reply to send later, and waits for the
+//! next one at once. A permission request can wait minutes for a click; every other hook keeps
+//! getting through meanwhile, each on its own pipe instance. A hook that finds the pipe busy
+//! between two connections retries.
 
 use std::fs::{File, OpenOptions};
 use std::os::windows::io::FromRawHandle;
@@ -19,7 +21,8 @@ use windows::Win32::System::Pipes::{
 use crate::backend_constants::{
     CLAUDE_CODE_HOOK_PIPE_BUFFER_BYTES, CLAUDE_CODE_HOOK_PIPE_BUSY_RETRY_COUNT, CLAUDE_CODE_HOOK_PIPE_BUSY_RETRY_DELAY,
 };
-use crate::claude_code_hook_channel::length_prefixed_message::{read_length_prefixed_message, write_length_prefixed_message};
+use crate::claude_code_hook_channel::length_prefixed_message::read_length_prefixed_message;
+use crate::claude_code_hook_channel::windows_named_pipe::named_pipe_pending_hook_reply::NamedPipePendingHookReply;
 use crate::claude_code_hook_channel::windows_named_pipe::windows_user_identity::UserOnlyPipeAccess;
 use crate::claude_code_hook_channel::{HookEventHandler, RunningHookEventServer};
 
@@ -111,8 +114,12 @@ fn serve_hook_events(
         }
         // SAFETY: the handle is ours alone from here on; the File closes it.
         let mut connected_pipe = unsafe { File::from_raw_handle(pipe_instance.0) };
-        if let Err(exchange_error) = answer_hook_process(&mut connected_pipe, &hook_event_handler) {
-            eprintln!("Crest: a Claude Code hook went away mid-exchange: {exchange_error}");
+        match read_length_prefixed_message(&mut connected_pipe) {
+            Ok(hook_event_bytes) => hook_event_handler(
+                &String::from_utf8_lossy(&hook_event_bytes),
+                Box::new(NamedPipePendingHookReply::new(connected_pipe)),
+            ),
+            Err(read_error) => eprintln!("Crest: a Claude Code hook went away mid-exchange: {read_error}"),
         }
     }
 }
@@ -138,12 +145,4 @@ fn create_pipe_instance(pipe_name: &str, pipe_access: &UserOnlyPipeAccess, is_fi
         return Err(format!("creating the pipe failed: {}", windows::core::Error::from_thread()));
     }
     Ok(pipe_instance)
-}
-
-fn answer_hook_process(connected_pipe: &mut File, hook_event_handler: &HookEventHandler) -> std::io::Result<()> {
-    let hook_event_bytes = read_length_prefixed_message(connected_pipe)?;
-    let reply_text = hook_event_handler(&String::from_utf8_lossy(&hook_event_bytes));
-    write_length_prefixed_message(connected_pipe, reply_text.as_bytes())?;
-    // On a pipe this waits until the hook has read the reply, so closing can't cut it off.
-    connected_pipe.sync_all()
 }

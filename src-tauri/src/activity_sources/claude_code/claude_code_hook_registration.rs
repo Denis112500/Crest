@@ -6,8 +6,10 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::activity_sources::claude_code::claude_code_hook_event::{STATUS_HOOK_EVENT_NAMES, TOOL_HOOK_EVENT_NAMES};
-use crate::backend_constants::CLAUDE_CODE_HOOK_ARGUMENT;
+use crate::activity_sources::claude_code::claude_code_hook_event::{
+    PERMISSION_REQUEST_HOOK_EVENT, STATUS_HOOK_EVENT_NAMES, TOOL_HOOK_EVENT_NAMES,
+};
+use crate::backend_constants::{CLAUDE_CODE_HOOK_ARGUMENT, CLAUDE_CODE_PERMISSION_HOOK_TIMEOUT};
 
 const HOOKS_SETTING_NAME: &str = "hooks";
 const EVERY_TOOL_MATCHER: &str = "*";
@@ -24,13 +26,29 @@ pub fn build_crest_hooks(crest_hook_command: &str) -> Map<String, Value> {
     let mut crest_hooks = Map::new();
     for hook_event_name in STATUS_HOOK_EVENT_NAMES {
         let crest_hook_handler = json!({ "type": "command", "command": crest_hook_command, "async": true });
-        let mut matcher_group = json!({ "hooks": [crest_hook_handler] });
-        if TOOL_HOOK_EVENT_NAMES.contains(&hook_event_name) {
-            matcher_group["matcher"] = json!(EVERY_TOOL_MATCHER);
-        }
-        crest_hooks.insert(hook_event_name.to_string(), json!([matcher_group]));
+        crest_hooks.insert(hook_event_name.to_string(), build_matcher_groups(hook_event_name, crest_hook_handler));
     }
+    // Not async: Claude Code takes this hook's answer, while showing its own dialog meanwhile
+    // (first answer wins, verified by testing in step D.0). The timeout is above Crest's own
+    // limit for a request, so Crest always lets the hook go first.
+    let permission_hook_handler = json!({
+        "type": "command",
+        "command": crest_hook_command,
+        "timeout": CLAUDE_CODE_PERMISSION_HOOK_TIMEOUT.as_secs(),
+    });
+    crest_hooks.insert(
+        PERMISSION_REQUEST_HOOK_EVENT.to_string(),
+        build_matcher_groups(PERMISSION_REQUEST_HOOK_EVENT, permission_hook_handler),
+    );
     crest_hooks
+}
+
+fn build_matcher_groups(hook_event_name: &str, crest_hook_handler: Value) -> Value {
+    let mut matcher_group = json!({ "hooks": [crest_hook_handler] });
+    if TOOL_HOOK_EVENT_NAMES.contains(&hook_event_name) {
+        matcher_group["matcher"] = json!(EVERY_TOOL_MATCHER);
+    }
+    json!([matcher_group])
 }
 
 /// Replaces Crest's earlier entries (e.g. from another install path) with the current ones.
@@ -114,6 +132,19 @@ mod tests {
         assert_eq!(claude_code_settings["hooks"]["SessionStart"][0]["hooks"][0]["async"], true);
         remove_crest_hooks(&mut claude_code_settings);
         assert_eq!(claude_code_settings, original_settings);
+    }
+
+    #[test]
+    fn the_permission_hook_waits_for_crest_for_every_tool_with_a_timeout_above_crests_own_limit() {
+        let crest_hooks = build_crest_hooks(CREST_HOOK_COMMAND);
+        let permission_matcher_group = &crest_hooks[PERMISSION_REQUEST_HOOK_EVENT][0];
+        assert_eq!(permission_matcher_group["matcher"], "*");
+        let permission_hook_handler = &permission_matcher_group["hooks"][0];
+        assert_eq!(permission_hook_handler.get("async"), None);
+        assert_eq!(permission_hook_handler["command"], CREST_HOOK_COMMAND);
+        let hook_timeout_seconds = permission_hook_handler["timeout"].as_u64().unwrap();
+        assert!(hook_timeout_seconds > crate::backend_constants::CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE.as_secs());
+        assert_eq!(crest_hooks["PostToolUseFailure"][0]["matcher"], "*");
     }
 
     #[test]

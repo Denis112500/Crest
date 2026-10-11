@@ -30,3 +30,6 @@ export const MUSIC_NEXT_TRACK_ACTION = "next-track";
 export const MUSIC_PREVIOUS_TRACK_ACTION = "previous-track";
 
 export const CLAUDE_CODE_ACTIVITY_KIND = "claude-code";
+// Followed by the request's id, so a click can only answer the request it was shown for.
+export const CLAUDE_CODE_ALLOW_PERMISSION_ACTION_PREFIX = "allow-permission:";
+export const CLAUDE_CODE_DENY_PERMISSION_ACTION_PREFIX = "deny-permission:";

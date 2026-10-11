@@ -63,6 +63,17 @@
   --claude-code-session-project-max-width: 45%;
   --claude-code-needs-permission-color: #ffc861;
   --claude-code-idle-session-color: rgba(245, 245, 247, 0.45);
+  /* Permission alert (its heights come from frontendConstants.ts). Allow is green, Deny grey,
+     so the two can't be mixed up at a glance. */
+  --claude-code-permission-header-gap: 8px;
+  --claude-code-permission-description-padding-inline: 10px;
+  --claude-code-permission-description-radius: 10px;
+  --claude-code-permission-description-background: rgba(255, 255, 255, 0.08);
+  --claude-code-command-font-family: "Cascadia Mono", Consolas, monospace;
+  --claude-code-command-font-size: 12px;
+  --claude-code-permission-button-gap: 10px;
+  --claude-code-permission-deny-background: rgba(255, 255, 255, 0.14);
+  --claude-code-permission-button-hover-brightness: 1.15;
 
   /* Playing bars */
   --playback-bar-color: #f5f5f7;

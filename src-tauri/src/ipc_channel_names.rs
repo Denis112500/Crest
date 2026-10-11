@@ -19,3 +19,8 @@ pub const MUSIC_PREVIOUS_TRACK_ACTION: &str = "previous-track";
 
 /// Activity kind of the Claude Code source.
 pub const CLAUDE_CODE_ACTIVITY_KIND: &str = "claude-code";
+
+/// Actions the Claude Code alert sends, followed by the request's id ("allow-permission:7"), so a
+/// click can only answer the request it was shown for.
+pub const CLAUDE_CODE_ALLOW_PERMISSION_ACTION_PREFIX: &str = "allow-permission:";
+pub const CLAUDE_CODE_DENY_PERMISSION_ACTION_PREFIX: &str = "deny-permission:";

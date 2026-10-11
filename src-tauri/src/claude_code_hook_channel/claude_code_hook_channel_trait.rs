@@ -1,8 +1,11 @@
 //! The trait each OS implements to carry Claude Code's hook events from the short-lived hook
 //! process to the running Crest, and an answer back, without any network.
 
-/// Called with each hook event's JSON; returns the reply for Claude Code (empty = no decision).
-pub type HookEventHandler = Box<dyn Fn(&str) -> String + Send>;
+use crate::claude_code_hook_channel::pending_hook_reply::PendingHookReply;
+
+/// Called with each hook event's JSON and the hook's reply, which may be sent later (from any
+/// thread) or dropped for "no decision".
+pub type HookEventHandler = Box<dyn Fn(&str, Box<dyn PendingHookReply>) + Send>;
 
 /// A server started by `start_hook_event_server`; stopping it ends its thread and drops the handler.
 pub trait RunningHookEventServer: Send {

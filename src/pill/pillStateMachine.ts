@@ -14,6 +14,7 @@ export class PillStateMachine {
   private pendingHoverExpandTimer: number | undefined;
   private pendingCollapseTimer: number | undefined;
   private attentionPeekEndTimer: number | undefined;
+  private isHeldOpenByAlert = false;
 
   constructor(private readonly onExpansionStateChange: (expansionState: PillExpansionState) => void) {}
 
@@ -55,7 +56,7 @@ export class PillStateMachine {
   handlePointerLeft(): void {
     this.isPointerCurrentlyOverPill = false;
     window.clearTimeout(this.pendingHoverExpandTimer);
-    if (this.currentExpansionState === "expanded") {
+    if (this.currentExpansionState === "expanded" && !this.isHeldOpenByAlert) {
       window.clearTimeout(this.pendingCollapseTimer);
       this.pendingCollapseTimer = window.setTimeout(
         () => this.transitionTo("compact"),
@@ -69,16 +70,44 @@ export class PillStateMachine {
     this.transitionTo("expanded");
   }
 
-  /** Something new (a track change): open for a few seconds, then close unless hovered. */
+  /** Something new (a track change): open for a few seconds, then close unless hovered or an
+      alert holds the pill open. */
   handleAttentionRequested(): void {
     window.clearTimeout(this.pendingCollapseTimer);
     window.clearTimeout(this.attentionPeekEndTimer);
     this.transitionTo("expanded");
+    if (this.isHeldOpenByAlert) {
+      return;
+    }
     this.attentionPeekEndTimer = window.setTimeout(() => {
-      if (!this.isPointerCurrentlyOverPill) {
+      if (!this.isPointerCurrentlyOverPill && !this.isHeldOpenByAlert) {
         this.transitionTo("compact");
       }
     }, PILL_ATTENTION_PEEK_DURATION_MILLISECONDS);
+  }
+
+  /** An alert (a permission request) leads: the pill opens and stays open until it ends, so the
+      buttons can't close under the user. When it ends, the pill closes unless hovered. */
+  setHeldOpenByAlert(isHeldOpenByAlert: boolean): void {
+    if (isHeldOpenByAlert === this.isHeldOpenByAlert) {
+      return;
+    }
+    this.isHeldOpenByAlert = isHeldOpenByAlert;
+    window.clearTimeout(this.pendingCollapseTimer);
+    window.clearTimeout(this.attentionPeekEndTimer);
+    if (isHeldOpenByAlert) {
+      window.clearTimeout(this.pendingHoverExpandTimer);
+      this.transitionTo("expanded");
+    } else if (!this.isPointerCurrentlyOverPill) {
+      this.transitionTo("compact");
+    }
+  }
+
+  /** Shown again (after a fullscreen app): an alert that is still waiting opens the pill again. */
+  handlePillRevealed(): void {
+    if (this.isHeldOpenByAlert) {
+      this.transitionTo("expanded");
+    }
   }
 
   /** The window was hidden: no pointer can be over it, and it must come back compact. */

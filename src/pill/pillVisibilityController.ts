@@ -64,6 +64,7 @@ export class PillVisibilityController {
       this.isNativeWindowShown = true;
       await requestPillWindowReveal();
       this.onPillOnScreenChange(true);
+      this.pillStateMachine.handlePillRevealed();
       await waitUntilNextFrameIsPainted();
     }
     // A hide may have been requested while the window was being shown.

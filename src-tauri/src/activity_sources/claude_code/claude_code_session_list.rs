@@ -5,6 +5,7 @@ use std::cmp::Reverse;
 
 use serde::Serialize;
 
+use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCodePermissionAlert;
 use crate::backend_constants::CLAUDE_CODE_LISTED_SESSION_MAX_COUNT;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -44,6 +45,8 @@ pub struct ClaudeCodeStatusPayload {
     /// Sessions after the first that are working or need an OK ("+1" in the compact pill);
     /// finished or idle ones don't count.
     pub other_busy_session_count: usize,
+    /// The permission request the pill asks about; the list leaves it `None`, the tracker sets it.
+    pub permission_alert: Option<ClaudeCodePermissionAlert>,
 }
 
 /// A session that has something to show, with the order of its latest event (higher = newer).
@@ -69,7 +72,7 @@ pub fn list_claude_code_sessions(mut listable_sessions: Vec<ListableClaudeCodeSe
         .take(CLAUDE_CODE_LISTED_SESSION_MAX_COUNT)
         .map(|listable_session| listable_session.session_row)
         .collect();
-    ClaudeCodeStatusPayload { listed_sessions, unlisted_session_count, other_busy_session_count }
+    ClaudeCodeStatusPayload { listed_sessions, unlisted_session_count, other_busy_session_count, permission_alert: None }
 }
 
 fn urgency_rank(session_status: ClaudeCodeSessionStatus) -> u8 {
