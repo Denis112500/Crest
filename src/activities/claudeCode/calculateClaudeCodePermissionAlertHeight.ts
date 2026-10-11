@@ -7,12 +7,12 @@ import {
   CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING,
 } from "../../frontendConstants";
 
-// How tall the permission alert is for a request shown on this many lines: the same sum the
+// How tall the permission alert is for a request shown on this many rows: the same sum the
 // flex column in claudeCodePermissionAlertView.css produces (padding, header, gap, the request's
 // box, gap, the buttons). Calculated rather than measured, like the session list's height.
-export function calculateClaudeCodePermissionAlertHeight(descriptionLineCount: number): number {
+export function calculateClaudeCodePermissionAlertHeight(descriptionRowCount: number): number {
   const descriptionHeight =
-    descriptionLineCount * CLAUDE_CODE_PERMISSION_DESCRIPTION_LINE_LOGICAL_HEIGHT +
+    descriptionRowCount * CLAUDE_CODE_PERMISSION_DESCRIPTION_LINE_LOGICAL_HEIGHT +
     2 * CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING;
   return (
     2 * CLAUDE_CODE_EXPANDED_LOGICAL_PADDING +

@@ -1,22 +1,21 @@
 import "../../styles/claudeCodePermissionAlertView.css";
 
-import { CLAUDE_CODE_PERMISSION_BUTTON_ARMING_DELAY_MILLISECONDS } from "../../frontendConstants";
-import {
-  CLAUDE_CODE_ACTIVITY_KIND,
-  CLAUDE_CODE_ALLOW_PERMISSION_ACTION_PREFIX,
-  CLAUDE_CODE_DENY_PERMISSION_ACTION_PREFIX,
-} from "../../ipc/ipcChannelNames";
-import { requestActivityAction } from "../../ipc/requestActivityAction";
 import { createSvgIconElement } from "../createSvgIconElement";
-import type { ClaudeCodePermissionAlert } from "./claudeCodeStatusTypes";
+import { createClaudeCodePermissionAnswerButtons } from "./claudeCodePermissionAnswerButtons";
+import { createClaudeCodePermissionCommandBox } from "./claudeCodePermissionCommandBox";
+import type { ClaudeCodePermissionAlert, ClaudeCodePermissionDescription } from "./claudeCodeStatusTypes";
 import { CLAUDE_CODE_TERMINAL_ICON_PATH } from "./claudeCodeTerminalIconPath";
 
 const CLAUDE_CODE_PRODUCT_NAME = "Claude Code";
 const UNKNOWN_PROJECT_FOLDER_TEXT = "Unknown folder";
+const NEW_REQUEST_HIGHLIGHT_CLASS = "is-new-request";
 
 export interface ClaudeCodePermissionAlertView {
   alertViewElement: HTMLElement;
-  showPermissionAlert(permissionAlert: ClaudeCodePermissionAlert): void;
+  /** Returns how many rows the request takes, for the open pill's height. */
+  showPermissionAlert(permissionAlert: ClaudeCodePermissionAlert): number;
+  /** The alert ended: its next request is a fresh start, not one that moved up. */
+  forgetShownRequest(): void;
   /** Disables Allow / Deny for a moment; called whenever the alert becomes visible. */
   armButtonsAfterDelay(): void;
 }
@@ -43,74 +42,61 @@ export function createClaudeCodePermissionAlertView(): ClaudeCodePermissionAlert
 
   const descriptionElement = document.createElement("div");
   descriptionElement.className = "claude-code-permission-description";
+  descriptionElement.addEventListener("animationend", () => descriptionElement.classList.remove(NEW_REQUEST_HIGHLIGHT_CLASS));
+  const actionLineElement = document.createElement("div");
+  actionLineElement.className = "claude-code-permission-action-line";
+  let isCommandShown = false;
+  const commandBox = createClaudeCodePermissionCommandBox(() => answerButtons.refreshButtons());
+  const answerButtons = createClaudeCodePermissionAnswerButtons(() => !isCommandShown || commandBox.hasWholeCommandBeenSeen());
+  alertViewElement.append(headerElement, descriptionElement, answerButtons.buttonRowElement);
 
-  const buttonRowElement = document.createElement("div");
-  buttonRowElement.className = "claude-code-permission-buttons";
+  // Returns the request's row count.
+  const showRequestDescription = (requestDescription: ClaudeCodePermissionDescription): number => {
+    descriptionElement.dataset.descriptionKind = requestDescription.descriptionKind;
+    isCommandShown = requestDescription.descriptionKind === "command";
+    if (requestDescription.descriptionKind === "action") {
+      // textContent, never innerHTML: names from Claude Code must not be able to inject markup.
+      actionLineElement.textContent = requestDescription.actionText;
+      descriptionElement.replaceChildren(actionLineElement);
+      return 1;
+    }
+    descriptionElement.replaceChildren(commandBox.commandBoxElement);
+    return commandBox.showCommand(requestDescription.commandText);
+  };
+
   let shownRequestId: number | null = null;
-  let buttonArmingTimer: number | undefined;
-  const setButtonsEnabled = (areButtonsEnabled: boolean): void => {
-    denyButton.disabled = !areButtonsEnabled;
-    allowButton.disabled = !areButtonsEnabled;
-  };
-  const createAnswerButton = (buttonText: string, actionPrefix: string): HTMLButtonElement => {
-    const answerButton = document.createElement("button");
-    answerButton.type = "button";
-    answerButton.className = "claude-code-permission-button";
-    answerButton.textContent = buttonText;
-    answerButton.addEventListener("click", () => {
-      if (shownRequestId === null) {
-        return;
-      }
-      // One answer per request: a second click could otherwise reach the next request.
-      window.clearTimeout(buttonArmingTimer);
-      setButtonsEnabled(false);
-      const permissionAction = `${actionPrefix}${shownRequestId}`;
-      requestActivityAction(CLAUDE_CODE_ACTIVITY_KIND, permissionAction).catch((actionError: unknown) => {
-        console.error(`Crest could not send "${permissionAction}" to Claude Code:`, actionError);
-      });
-    });
-    return answerButton;
-  };
-  const denyButton = createAnswerButton("Deny", CLAUDE_CODE_DENY_PERMISSION_ACTION_PREFIX);
-  const allowButton = createAnswerButton("Allow", CLAUDE_CODE_ALLOW_PERMISSION_ACTION_PREFIX);
-  allowButton.classList.add("is-allow");
-  buttonRowElement.append(denyButton, allowButton);
-  alertViewElement.append(headerElement, descriptionElement, buttonRowElement);
-
-  const armButtonsAfterDelay = (): void => {
-    window.clearTimeout(buttonArmingTimer);
-    setButtonsEnabled(false);
-    buttonArmingTimer = window.setTimeout(
-      () => setButtonsEnabled(true),
-      CLAUDE_CODE_PERMISSION_BUTTON_ARMING_DELAY_MILLISECONDS,
-    );
-  };
-
+  let shownRowCount = 1;
   return {
     alertViewElement,
-    armButtonsAfterDelay,
+    armButtonsAfterDelay: answerButtons.armAfterDelay,
+    forgetShownRequest() {
+      shownRequestId = null;
+    },
     showPermissionAlert(permissionAlert) {
-      // textContent, never innerHTML: commands and folder names must not be able to inject markup.
       projectFolderElement.textContent = permissionAlert.projectFolderName || UNKNOWN_PROJECT_FOLDER_TEXT;
       const otherWaitingCount = permissionAlert.otherWaitingRequestCount;
       waitingCountElement.textContent = otherWaitingCount > 0 ? `+${otherWaitingCount} waiting` : "";
-      const requestDescription = permissionAlert.requestDescription;
-      descriptionElement.dataset.descriptionKind = requestDescription.descriptionKind;
-      const descriptionLines =
-        requestDescription.descriptionKind === "command" ? requestDescription.commandLines : [requestDescription.actionText];
-      descriptionElement.replaceChildren(
-        ...descriptionLines.map((descriptionLine) => {
-          const descriptionLineElement = document.createElement("div");
-          descriptionLineElement.className = "claude-code-permission-description-line";
-          descriptionLineElement.textContent = descriptionLine;
-          return descriptionLineElement;
-        }),
-      );
-      // A new request (the next in the queue moved up) gets a fresh pause before clicks count.
-      if (permissionAlert.requestId !== shownRequestId) {
-        shownRequestId = permissionAlert.requestId;
-        armButtonsAfterDelay();
+      // An update for the same request (another one joined the queue) leaves the box and its
+      // scroll position alone. A new request gets a fresh pause before clicks count, and a flash
+      // when it moved up behind one just answered.
+      if (permissionAlert.requestId === shownRequestId) {
+        return shownRowCount;
       }
+      const didRequestMoveUp = shownRequestId !== null;
+      shownRequestId = permissionAlert.requestId;
+      const requestDescription = permissionAlert.requestDescription;
+      shownRowCount = showRequestDescription(requestDescription);
+      answerButtons.prepareForRequest(
+        permissionAlert.requestId,
+        requestDescription.descriptionKind === "command" && requestDescription.isCommandCut,
+      );
+      if (didRequestMoveUp) {
+        descriptionElement.classList.remove(NEW_REQUEST_HIGHLIGHT_CLASS);
+        // Next frame, so the class change restarts the animation if one is still running.
+        window.requestAnimationFrame(() => descriptionElement.classList.add(NEW_REQUEST_HIGHLIGHT_CLASS));
+      }
+      answerButtons.armAfterDelay();
+      return shownRowCount;
     },
   };
 }

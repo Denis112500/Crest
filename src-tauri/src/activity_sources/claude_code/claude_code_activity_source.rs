@@ -6,6 +6,7 @@ use std::thread;
 
 use crate::activity_core::{ActivityPublisher, ActivitySource};
 use crate::activity_sources::claude_code::claude_code_permission_answer::parse_permission_action;
+use crate::activity_sources::claude_code::claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
 use crate::activity_sources::claude_code::claude_code_status_thread::publish_claude_code_status;
 use crate::claude_code_hook_channel::{ClaudeCodeHookChannel, CurrentPlatformClaudeCodeHookChannel, RunningHookEventServer};
@@ -13,10 +14,16 @@ use crate::ipc_channel_names::CLAUDE_CODE_ACTIVITY_KIND;
 
 const CLAUDE_CODE_STATUS_THREAD_NAME: &str = "crest-claude-code-status";
 
-#[derive(Default)]
 pub struct ClaudeCodeActivitySource {
     running_hook_event_server: Option<Box<dyn RunningHookEventServer>>,
     status_message_sender: Option<Sender<ClaudeCodeStatusMessage>>,
+    permission_answering_switch: ClaudeCodePermissionAnsweringSwitch,
+}
+
+impl ClaudeCodeActivitySource {
+    pub fn new(permission_answering_switch: ClaudeCodePermissionAnsweringSwitch) -> Self {
+        Self { running_hook_event_server: None, status_message_sender: None, permission_answering_switch }
+    }
 }
 
 impl ActivitySource for ClaudeCodeActivitySource {
@@ -30,9 +37,18 @@ impl ActivitySource for ClaudeCodeActivitySource {
         let (status_message_sender, status_message_receiver) = mpsc::channel::<ClaudeCodeStatusMessage>();
         let interrupt_watch_sender = status_message_sender.clone();
         self.status_message_sender = Some(status_message_sender.clone());
+        self.permission_answering_switch.connect_status_thread(status_message_sender.clone());
+        let permission_answering_switch = self.permission_answering_switch.clone();
         thread::Builder::new()
             .name(CLAUDE_CODE_STATUS_THREAD_NAME.to_string())
-            .spawn(move || publish_claude_code_status(status_message_receiver, interrupt_watch_sender, activity_publisher))
+            .spawn(move || {
+                publish_claude_code_status(
+                    status_message_receiver,
+                    interrupt_watch_sender,
+                    activity_publisher,
+                    permission_answering_switch,
+                )
+            })
             .map_err(|error| error.to_string())?;
         let running_hook_event_server =
             CurrentPlatformClaudeCodeHookChannel::start_hook_event_server(Box::new(move |hook_event_json, hook_reply| {

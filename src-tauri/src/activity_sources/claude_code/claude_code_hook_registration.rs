@@ -22,11 +22,15 @@ pub fn build_crest_hook_command(crest_executable_path: &Path) -> String {
 }
 
 /// Crest's entries, the way they're added to `settings.json` (also shown in the settings window).
-pub fn build_crest_hooks(crest_hook_command: &str) -> Map<String, Value> {
+/// Without the permission hook (answering in the pill switched off) Crest only follows the status.
+pub fn build_crest_hooks(crest_hook_command: &str, should_add_permission_hook: bool) -> Map<String, Value> {
     let mut crest_hooks = Map::new();
     for hook_event_name in STATUS_HOOK_EVENT_NAMES {
         let crest_hook_handler = json!({ "type": "command", "command": crest_hook_command, "async": true });
         crest_hooks.insert(hook_event_name.to_string(), build_matcher_groups(hook_event_name, crest_hook_handler));
+    }
+    if !should_add_permission_hook {
+        return crest_hooks;
     }
     // Not async: Claude Code takes this hook's answer, while showing its own dialog meanwhile
     // (first answer wins, verified by testing in step D.0). The timeout is above Crest's own
@@ -52,13 +56,17 @@ fn build_matcher_groups(hook_event_name: &str, crest_hook_handler: Value) -> Val
 }
 
 /// Replaces Crest's earlier entries (e.g. from another install path) with the current ones.
-pub fn add_crest_hooks(claude_code_settings: &mut Value, crest_hook_command: &str) -> Result<(), String> {
+pub fn add_crest_hooks(
+    claude_code_settings: &mut Value,
+    crest_hook_command: &str,
+    should_add_permission_hook: bool,
+) -> Result<(), String> {
     remove_crest_hooks(claude_code_settings);
     let settings_object =
         claude_code_settings.as_object_mut().ok_or("Claude Code's settings file doesn't hold a JSON object")?;
     let hooks_by_event_name = settings_object.entry(HOOKS_SETTING_NAME).or_insert_with(|| json!({}));
     let hooks_by_event_name = hooks_by_event_name.as_object_mut().ok_or("the \"hooks\" setting isn't a JSON object")?;
-    for (hook_event_name, crest_matcher_groups) in build_crest_hooks(crest_hook_command) {
+    for (hook_event_name, crest_matcher_groups) in build_crest_hooks(crest_hook_command, should_add_permission_hook) {
         let event_matcher_groups = hooks_by_event_name.entry(hook_event_name).or_insert_with(|| json!([]));
         let event_matcher_groups = event_matcher_groups.as_array_mut().ok_or("a hook event's setting isn't a list")?;
         event_matcher_groups.extend(crest_matcher_groups.as_array().cloned().unwrap_or_default());
@@ -125,7 +133,7 @@ mod tests {
             "hooks": { "Stop": [{ "hooks": [{ "type": "command", "command": "notify-me.sh" }] }] }
         });
         let mut claude_code_settings = original_settings.clone();
-        add_crest_hooks(&mut claude_code_settings, CREST_HOOK_COMMAND).unwrap();
+        add_crest_hooks(&mut claude_code_settings, CREST_HOOK_COMMAND, true).unwrap();
         assert_eq!(claude_code_settings["model"], "opus");
         assert_eq!(claude_code_settings["hooks"]["Stop"].as_array().unwrap().len(), 2);
         assert_eq!(claude_code_settings["hooks"]["PreToolUse"][0]["matcher"], "*");
@@ -136,7 +144,7 @@ mod tests {
 
     #[test]
     fn the_permission_hook_waits_for_crest_for_every_tool_with_a_timeout_above_crests_own_limit() {
-        let crest_hooks = build_crest_hooks(CREST_HOOK_COMMAND);
+        let crest_hooks = build_crest_hooks(CREST_HOOK_COMMAND, true);
         let permission_matcher_group = &crest_hooks[PERMISSION_REQUEST_HOOK_EVENT][0];
         assert_eq!(permission_matcher_group["matcher"], "*");
         let permission_hook_handler = &permission_matcher_group["hooks"][0];
@@ -148,10 +156,22 @@ mod tests {
     }
 
     #[test]
+    fn with_answering_in_the_pill_off_there_is_no_permission_hook_and_switching_it_on_adds_one() {
+        let mut claude_code_settings = json!({});
+        add_crest_hooks(&mut claude_code_settings, CREST_HOOK_COMMAND, false).unwrap();
+        assert!(claude_code_settings["hooks"].get(PERMISSION_REQUEST_HOOK_EVENT).is_none());
+        assert_eq!(claude_code_settings["hooks"]["Stop"].as_array().unwrap().len(), 1);
+        add_crest_hooks(&mut claude_code_settings, CREST_HOOK_COMMAND, true).unwrap();
+        assert_eq!(claude_code_settings["hooks"][PERMISSION_REQUEST_HOOK_EVENT].as_array().unwrap().len(), 1);
+        add_crest_hooks(&mut claude_code_settings, CREST_HOOK_COMMAND, false).unwrap();
+        assert!(claude_code_settings["hooks"].get(PERMISSION_REQUEST_HOOK_EVENT).is_none());
+    }
+
+    #[test]
     fn adding_twice_leaves_one_set_and_removing_from_scratch_leaves_no_hooks_setting() {
         let mut claude_code_settings = json!({});
-        add_crest_hooks(&mut claude_code_settings, "\"C:/old/crest.exe\" --claude-code-hook").unwrap();
-        add_crest_hooks(&mut claude_code_settings, CREST_HOOK_COMMAND).unwrap();
+        add_crest_hooks(&mut claude_code_settings, "\"C:/old/crest.exe\" --claude-code-hook", true).unwrap();
+        add_crest_hooks(&mut claude_code_settings, CREST_HOOK_COMMAND, true).unwrap();
         assert_eq!(claude_code_settings["hooks"]["Stop"].as_array().unwrap().len(), 1);
         assert_eq!(claude_code_settings["hooks"]["Stop"][0]["hooks"][0]["command"], CREST_HOOK_COMMAND);
         remove_crest_hooks(&mut claude_code_settings);
@@ -173,6 +193,6 @@ mod tests {
 
     #[test]
     fn settings_that_are_not_an_object_are_refused() {
-        assert!(add_crest_hooks(&mut json!([1, 2]), CREST_HOOK_COMMAND).is_err());
+        assert!(add_crest_hooks(&mut json!([1, 2]), CREST_HOOK_COMMAND, true).is_err());
     }
 }

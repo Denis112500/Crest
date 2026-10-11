@@ -30,9 +30,14 @@ pub fn claude_code_settings_file_path() -> Result<PathBuf, String> {
     Ok(settings_folder.join(CLAUDE_CODE_SETTINGS_FILE_NAME))
 }
 
-pub fn add_crest_hooks_to_claude_code_settings(crest_executable_path: &Path) -> Result<(), String> {
+pub fn add_crest_hooks_to_claude_code_settings(
+    crest_executable_path: &Path,
+    should_add_permission_hook: bool,
+) -> Result<(), String> {
     let crest_hook_command = build_crest_hook_command(crest_executable_path);
-    change_claude_code_settings(|claude_code_settings| add_crest_hooks(claude_code_settings, &crest_hook_command))
+    change_claude_code_settings(|claude_code_settings| {
+        add_crest_hooks(claude_code_settings, &crest_hook_command, should_add_permission_hook)
+    })
 }
 
 pub fn remove_crest_hooks_from_claude_code_settings() -> Result<(), String> {

@@ -19,6 +19,7 @@ export const CHANGE_ALLOWED_PLAYERS_COMMAND = "change_allowed_players";
 export const CHANGE_SHOW_EVERY_PLAYER_COMMAND = "change_show_every_player";
 export const READ_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND = "read_claude_code_integration_setting";
 export const CHANGE_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND = "change_claude_code_integration_setting";
+export const CHANGE_CLAUDE_CODE_PERMISSION_ANSWERING_SETTING_COMMAND = "change_claude_code_permission_answering_setting";
 
 export const PILL_ARRANGEMENT_CHANGED_EVENT = "pill-arrangement-changed";
 export const PILL_VISIBILITY_CHANGED_EVENT = "pill-visibility-changed";

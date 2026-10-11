@@ -53,9 +53,19 @@
   background: var(--claude-code-permission-description-background);
 }
 
-/* Each line keeps its spaces (indentation in a command matters) and ends in "…" at the edge
-   instead of wrapping, so the box is exactly as tall as the height calculation says. */
-.claude-code-permission-description-line {
+/* A request that moved up in the queue flashes once. */
+.claude-code-permission-description.is-new-request {
+  animation: claude-code-permission-new-request var(--claude-code-permission-new-request-highlight-duration) ease-out;
+}
+
+@keyframes claude-code-permission-new-request {
+  from {
+    background: var(--claude-code-permission-new-request-highlight);
+  }
+}
+
+/* Another tool's request: one line, "…" at the edge. */
+.claude-code-permission-action-line {
   height: var(--claude-code-permission-description-line-height);
   line-height: var(--claude-code-permission-description-line-height);
   overflow: hidden;
@@ -66,6 +76,28 @@
 .claude-code-permission-description[data-description-kind="command"] {
   font-family: var(--claude-code-command-font-family);
   font-size: var(--claude-code-command-font-size);
+}
+
+/* A command keeps its spaces (indentation matters) and wraps at any character, as
+   estimateClaudeCodeCommandRowCount.ts assumes; past 3 rows it scrolls. Room for the thin
+   scrollbar is always kept, so the text is equally wide with or without it. */
+.claude-code-permission-command-box {
+  height: calc(var(--claude-code-command-visible-rows) * var(--claude-code-permission-description-line-height));
+  line-height: var(--claude-code-permission-description-line-height);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.claude-code-permission-command-box::-webkit-scrollbar {
+  width: var(--claude-code-permission-command-scrollbar-width);
+}
+
+.claude-code-permission-command-box::-webkit-scrollbar-thumb {
+  border-radius: calc(var(--claude-code-permission-command-scrollbar-width) / 2);
+  background: var(--claude-code-command-scrollbar-color);
 }
 
 .claude-code-permission-buttons {
@@ -98,7 +130,23 @@
   filter: brightness(var(--claude-code-permission-button-hover-brightness));
 }
 
-/* The first moment after the alert appears, and after a click: not answerable. */
+/* The first moment after the alert appears, after a click, and Allow until the whole command
+   was seen: not answerable. */
 .claude-code-permission-button:disabled {
   opacity: var(--control-button-disabled-opacity);
+}
+
+/* `hidden` must win over the flex items' own display. */
+.claude-code-permission-buttons > [hidden] {
+  display: none;
+}
+
+/* In Allow's place when the command is too long to show here. */
+.claude-code-permission-too-long-note {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--claude-code-permission-note-font-size);
+  opacity: var(--pill-secondary-text-opacity);
 }

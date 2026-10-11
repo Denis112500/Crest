@@ -93,10 +93,15 @@ pub const CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE: Duration = Duration::from_secs
 /// always ends the waiting hook itself and never answers a hook Claude Code already killed.
 pub const CLAUDE_CODE_PERMISSION_HOOK_TIMEOUT: Duration = Duration::from_secs(11 * 60);
 
-/// A command waiting for permission shows at most this many lines in the alert, each cut to
-/// this many characters (the page cuts them again to its width, with "…").
-pub const CLAUDE_CODE_PERMISSION_COMMAND_MAX_LINES: usize = 3;
-pub const CLAUDE_CODE_PERMISSION_COMMAND_LINE_MAX_CHARACTERS: usize = 160;
+/// A command waiting for permission goes to the pill whole up to this many characters; a longer
+/// one is cut there and can then only be denied from the pill. 2 % of 1,092 commands measured in
+/// local transcripts were longer (2026-10-11).
+pub const CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS: usize = 4000;
+/// A tab in a command shows as this many spaces, so the page can count its rows.
+pub const CLAUDE_CODE_PERMISSION_COMMAND_TAB_WIDTH: usize = 4;
+/// What other tools want ("Search the web for …") is cut to this many characters; the alert
+/// shows it on one line anyway.
+pub const CLAUDE_CODE_PERMISSION_ACTION_MAX_CHARACTERS: usize = 120;
 
 /// How much of a transcript's end is searched for the line saying Claude Code continued the
 /// conversation under a new session id: that line comes last, after a cost summary (681 bytes

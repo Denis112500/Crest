@@ -33,14 +33,12 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
       companionClaudeCodeView.showClaudeCodeStatus(claudeCodeStatus);
       const permissionAlert = claudeCodeStatus.permissionAlert;
       if (permissionAlert) {
-        permissionAlertView.showPermissionAlert(permissionAlert);
+        const requestRowCount = permissionAlertView.showPermissionAlert(permissionAlert);
         showInExpandedSlot(expandedSlotElement, permissionAlertView.alertViewElement);
-        const requestDescription = permissionAlert.requestDescription;
-        expandedLogicalHeight = calculateClaudeCodePermissionAlertHeight(
-          requestDescription.descriptionKind === "command" ? requestDescription.commandLines.length : 1,
-        );
+        expandedLogicalHeight = calculateClaudeCodePermissionAlertHeight(requestRowCount);
         return;
       }
+      permissionAlertView.forgetShownRequest();
       expandedClaudeCodeView.showClaudeCodeStatus(claudeCodeStatus);
       showInExpandedSlot(expandedSlotElement, expandedClaudeCodeView.expandedViewElement);
       expandedLogicalHeight = calculateClaudeCodeExpandedHeight(

@@ -6,7 +6,9 @@ mod claude_code_hook_event;
 mod claude_code_hook_registration;
 mod claude_code_integration_switch;
 mod claude_code_interrupt_watch;
+mod claude_code_permission_action_wording;
 mod claude_code_permission_answer;
+mod claude_code_permission_answering_switch;
 mod claude_code_permission_description;
 mod claude_code_permission_queue;
 mod claude_code_session_list;
@@ -20,5 +22,8 @@ mod claude_code_transcript_interrupt;
 mod transcript_tail_reader;
 
 pub use claude_code_hook_registration::{build_crest_hook_command, build_crest_hooks};
-pub use claude_code_integration_switch::{turn_claude_code_integration_off, turn_claude_code_integration_on};
+pub use claude_code_integration_switch::{
+    change_claude_code_permission_answering, turn_claude_code_integration_off, turn_claude_code_integration_on,
+};
+pub use claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
 pub use claude_code_settings_file::claude_code_settings_file_path;

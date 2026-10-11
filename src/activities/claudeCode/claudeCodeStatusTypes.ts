@@ -10,10 +10,10 @@ export interface ClaudeCodeSessionRow {
   projectFolderName: string;
 }
 
-/** A command as it will run (its first lines, the last one ending in "…" when more were left
-    out), or a short action like "Edit notes.md". */
+/** A command as it will run (lines separated by "\n", hidden characters shown as "�"), or a
+    short action like "Edit notes.md". `isCommandCut`: too long to send whole, ends in "…". */
 export type ClaudeCodePermissionDescription =
-  | { descriptionKind: "command"; commandLines: string[] }
+  | { descriptionKind: "command"; commandText: string; isCommandCut: boolean }
   | { descriptionKind: "action"; actionText: string };
 
 export interface ClaudeCodePermissionAlert {

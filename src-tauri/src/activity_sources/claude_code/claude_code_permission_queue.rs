@@ -14,6 +14,11 @@ use crate::activity_sources::claude_code::claude_code_permission_description::{
 };
 use crate::claude_code_hook_channel::{PendingHookReply, NO_HOOK_DECISION};
 
+/// Claude Code sends these through the permission hook too, but they are questions for the user:
+/// AskUserQuestion's choices and ExitPlanMode's plan can't be shown in the pill, and Allow would
+/// answer them unseen (AskUserQuestion verified by testing, 2026-10-12; ExitPlanMode by analogy).
+const TOOLS_ANSWERED_ONLY_IN_CLAUDE_CODE: [&str; 2] = ["AskUserQuestion", "ExitPlanMode"];
+
 /// The request the pill shows (mirrored in `claudeCodeStatusTypes.ts`).
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,10 +49,15 @@ pub struct ClaudeCodePermissionQueue {
 }
 
 impl ClaudeCodePermissionQueue {
+    /// A question rather than a permission is left to Claude Code: its hook ends at once.
     pub fn add_request(&mut self, hook_event: &ClaudeCodeHookEvent, hook_reply: Box<dyn PendingHookReply>, arrival_time: Instant) {
+        let tool_name = hook_event.tool_name.as_deref().unwrap_or_default();
+        if TOOLS_ANSWERED_ONLY_IN_CLAUDE_CODE.contains(&tool_name) {
+            hook_reply.send_reply(NO_HOOK_DECISION);
+            return;
+        }
         let request_id = self.next_request_id;
         self.next_request_id += 1;
-        let tool_name = hook_event.tool_name.as_deref().unwrap_or_default();
         self.pending_requests.push(PendingPermissionRequest {
             request_id,
             session_id: hook_event.session_id.clone(),
@@ -118,6 +128,11 @@ impl ClaudeCodePermissionQueue {
             request_description: oldest_request.request_description.clone(),
             other_waiting_request_count: self.pending_requests.len() - 1,
         })
+    }
+
+    /// Every session with a request waiting; each keeps "needs your OK" in the list.
+    pub fn sessions_waiting_for_an_answer(&self) -> Vec<String> {
+        self.pending_requests.iter().map(|pending| pending.session_id.clone()).collect()
     }
 
     /// `PostToolUse` has a `tool_use_id` but `PermissionRequest` doesn't, so the request is found
@@ -204,8 +219,25 @@ mod tests {
         let (permission_queue, _) = queue_with_requests(&[("a", "first"), ("b", "second")], Instant::now());
         let alert = permission_queue.describe_alert().unwrap();
         assert_eq!((alert.project_folder_name.as_str(), alert.other_waiting_request_count), ("a", 1));
-        assert_eq!(alert.request_description, ClaudeCodePermissionDescription::Command { command_lines: vec!["first".into()] });
+        assert_eq!(
+            alert.request_description,
+            ClaudeCodePermissionDescription::Command { command_text: "first".into(), is_command_cut: false }
+        );
+        assert_eq!(permission_queue.sessions_waiting_for_an_answer(), ["a", "b"]);
         assert!(ClaudeCodePermissionQueue::default().describe_alert().is_none());
+    }
+
+    #[test]
+    fn a_question_for_the_user_is_left_to_claude_code_at_once() {
+        let (mut permission_queue, sent_replies) = queue_with_requests(&[], Instant::now());
+        for question_tool_name in TOOLS_ANSWERED_ONLY_IN_CLAUDE_CODE {
+            let mut question_event = hook_event("a", PERMISSION_REQUEST_HOOK_EVENT, "");
+            question_event.tool_name = Some(question_tool_name.to_string());
+            let hook_reply = RecordedHookReply { request_label: question_tool_name.to_string(), sent_replies: Arc::clone(&sent_replies) };
+            permission_queue.add_request(&question_event, Box::new(hook_reply), Instant::now());
+        }
+        assert_eq!(replies(&sent_replies), vec![reply("AskUserQuestion", NO_HOOK_DECISION), reply("ExitPlanMode", NO_HOOK_DECISION)]);
+        assert!(permission_queue.describe_alert().is_none());
     }
 
     #[test]

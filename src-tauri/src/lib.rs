@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
 use activity_core::{ActivityArbiter, ActivitySourceRegistry, PillVisibilityController, SharedActivityArbiter};
-use activity_sources::claude_code::turn_claude_code_integration_on;
+use activity_sources::claude_code::{turn_claude_code_integration_on, ClaudeCodePermissionAnsweringSwitch};
 use activity_sources::MusicActivitySource;
 use backend_constants::PILL_WINDOW_LABEL;
 use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppRecheckTrigger, FullscreenAppWatcher};
@@ -105,15 +105,21 @@ pub fn run_crest_app() {
             let mut activity_source_registry = ActivitySourceRegistry::default();
             activity_source_registry
                 .start_and_register(Box::new(MusicActivitySource::new(Box::new(media_source))), &shared_activity_arbiter)?;
+            // Outlives the Claude Code source, which is created again at each switch-on.
+            let permission_answering_switch =
+                ClaudeCodePermissionAnsweringSwitch::new(crest_user_settings.is_claude_code_permission_answering_on);
             // Only when switched on; otherwise nothing of the integration starts.
             if crest_user_settings.is_claude_code_integration_on {
-                if let Err(integration_error) =
-                    turn_claude_code_integration_on(&mut activity_source_registry, &shared_activity_arbiter)
-                {
+                if let Err(integration_error) = turn_claude_code_integration_on(
+                    &mut activity_source_registry,
+                    &shared_activity_arbiter,
+                    &permission_answering_switch,
+                ) {
                     eprintln!("Crest: the Claude Code integration could not start: {integration_error}");
                 }
             }
             crest_app.manage(Mutex::new(activity_source_registry));
+            crest_app.manage(permission_answering_switch);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -135,6 +141,7 @@ pub fn run_crest_app() {
             settings_window::settings_window_commands::change_show_every_player,
             settings_window::claude_code_integration_commands::read_claude_code_integration_setting,
             settings_window::claude_code_integration_commands::change_claude_code_integration_setting,
+            settings_window::claude_code_integration_commands::change_claude_code_permission_answering_setting,
         ])
         .run(tauri::generate_context!())
         .expect("Crest failed to start the Tauri application");

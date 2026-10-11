@@ -36,6 +36,9 @@ pub struct CrestUserSettings {
     /// Off by default: while off, nothing of the integration runs and Claude Code's settings are
     /// untouched.
     pub is_claude_code_integration_on: bool,
+    /// "Answer permission requests in the pill": on by default (files from before 0.4.0 too);
+    /// off, the integration only follows the status.
+    pub is_claude_code_permission_answering_on: bool,
 }
 
 /// Used when there is no settings file yet, i.e. on a fresh install. Since 0.3.1 it shows every
@@ -50,6 +53,7 @@ impl Default for CrestUserSettings {
             should_launch_at_login: None,
             pill_display_name: None,
             is_claude_code_integration_on: false,
+            is_claude_code_permission_answering_on: true,
         }
     }
 }
@@ -151,6 +155,7 @@ mod tests {
         assert!(loaded_settings.allowed_media_app_identifier_fragments.is_empty());
         assert_eq!(loaded_settings.media_player_filter(), MediaPlayerFilter::EveryPlayer);
         assert_eq!(loaded_settings.pill_display_name, None);
+        assert!(loaded_settings.is_claude_code_permission_answering_on);
         fs::remove_dir_all(&test_directory).unwrap();
     }
 

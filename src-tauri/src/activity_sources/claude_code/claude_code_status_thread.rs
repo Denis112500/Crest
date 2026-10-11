@@ -12,6 +12,7 @@ use crate::activity_sources::claude_code::claude_code_hook_event::{
 };
 use crate::activity_sources::claude_code::claude_code_interrupt_watch::ClaudeCodeInterruptWatch;
 use crate::activity_sources::claude_code::claude_code_permission_answer::build_permission_hook_reply;
+use crate::activity_sources::claude_code::claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
 use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCodePermissionQueue;
 use crate::activity_sources::claude_code::claude_code_session_tracker::ClaudeCodeSessionTracker;
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
@@ -21,11 +22,13 @@ use crate::claude_code_hook_channel::{PendingHookReply, NO_HOOK_DECISION};
 
 /// Sleeps until a message arrives or the next deadline (the quietest session's silence timeout,
 /// the oldest request's maximum age). Ends on `StopPublishing`, or if starting the pipe server
-/// failed; every hook still waiting then gets "no decision".
+/// failed; every hook still waiting then gets "no decision". While answering in the pill is
+/// switched off, every request leaves right after it arrives.
 pub fn publish_claude_code_status(
     status_message_receiver: Receiver<ClaudeCodeStatusMessage>,
     interrupt_watch_sender: Sender<ClaudeCodeStatusMessage>,
     activity_publisher: ActivityPublisher,
+    permission_answering_switch: ClaudeCodePermissionAnsweringSwitch,
 ) {
     let mut session_tracker = ClaudeCodeSessionTracker::default();
     let mut permission_queue = ClaudeCodePermissionQueue::default();
@@ -64,10 +67,15 @@ pub fn publish_claude_code_status(
                 session_tracker.forget_sessions_silent_for(CLAUDE_CODE_SESSION_SILENCE_TIMEOUT, current_time);
                 permission_queue.release_requests_older_than(CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE, current_time);
             }
+            Ok(ClaudeCodeStatusMessage::PermissionAnsweringChanged) => {}
             Ok(ClaudeCodeStatusMessage::StopPublishing) | Err(RecvTimeoutError::Disconnected) => break,
         }
+        if !permission_answering_switch.is_answering_on() {
+            permission_queue.release_all_requests();
+        }
         interrupt_watch.follow_busy_sessions(session_tracker.busy_session_transcripts());
-        match session_tracker.describe_activity(permission_queue.describe_alert()) {
+        let sessions_waiting_for_an_answer = permission_queue.sessions_waiting_for_an_answer();
+        match session_tracker.describe_activity(permission_queue.describe_alert(), &sessions_waiting_for_an_answer) {
             Some(claude_code_update) => activity_publisher.publish_activity_update(claude_code_update),
             None => activity_publisher.withdraw_activity(),
         }

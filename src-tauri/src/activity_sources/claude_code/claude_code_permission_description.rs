@@ -1,73 +1,91 @@
-//! What the alert says Claude wants to do: a command as it will run (its first lines), or a short
-//! action like "Edit notes.md". Unlike the one-line tool summary, the user decides on this text,
-//! so a command isn't reduced to its first line. Files show by name only, never full paths.
+//! What the alert says Claude wants to do: a command exactly as it will run, or a short action
+//! like "Edit notes.md". The user decides on this text, so nothing in it may hide what runs:
+//! invisible and direction-changing characters show as a visible mark.
 
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::activity_sources::claude_code::claude_code_tool_summary::summarize_tool_use;
-use crate::backend_constants::{CLAUDE_CODE_PERMISSION_COMMAND_LINE_MAX_CHARACTERS, CLAUDE_CODE_PERMISSION_COMMAND_MAX_LINES};
+use crate::activity_sources::claude_code::claude_code_permission_action_wording::word_permission_action;
+use crate::backend_constants::{
+    CLAUDE_CODE_PERMISSION_ACTION_MAX_CHARACTERS, CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS,
+    CLAUDE_CODE_PERMISSION_COMMAND_TAB_WIDTH,
+};
 
 const ELLIPSIS: char = '…';
+/// Stands in for a character that would otherwise be invisible or change how the text reads.
+const HIDDEN_CHARACTER_MARK: char = '\u{FFFD}';
 
 /// Mirrored in `claudeCodeStatusTypes.ts`.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(tag = "descriptionKind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum ClaudeCodePermissionDescription {
-    /// Bash or PowerShell; the last line ends in "…" when lines were left out.
-    Command { command_lines: Vec<String> },
-    /// Every other tool, in a few words.
+    /// Bash or PowerShell. `is_command_cut`: longer than Crest sends, so the pill can't show all
+    /// of it and offers only Deny.
+    Command { command_text: String, is_command_cut: bool },
+    /// Every other tool, in a few words on one line.
     Action { action_text: String },
 }
 
 pub fn describe_permission_request(tool_name: &str, tool_input: Option<&Value>) -> ClaudeCodePermissionDescription {
-    let read_input_text = |field_name: &str| tool_input.and_then(|input| input.get(field_name)).and_then(Value::as_str);
-    let file_name = |field_name: &str| {
-        read_input_text(field_name)
-            .and_then(|file_path| file_path.rsplit(['\\', '/']).find(|part| !part.is_empty()))
-            .unwrap_or("a file")
-            .to_string()
-    };
-    let action_text = match tool_name {
-        "Bash" | "PowerShell" => match read_input_text("command").map(str::trim) {
-            Some(command_text) if !command_text.is_empty() => {
-                return ClaudeCodePermissionDescription::Command { command_lines: shorten_command(command_text) };
+    let command_text = tool_input.and_then(|input| input.get("command")).and_then(Value::as_str).map(str::trim);
+    match (tool_name, command_text) {
+        ("Bash" | "PowerShell", Some(command_text)) if !command_text.is_empty() => {
+            let visible_command_text = make_hidden_characters_visible(command_text);
+            let is_command_cut = visible_command_text.chars().count() > CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS;
+            ClaudeCodePermissionDescription::Command {
+                command_text: cut_with_ellipsis(&visible_command_text, CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS),
+                is_command_cut,
             }
-            _ => "Run a command".to_string(),
-        },
-        "Edit" | "MultiEdit" => format!("Edit {}", file_name("file_path")),
-        "NotebookEdit" => format!("Edit {}", file_name("notebook_path")),
-        "Write" => format!("Write {}", file_name("file_path")),
-        other_tool_name => summarize_tool_use(other_tool_name, tool_input),
-    };
-    ClaudeCodePermissionDescription::Action { action_text }
-}
-
-fn shorten_command(command_text: &str) -> Vec<String> {
-    let all_lines: Vec<&str> = command_text.lines().map(str::trim_end).collect();
-    let mut shown_lines: Vec<String> = all_lines
-        .iter()
-        .take(CLAUDE_CODE_PERMISSION_COMMAND_MAX_LINES)
-        .map(|command_line| shorten_line(command_line))
-        .collect();
-    if all_lines.len() > CLAUDE_CODE_PERMISSION_COMMAND_MAX_LINES {
-        if let Some(last_shown_line) = shown_lines.last_mut() {
-            if !last_shown_line.ends_with(ELLIPSIS) {
-                last_shown_line.push(' ');
-                last_shown_line.push(ELLIPSIS);
+        }
+        _ => {
+            let action_text = make_hidden_characters_visible(&word_permission_action(tool_name, tool_input)).replace('\n', " ");
+            ClaudeCodePermissionDescription::Action {
+                action_text: cut_with_ellipsis(&action_text, CLAUDE_CODE_PERMISSION_ACTION_MAX_CHARACTERS),
             }
         }
     }
-    shown_lines
 }
 
-fn shorten_line(command_line: &str) -> String {
-    if command_line.chars().count() <= CLAUDE_CODE_PERMISSION_COMMAND_LINE_MAX_CHARACTERS {
-        return command_line.to_string();
+/// Keeps line breaks (as "\n") and turns tabs into spaces; every other control character, and
+/// every character that is invisible or reorders the text around it (zero-width spaces, bidi
+/// overrides, a lone carriage return), becomes the mark, so what shows is what runs.
+fn make_hidden_characters_visible(original_text: &str) -> String {
+    let mut visible_text = String::with_capacity(original_text.len());
+    for (line_index, original_line) in original_text.split('\n').enumerate() {
+        if line_index > 0 {
+            visible_text.push('\n');
+        }
+        for line_character in original_line.strip_suffix('\r').unwrap_or(original_line).chars() {
+            match line_character {
+                '\t' => visible_text.extend(std::iter::repeat_n(' ', CLAUDE_CODE_PERMISSION_COMMAND_TAB_WIDTH)),
+                hidden_character if hidden_character.is_control() || is_invisible_or_reordering(hidden_character) => {
+                    visible_text.push(HIDDEN_CHARACTER_MARK)
+                }
+                shown_character => visible_text.push(shown_character),
+            }
+        }
     }
-    let mut shortened: String = command_line.chars().take(CLAUDE_CODE_PERMISSION_COMMAND_LINE_MAX_CHARACTERS - 1).collect();
-    shortened.push(ELLIPSIS);
-    shortened
+    visible_text
+}
+
+/// Unicode's invisible formatting characters that a terminal or a page may silently apply:
+/// soft hyphen, zero-width characters, direction marks, embeddings, overrides and isolates, the
+/// word joiner and invisible operators, the byte order mark, and the line/paragraph separators.
+fn is_invisible_or_reordering(text_character: char) -> bool {
+    matches!(
+        text_character,
+        '\u{00AD}' | '\u{061C}' | '\u{180E}' | '\u{200B}'..='\u{200F}' | '\u{2028}'..='\u{202E}'
+            | '\u{2060}'..='\u{2064}' | '\u{2066}'..='\u{206F}' | '\u{FEFF}'
+    )
+}
+
+fn cut_with_ellipsis(full_text: &str, max_characters: usize) -> String {
+    if full_text.chars().count() <= max_characters {
+        return full_text.to_string();
+    }
+    let mut cut_text: String = full_text.chars().take(max_characters - 1).collect();
+    cut_text.push(ELLIPSIS);
+    cut_text
 }
 
 #[cfg(test)]
@@ -76,37 +94,54 @@ mod tests {
 
     use super::*;
 
-    fn command_lines_of(command_text: &str) -> Vec<String> {
+    fn describe_command(command_text: &str) -> (String, bool) {
         match describe_permission_request("Bash", Some(&json!({ "command": command_text }))) {
-            ClaudeCodePermissionDescription::Command { command_lines } => command_lines,
+            ClaudeCodePermissionDescription::Command { command_text, is_command_cut } => (command_text, is_command_cut),
             other_description => panic!("expected a command, got {other_description:?}"),
         }
     }
 
     #[test]
-    fn a_short_command_shows_in_full_and_a_long_one_is_cut_with_an_ellipsis() {
-        assert_eq!(command_lines_of("cargo test\necho done\n"), vec!["cargo test", "echo done"]);
-        let five_lines = command_lines_of("one\ntwo\nthree\nfour\nfive");
-        assert_eq!(five_lines, vec!["one", "two", "three …"]);
-        let very_long_line = "x".repeat(CLAUDE_CODE_PERMISSION_COMMAND_LINE_MAX_CHARACTERS + 10);
-        let cut_line = &command_lines_of(&very_long_line)[0];
-        assert_eq!(cut_line.chars().count(), CLAUDE_CODE_PERMISSION_COMMAND_LINE_MAX_CHARACTERS);
-        assert!(cut_line.ends_with(ELLIPSIS));
+    fn a_command_is_sent_whole_up_to_the_limit_and_cut_with_a_flag_beyond_it() {
+        assert_eq!(describe_command("  cargo test\r\necho done\n"), ("cargo test\necho done".to_string(), false));
+        let longest_whole_command = "x".repeat(CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS);
+        assert_eq!(describe_command(&longest_whole_command), (longest_whole_command.clone(), false));
+        let (cut_command, is_command_cut) = describe_command(&format!("{longest_whole_command}y"));
+        assert!(is_command_cut);
+        assert_eq!(cut_command.chars().count(), CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS);
+        assert!(cut_command.ends_with(ELLIPSIS));
     }
 
     #[test]
-    fn file_tools_show_only_the_file_name_and_other_tools_a_few_words() {
-        let edit_input = json!({ "file_path": r"C:\Users\someone\project\notes.md" });
+    fn hidden_characters_in_a_command_become_visible_and_tabs_become_spaces() {
+        let (shown_command, _) = describe_command("echo safe\u{202E}fr- mr\rnext\u{200B}\n\tindented\u{1B}[0m");
+        assert_eq!(shown_command, "echo safe\u{FFFD}fr- mr\u{FFFD}next\u{FFFD}\n    indented\u{FFFD}[0m");
+    }
+
+    #[test]
+    fn other_tools_get_one_visible_line() {
+        let file_input = json!({ "file_path": "C:\\project\\evil\u{202E}txt.exe" });
         let action_of = |tool_name: &str, tool_input: Option<&Value>| describe_permission_request(tool_name, tool_input);
-        assert_eq!(action_of("Edit", Some(&edit_input)), ClaudeCodePermissionDescription::Action { action_text: "Edit notes.md".into() });
-        assert_eq!(action_of("Write", None), ClaudeCodePermissionDescription::Action { action_text: "Write a file".into() });
+        assert_eq!(
+            action_of("Edit", Some(&file_input)),
+            ClaudeCodePermissionDescription::Action { action_text: "Edit evil\u{FFFD}txt.exe".into() }
+        );
         assert_eq!(action_of("Bash", Some(&json!({ "command": "  " }))), ClaudeCodePermissionDescription::Action { action_text: "Run a command".into() });
-        assert_eq!(action_of("WebSearch", None), ClaudeCodePermissionDescription::Action { action_text: "Searching the web".into() });
+        let ClaudeCodePermissionDescription::Action { action_text } =
+            action_of("WebSearch", Some(&json!({ "query": format!("two\nlines {}", "q".repeat(200)) })))
+        else {
+            panic!("expected an action");
+        };
+        assert!(action_text.starts_with("Search the web for “two lines q"));
+        assert_eq!(action_text.chars().count(), CLAUDE_CODE_PERMISSION_ACTION_MAX_CHARACTERS);
     }
 
     #[test]
     fn the_page_gets_the_kind_and_camel_case_fields() {
         let description = describe_permission_request("Bash", Some(&json!({ "command": "ls" })));
-        assert_eq!(serde_json::to_value(description).unwrap(), json!({ "descriptionKind": "command", "commandLines": ["ls"] }));
+        assert_eq!(
+            serde_json::to_value(description).unwrap(),
+            json!({ "descriptionKind": "command", "commandText": "ls", "isCommandCut": false })
+        );
     }
 }

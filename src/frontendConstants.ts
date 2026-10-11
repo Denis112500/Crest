@@ -25,12 +25,22 @@ export const CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT = 24;
 export const CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP = 4;
 export const CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT = 16;
 
-// The permission alert: the same padding, header and gaps as above, then the request (a command
-// shows up to 3 lines, cut in Rust's CLAUDE_CODE_PERMISSION_COMMAND_MAX_LINES) in a box with
-// this inner padding, then the Allow / Deny row. 3 lines = 182, inside
-// PILL_EXPANDED_MAX_LOGICAL_HEIGHT (calculateClaudeCodePermissionAlertHeight.ts adds it up).
+// The permission alert: the same padding, header and gaps as above, then the request in a box
+// with this inner padding (a command wraps and shows up to 3 rows, scrolling past that), then
+// the Allow / Deny row. 3 rows = 182, inside PILL_EXPANDED_MAX_LOGICAL_HEIGHT
+// (calculateClaudeCodePermissionAlertHeight.ts adds it up).
 export const CLAUDE_CODE_PERMISSION_DESCRIPTION_LINE_LOGICAL_HEIGHT = 18;
 export const CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING = 6;
+export const CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING_INLINE = 10;
+export const CLAUDE_CODE_PERMISSION_COMMAND_MAX_VISIBLE_ROWS = 3;
+// The command box always keeps room for its thin scrollbar, so the text's width (and with it
+// the row estimate in estimateClaudeCodeCommandRowCount.ts) is the same with or without one.
+export const CLAUDE_CODE_PERMISSION_COMMAND_SCROLLBAR_LOGICAL_WIDTH = 6;
+// Only if the page can't measure the command font: narrower than any monospace font at its
+// size (Cascadia Mono 12 px is about 7), so the row estimate errs high.
+export const CLAUDE_CODE_COMMAND_FALLBACK_CHARACTER_LOGICAL_WIDTH = 6;
+// At some display scales a box scrolled to the end stops a fraction of a pixel short of it.
+export const CLAUDE_CODE_COMMAND_SCROLL_END_LOGICAL_TOLERANCE = 1;
 export const CLAUDE_CODE_PERMISSION_BUTTON_LOGICAL_HEIGHT = 32;
 // Allow / Deny ignore clicks this long after the alert becomes visible, so a click meant for
 // whatever was under the pointer can't land on them (decided 2026-10-10).
