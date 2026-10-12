@@ -93,8 +93,8 @@ body {
   width: calc(var(--pill-compact-width) + var(--pill-companion-segment-width));
 }
 
-/* --pill-expanded-height follows the shown activity's content; PillMorphController sets it on
-   the shell, so the expanded layer inside inherits it. */
+/* --pill-expanded-width / -height follow the open pill's tiles; PillMorphController sets them
+   on the shell, so the expanded layer inside inherits them. */
 .pill-shell.is-expanded {
   width: var(--pill-expanded-width);
   height: var(--pill-expanded-height);

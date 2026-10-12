@@ -24,6 +24,10 @@
   --album-art-companion-radius: 5px;
   --companion-claude-code-icon-size: 16px;
 
+  /* Dashboard (the open pill's tiles; restyled in the look pass) */
+  --pill-dashboard-divider-color: rgba(255, 255, 255, 0.14);
+  --pill-dashboard-divider-inset: 16px;
+
   /* Album art */
   --album-art-placeholder-background: #2c2c2e;
   --album-art-placeholder-icon-opacity: 0.55;

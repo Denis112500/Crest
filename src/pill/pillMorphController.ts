@@ -1,30 +1,34 @@
 import {
+  PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
   PILL_EXPANDED_MAX_LOGICAL_HEIGHT,
   PILL_MORPH_DURATION_MILLISECONDS,
   PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS,
 } from "../frontendConstants";
 import { requestPillInteractiveArea } from "../ipc/requestPillInteractiveArea";
-import { calculatePillInteractiveArea } from "./calculatePillInteractiveArea";
+import { calculatePillInteractiveArea, type PillShape } from "./calculatePillInteractiveArea";
 import type { PillShellElements } from "./pillShellElements";
 import type { PillExpansionState } from "./pillStateMachine";
 
 const EXPANDED_SHELL_CLASS = "is-expanded";
 const WITH_COMPANION_SHELL_CLASS = "has-companion";
+const EXPANDED_WIDTH_CSS_VARIABLE = "--pill-expanded-width";
 const EXPANDED_HEIGHT_CSS_VARIABLE = "--pill-expanded-height";
 
 /** What the content needs from the pill's shape (reported by PillContentPresenter). */
 export interface PillContentLayout {
+  expandedLogicalWidth: number;
   expandedLogicalHeight: number;
   isCompanionSegmentShown: boolean;
 }
 
-// Carries out a change of state or size in the right order. Growing (opening, taller content
-// while open, a companion appearing while compact): first enlarge the interactive area, then
-// animate, so the growing pill is never clipped. Shrinking: animate first, and only shrink the
-// interactive area once the pill has settled.
+// Carries out a change of state or size in the right order. Growing (opening, more tiles or
+// taller content while open, a companion appearing while compact): first enlarge the
+// interactive area, then animate, so the growing pill is never clipped. Shrinking: animate
+// first, and only shrink the interactive area once the pill has settled.
 export class PillMorphController {
   private settleFallbackTimer: number | undefined;
-  // Until the first activity reports its own height; the pill starts compact, so it isn't seen.
+  // Until the first activity reports its own size; the pill starts compact, so it isn't seen.
+  private expandedLogicalWidth = PILL_DASHBOARD_TILE_LOGICAL_WIDTH;
   private expandedLogicalHeight = PILL_EXPANDED_MAX_LOGICAL_HEIGHT;
   private isCompanionSegmentShown = false;
 
@@ -32,7 +36,7 @@ export class PillMorphController {
     private readonly pillShellElements: PillShellElements,
     private readonly onExpandedContentVisibilityChange: (isExpandedContentVisible: boolean) => void,
   ) {
-    this.applyExpandedHeightCssVariable();
+    this.applyExpandedSizeCssVariables();
     pillShellElements.pillShellElement.addEventListener("transitionend", (transitionEndEvent) => {
       const isSizeTransition = transitionEndEvent.propertyName === "height" || transitionEndEvent.propertyName === "width";
       if (transitionEndEvent.target === pillShellElements.pillShellElement && isSizeTransition) {
@@ -48,7 +52,7 @@ export class PillMorphController {
   }
 
   showContentLayout(pillContentLayout: PillContentLayout): void {
-    this.showExpandedContentHeight(pillContentLayout.expandedLogicalHeight);
+    this.showExpandedContentSize(pillContentLayout.expandedLogicalWidth, pillContentLayout.expandedLogicalHeight);
     this.showCompanionSegment(pillContentLayout.isCompanionSegmentShown);
   }
 
@@ -65,20 +69,29 @@ export class PillMorphController {
     this.settleAfterMorph();
   }
 
-  // The open height only shows while open; while compact, only the CSS variable changes.
-  private showExpandedContentHeight(requestedLogicalHeight: number): void {
+  // The open size only shows while open; while compact, only the CSS variables change. One
+  // side can grow while the other shrinks (a tall alert gives way to a wide, lower dashboard):
+  // the area then covers both sizes until the pill settles.
+  private showExpandedContentSize(nextLogicalWidth: number, requestedLogicalHeight: number): void {
     const nextLogicalHeight = Math.min(requestedLogicalHeight, PILL_EXPANDED_MAX_LOGICAL_HEIGHT);
-    if (nextLogicalHeight === this.expandedLogicalHeight) {
+    if (nextLogicalWidth === this.expandedLogicalWidth && nextLogicalHeight === this.expandedLogicalHeight) {
       return;
     }
-    const isGrowing = nextLogicalHeight > this.expandedLogicalHeight;
+    const isGrowing = nextLogicalWidth > this.expandedLogicalWidth || nextLogicalHeight > this.expandedLogicalHeight;
+    const isShrinking = nextLogicalWidth < this.expandedLogicalWidth || nextLogicalHeight < this.expandedLogicalHeight;
     const isExpanded = this.isExpanded();
-    this.expandedLogicalHeight = nextLogicalHeight;
     if (isExpanded && isGrowing) {
-      this.applyInteractiveArea(true).catch(reportInteractiveAreaFailure);
+      const shapeCoveringBothSizes: PillShape = {
+        expansionState: "expanded",
+        expandedLogicalWidth: Math.max(nextLogicalWidth, this.expandedLogicalWidth),
+        expandedLogicalHeight: Math.max(nextLogicalHeight, this.expandedLogicalHeight),
+      };
+      this.sendInteractiveArea(shapeCoveringBothSizes).catch(reportInteractiveAreaFailure);
     }
-    this.applyExpandedHeightCssVariable();
-    if (isExpanded && !isGrowing) {
+    this.expandedLogicalWidth = nextLogicalWidth;
+    this.expandedLogicalHeight = nextLogicalHeight;
+    this.applyExpandedSizeCssVariables();
+    if (isExpanded && isShrinking) {
       this.settleAfterMorph();
     }
   }
@@ -120,11 +133,19 @@ export class PillMorphController {
   }
 
   private applyInteractiveArea(isExpanded: boolean): Promise<void> {
-    const interactiveArea = calculatePillInteractiveArea(
+    return this.sendInteractiveArea(
       isExpanded
-        ? { expansionState: "expanded", expandedLogicalHeight: this.expandedLogicalHeight }
+        ? {
+            expansionState: "expanded",
+            expandedLogicalWidth: this.expandedLogicalWidth,
+            expandedLogicalHeight: this.expandedLogicalHeight,
+          }
         : { expansionState: "compact", isCompanionSegmentShown: this.isCompanionSegmentShown },
     );
+  }
+
+  private sendInteractiveArea(pillShape: PillShape): Promise<void> {
+    const interactiveArea = calculatePillInteractiveArea(pillShape);
     return requestPillInteractiveArea(
       interactiveArea.logicalLeft,
       interactiveArea.logicalTop,
@@ -133,11 +154,11 @@ export class PillMorphController {
     );
   }
 
-  private applyExpandedHeightCssVariable(): void {
-    this.pillShellElements.pillShellElement.style.setProperty(
-      EXPANDED_HEIGHT_CSS_VARIABLE,
-      `${this.expandedLogicalHeight}px`,
-    );
+  // Set on the shell, so the expanded layer inside inherits them.
+  private applyExpandedSizeCssVariables(): void {
+    const pillShellStyle = this.pillShellElements.pillShellElement.style;
+    pillShellStyle.setProperty(EXPANDED_WIDTH_CSS_VARIABLE, `${this.expandedLogicalWidth}px`);
+    pillShellStyle.setProperty(EXPANDED_HEIGHT_CSS_VARIABLE, `${this.expandedLogicalHeight}px`);
   }
 
   private isExpanded(): boolean {

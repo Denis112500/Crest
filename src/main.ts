@@ -52,11 +52,11 @@ async function startPill(): Promise<void> {
   // Before the visibility controller: its "pointer left" handler relies on the state
   // machine having seen the same event first.
   connectPillPointerInput(pillShellElements, pillStateMachine, () => {
-    // The pill's own click handler opens it right after; this picks what it opens on, and asks
-    // Rust to make that activity the main one (or, for news on a paused one, to mark it seen).
+    // The pill's own click handler opens the dashboard right after; this asks Rust to make the
+    // clicked activity the main one, its first tile (or, for news on a paused one, to mark it
+    // seen).
     const companionActivityKind = pillContentPresenter.currentCompanionActivityKind;
     if (companionActivityKind !== null) {
-      pillContentPresenter.showActivityInExpandedView(companionActivityKind);
       requestActivityFocus(companionActivityKind).catch(reportCompanionFocusFailure);
     }
   });
@@ -96,15 +96,11 @@ async function startPill(): Promise<void> {
       const alertActivity = pillArrangement.alertActivity;
       const hasAlertJustEnded = wasAlertLeading && alertActivity === null;
       wasAlertLeading = alertActivity !== null;
-      if (alertActivity) {
-        // Even if the pill is open on another activity (a clicked companion): the alert wins.
-        pillContentPresenter.showActivityInExpandedView(alertActivity.activityKind);
-      }
       const activityAskingForAttention = pillAttentionDetector.findActivityAskingForAttention(pillArrangement);
       // Right after an alert, whatever leads again isn't news: the answered pill just closes.
       if (activityAskingForAttention && !hasAlertJustEnded) {
-        // Before the peek opens the pill, so it opens straight to that activity at its height.
-        pillContentPresenter.showActivityInExpandedView(activityAskingForAttention.activityKind);
+        // Before the peek opens the pill, so it opens straight to that tile at its size.
+        pillContentPresenter.showNewsTile(activityAskingForAttention.activityKind);
         pillStateMachine.handleAttentionRequested();
       }
       pillStateMachine.setHeldOpenByAlert(alertActivity !== null);

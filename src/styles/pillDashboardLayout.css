@@ -1,0 +1,21 @@
+/* The open pill's tiles, side by side. Tile and divider widths come from frontendConstants.ts,
+   because pillDashboardLayout.ts adds up the same numbers to size the open pill. */
+.pill-dashboard-row {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+/* As tall as the tallest tile; a shorter view keeps its content at the top. */
+.pill-dashboard-tile {
+  flex: none;
+  width: var(--pill-dashboard-tile-width);
+  height: 100%;
+}
+
+.pill-dashboard-tile-divider {
+  flex: none;
+  width: var(--pill-dashboard-tile-divider-width);
+  margin: var(--pill-dashboard-divider-inset) 0;
+  background: var(--pill-dashboard-divider-color);
+}

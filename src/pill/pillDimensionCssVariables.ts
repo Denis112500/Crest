@@ -16,7 +16,8 @@ import {
   PILL_COMPACT_LOGICAL_WIDTH,
   PILL_COMPANION_SEGMENT_LOGICAL_WIDTH,
   PILL_CONCEAL_DURATION_MILLISECONDS,
-  PILL_EXPANDED_LOGICAL_WIDTH,
+  PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH,
+  PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
   PILL_MORPH_DURATION_MILLISECONDS,
   PILL_NOTCH_SHOULDER_LOGICAL_RADIUS,
 } from "../frontendConstants";
@@ -27,7 +28,8 @@ export function applyPillDimensionCssVariables(): void {
   rootStyle.setProperty("--pill-compact-width", `${PILL_COMPACT_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-compact-height", `${PILL_COMPACT_LOGICAL_HEIGHT}px`);
   rootStyle.setProperty("--pill-companion-segment-width", `${PILL_COMPANION_SEGMENT_LOGICAL_WIDTH}px`);
-  rootStyle.setProperty("--pill-expanded-width", `${PILL_EXPANDED_LOGICAL_WIDTH}px`);
+  rootStyle.setProperty("--pill-dashboard-tile-width", `${PILL_DASHBOARD_TILE_LOGICAL_WIDTH}px`);
+  rootStyle.setProperty("--pill-dashboard-tile-divider-width", `${PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-notch-shoulder-radius", `${PILL_NOTCH_SHOULDER_LOGICAL_RADIUS}px`);
   rootStyle.setProperty("--pill-morph-duration",`${PILL_MORPH_DURATION_MILLISECONDS}ms`);
   rootStyle.setProperty("--pill-conceal-duration", `${PILL_CONCEAL_DURATION_MILLISECONDS}ms`);

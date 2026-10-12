@@ -9,7 +9,7 @@ import {
 
 export type PillShape =
   | { expansionState: "compact"; isCompanionSegmentShown: boolean }
-  | { expansionState: "expanded"; expandedLogicalHeight: number };
+  | { expansionState: "expanded"; expandedLogicalWidth: number; expandedLogicalHeight: number };
 
 export interface PillInteractiveArea {
   logicalLeft: number;
@@ -18,9 +18,10 @@ export interface PillInteractiveArea {
   logicalHeight: number;
 }
 
-// The window is sized for the tallest open pill, so only the part the pill covers right now
-// may take the mouse; everywhere else, clicks go to the app below. The area also clips what is
-// drawn, so it includes the shoulders, and while open the spring's overshoot room.
+// The window is sized for the widest and tallest open pill, so only the part the pill covers
+// right now may take the mouse; everywhere else, clicks go to the app below (one tile open in
+// a window made for two would otherwise block about 200 px on each side). The area also clips
+// what is drawn, so it includes the shoulders, and while open the spring's overshoot room.
 export function calculatePillInteractiveArea(pillShape: PillShape): PillInteractiveArea {
   if (pillShape.expansionState === "compact") {
     const compactLogicalWidth =
@@ -33,10 +34,12 @@ export function calculatePillInteractiveArea(pillShape: PillShape): PillInteract
       logicalHeight: PILL_COMPACT_LOGICAL_HEIGHT,
     };
   }
+  const expandedNotchLogicalWidth =
+    pillShape.expandedLogicalWidth + 2 * (PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN + PILL_NOTCH_SHOULDER_LOGICAL_RADIUS);
   return {
-    logicalLeft: 0,
+    logicalLeft: (PILL_WINDOW_LOGICAL_WIDTH - expandedNotchLogicalWidth) / 2,
     logicalTop: 0,
-    logicalWidth: PILL_WINDOW_LOGICAL_WIDTH,
+    logicalWidth: expandedNotchLogicalWidth,
     logicalHeight: pillShape.expandedLogicalHeight + PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN,
   };
 }

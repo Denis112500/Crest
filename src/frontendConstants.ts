@@ -7,9 +7,18 @@ export const PILL_COMPACT_LOGICAL_HEIGHT = 36;
 // (`[ music | >_ Working ]`): room for its longest word, "Needs OK" (57 px measured), with the
 // icon and the rounded end; 220 + 108 still fits inside the open pill's width.
 export const PILL_COMPANION_SEGMENT_LOGICAL_WIDTH = 108;
-export const PILL_EXPANDED_LOGICAL_WIDTH = 380;
-// The open pill is as tall as the shown activity's content (each view set reports its own
-// height), up to this much; the window is sized for it.
+// The open pill is a dashboard: one tile per activity, side by side, with a thin divider
+// between them (layout A, decided 2026-10-12). A peek or an alert is a single tile.
+export const PILL_DASHBOARD_TILE_LOGICAL_WIDTH = 380;
+export const PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH = 1;
+// One tile per activity source that exists (music, Claude Code). A third source needs a decision
+// first: three tiles would be 1142 wide (notes, milestone E).
+export const PILL_DASHBOARD_MAX_TILE_COUNT = 2;
+export const PILL_DASHBOARD_MAX_LOGICAL_WIDTH =
+  PILL_DASHBOARD_MAX_TILE_COUNT * PILL_DASHBOARD_TILE_LOGICAL_WIDTH +
+  (PILL_DASHBOARD_MAX_TILE_COUNT - 1) * PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH;
+// The open pill is as tall as its tallest tile (each view set reports its own height), up to
+// this much; the window is sized for it.
 export const PILL_EXPANDED_MAX_LOGICAL_HEIGHT = 200;
 export const MUSIC_EXPANDED_LOGICAL_HEIGHT = 176;
 export const NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT = 96;
@@ -54,10 +63,11 @@ export const PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN = 8;
 // each side of the pill, so the window and the interactive area must include them.
 export const PILL_NOTCH_SHOULDER_LOGICAL_RADIUS = 8;
 
-// The window always has the largest open size (plus overshoot room and shoulders) and never
-// moves or resizes; only its interactive area changes (see calculatePillInteractiveArea.ts).
+// The window always has the largest open size (the widest dashboard, plus overshoot room and
+// shoulders) and never moves or resizes; only its interactive area changes (see
+// calculatePillInteractiveArea.ts).
 export const PILL_WINDOW_LOGICAL_WIDTH =
-  PILL_EXPANDED_LOGICAL_WIDTH + 2 * (PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN + PILL_NOTCH_SHOULDER_LOGICAL_RADIUS);
+  PILL_DASHBOARD_MAX_LOGICAL_WIDTH + 2 * (PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN + PILL_NOTCH_SHOULDER_LOGICAL_RADIUS);
 export const PILL_WINDOW_LOGICAL_HEIGHT = PILL_EXPANDED_MAX_LOGICAL_HEIGHT + PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN;
 
 export const PILL_MORPH_DURATION_MILLISECONDS = 600;
