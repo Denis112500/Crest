@@ -30,7 +30,8 @@ pub struct PillActivity {
 
 /// The layout of the pill (Phase 2, item 8 design): an alert takes over the whole pill;
 /// otherwise `[ main | companion ]`, and the companion stands for `other_ongoing_count`
-/// more ongoing activities ("+N").
+/// more ongoing activities ("+N"). The open pill (dashboard, milestone E) shows main,
+/// companion and `dashboard_only_activities` as tiles.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PillArrangement {
@@ -38,6 +39,11 @@ pub struct PillArrangement {
     pub main_activity: Option<PillActivity>,
     pub companion_activity: Option<PillActivity>,
     pub other_ongoing_count: usize,
+    /// Every other non-alert activity, only ever a tile in the open pill: ongoing ones by rank,
+    /// then lingering ones, most recent first. Kept apart from main and companion so no payload
+    /// (album art) crosses to the page twice; never counts for visibility, so a paused player
+    /// still can't keep the pill on screen.
+    pub dashboard_only_activities: Vec<PillActivity>,
 }
 
 impl PillArrangement {
@@ -56,7 +62,8 @@ impl PillArrangement {
 /// - companion: the next ongoing activity; failing that, next to an ongoing main one, a
 ///   lingering activity with news newer than the main one's ("Claude Code is done" next to the
 ///   music), until the main one has news of its own or the user has seen it. Otherwise lingering
-///   ones never sit next to the main one: a paused player would stay on screen forever.
+///   ones never sit next to the main one: a paused player would stay on screen forever;
+/// - dashboard only: everything else that isn't an alert, in the same ranking order.
 pub fn arrange_pill_activities(
     recorded_activities: &[&RecordedActivity],
     focused_activity_kind: Option<&str>,
@@ -80,17 +87,23 @@ pub fn arrange_pill_activities(
     });
     let mut ordered_candidates = main_candidates.into_iter();
     let main_record = ordered_candidates.next();
-    let (remaining_ongoing, remaining_lingering): (Vec<&RecordedActivity>, Vec<&RecordedActivity>) =
-        ordered_candidates.partition(|recorded| recorded.activity_update.activity_presence == ActivityPresence::Ongoing);
-    let companion_activity = remaining_ongoing
-        .first()
+    let remaining_candidates: Vec<&RecordedActivity> = ordered_candidates.collect();
+    let (remaining_ongoing, remaining_lingering): (Vec<&RecordedActivity>, Vec<&RecordedActivity>) = remaining_candidates
+        .iter()
         .copied()
-        .or_else(|| find_notice_companion(main_record, &remaining_lingering))
-        .map(place_in_pill);
+        .partition(|recorded| recorded.activity_update.activity_presence == ActivityPresence::Ongoing);
+    let companion_record =
+        remaining_ongoing.first().copied().or_else(|| find_notice_companion(main_record, &remaining_lingering));
+    let dashboard_only_activities = remaining_candidates
+        .iter()
+        .filter(|recorded| companion_record.is_none_or(|companion| companion.activity_kind != recorded.activity_kind))
+        .map(|recorded| place_in_pill(recorded))
+        .collect();
     let main_activity = main_record.map(place_in_pill);
+    let companion_activity = companion_record.map(place_in_pill);
     let other_ongoing_count = remaining_ongoing.len().saturating_sub(1);
 
-    PillArrangement { alert_activity, main_activity, companion_activity, other_ongoing_count }
+    PillArrangement { alert_activity, main_activity, companion_activity, other_ongoing_count, dashboard_only_activities }
 }
 
 /// The lingering activity with the newest news, if that is newer than the main one's and the
@@ -145,6 +158,10 @@ mod tests {
 
     fn kind_of(pill_activity: &Option<PillActivity>) -> Option<&'static str> {
         pill_activity.as_ref().map(|placed| placed.activity_kind)
+    }
+
+    fn dashboard_only_kinds(arrangement: &PillArrangement) -> Vec<&'static str> {
+        arrangement.dashboard_only_activities.iter().map(|placed| placed.activity_kind).collect()
     }
 
     #[test]
@@ -271,5 +288,53 @@ mod tests {
         let finished_session = with_news(recorded("claude-code", ActivityPresence::Lingering, 40, 2), 2);
         let arrangement = arrange_pill_activities(&[&music, &timer, &finished_session], None);
         assert_eq!(kind_of(&arrangement.companion_activity), Some("timer"));
+    }
+
+    #[test]
+    fn a_paused_activity_without_news_is_a_dashboard_tile_only() {
+        let paused_music = recorded("music", ActivityPresence::Lingering, 50, 0);
+        let claude_code = recorded("claude-code", ActivityPresence::Ongoing, 40, 1);
+        let arrangement = arrange_pill_activities(&[&paused_music, &claude_code], None);
+        assert_eq!(kind_of(&arrangement.main_activity), Some("claude-code"));
+        assert_eq!(arrangement.companion_activity, None);
+        assert_eq!(dashboard_only_kinds(&arrangement), vec!["music"]);
+    }
+
+    #[test]
+    fn main_and_companion_are_never_dashboard_only() {
+        let music = with_news(recorded("music", ActivityPresence::Ongoing, 50, 3), 0);
+        let finished_session = with_news(recorded("claude-code", ActivityPresence::Lingering, 40, 4), 4);
+        let arrangement = arrange_pill_activities(&[&music, &finished_session], None);
+        assert_eq!(kind_of(&arrangement.companion_activity), Some("claude-code"));
+        assert!(arrangement.dashboard_only_activities.is_empty());
+
+        let claude_code = recorded("claude-code", ActivityPresence::Ongoing, 60, 5);
+        assert!(arrange_pill_activities(&[&music, &claude_code], None).dashboard_only_activities.is_empty());
+    }
+
+    #[test]
+    fn dashboard_only_activities_list_ongoing_by_rank_then_lingering_most_recent_first() {
+        let music = recorded("music", ActivityPresence::Ongoing, 50, 0);
+        let claude_code = recorded("claude-code", ActivityPresence::Ongoing, 60, 1);
+        let timer = recorded("timer", ActivityPresence::Ongoing, 30, 2);
+        let podcast = recorded("podcast", ActivityPresence::Ongoing, 40, 3);
+        let older_paused = recorded("radio", ActivityPresence::Lingering, 90, 4);
+        let newer_paused = recorded("audiobook", ActivityPresence::Lingering, 10, 5);
+        let arrangement =
+            arrange_pill_activities(&[&older_paused, &timer, &music, &newer_paused, &claude_code, &podcast], None);
+        assert_eq!(kind_of(&arrangement.main_activity), Some("claude-code"));
+        assert_eq!(kind_of(&arrangement.companion_activity), Some("music"));
+        assert_eq!(dashboard_only_kinds(&arrangement), vec!["podcast", "timer", "audiobook", "radio"]);
+        assert_eq!(arrangement.other_ongoing_count, 2);
+    }
+
+    #[test]
+    fn an_alert_is_never_a_dashboard_tile() {
+        let paused_music = recorded("music", ActivityPresence::Lingering, 50, 0);
+        let permission_request = recorded("claude-code", ActivityPresence::Alert, 90, 1);
+        let arrangement = arrange_pill_activities(&[&paused_music, &permission_request], None);
+        assert_eq!(kind_of(&arrangement.alert_activity), Some("claude-code"));
+        assert_eq!(kind_of(&arrangement.main_activity), Some("music"));
+        assert!(arrangement.dashboard_only_activities.is_empty());
     }
 }

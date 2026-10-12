@@ -18,4 +18,6 @@ export interface PillArrangement {
   companionActivity: PillActivity | null;
   /** Ongoing activities beyond main and companion (the companion shows "+N"). */
   otherOngoingCount: number;
+  /** Every other non-alert activity: only a tile in the open pill, after main and companion. */
+  dashboardOnlyActivities: PillActivity[];
 }
