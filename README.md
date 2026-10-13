@@ -122,6 +122,7 @@ Crest/
 │  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek, held open by an alert)
 │  │  ├─ pillPointerInput.ts           mouse events → state machine; a click on the companion's mark
 │  │  ├─ pillMorphController.ts        animates a state or height change and keeps the interactive area in step
+│  │  ├─ pillMorphSettleDetector.ts    says when a size animation has ended (its event, or a timer if it never comes)
 │  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse, compact or open at a given height
 │  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window
 │  │  ├─ pillVisibilityTypes.ts        the visibility Rust sends (visible? fullscreen app in front?)
@@ -150,6 +151,7 @@ Crest/
 │  │  │  ├─ estimateClaudeCodeCommandRowCount.ts  how many rows a command wraps into (sizes the box)
 │  │  │  ├─ calculateClaudeCodePermissionAlertHeight.ts  the alert's height for the request's rows
 │  │  │  ├─ describeClaudeCodeSessionStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Needs your OK"
+│  │  │  ├─ claudeCodeProductName.ts     the name both Claude Code headers show
 │  │  │  └─ claudeCodeTerminalIconPath.ts  a plain ">_" (not Anthropic's logo)
 │  │  └─ music/
 │  │     ├─ nowPlayingTypes.ts       the music payload's shape
@@ -227,7 +229,8 @@ Crest/
       │  │  ├─ claude_code_permission_file_path.rs  a requested file from the project folder, else its full path with "~" (unit-tested)
       │  │  ├─ claude_code_permission_answering_switch.rs  "Answer permission requests in the pill", shared with the status thread
       │  │  ├─ claude_code_hook_event.rs          the hook fields Crest reads; which events it asks for
-      │  │  ├─ claude_code_session_tracker.rs     every session's state from its hook events; news counter (pure, unit-tested)
+      │  │  ├─ claude_code_session_tracker.rs     every session, its order, the news counter, the silence timeout (pure, unit-tested)
+      │  │  ├─ claude_code_tracked_session.rs     one session's state and how each event changes it
       │  │  ├─ claude_code_session_list.rs        the sessions the pill lists: order, how many, "+N" (pure, unit-tested)
       │  │  ├─ claude_code_tool_summary.rs        "Editing notes.md", "Running cargo test" (unit-tested)
       │  │  ├─ claude_code_hook_registration.rs   adds/removes Crest's hooks in Claude Code's settings, nothing else (unit-tested)
@@ -237,7 +240,8 @@ Crest/
       │  │  ├─ claude_code_interrupt_watch.rs     while a session is busy: watches its transcript for an interrupt or a deny
       │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt line (Claude Code sends no hook for it; unit-tested)
       │  │  ├─ claude_code_transcript_continuation.rs  a session Claude Code continued under a new id leaves the list (unit-tested)
-      │  │  └─ transcript_tail_reader.rs          reads only the lines added since the last look (unit-tested)
+      │  │  ├─ transcript_tail_reader.rs          reads only the lines added since the last look (unit-tested)
+      │  │  └─ last_path_part.rs                  a project folder's or file's name from its path (unit-tested)
       │  └─ music/
       │     ├─ mod.rs
       │     ├─ music_activity_source.rs     media snapshots → music activity
