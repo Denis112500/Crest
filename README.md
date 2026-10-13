@@ -185,8 +185,10 @@ Crest/
    │  ├─ default.json           what the pill page may call
    │  └─ settings_window.json   what the settings page may call
    ├─ icons/                    app icons generated from crest-icon-source.svg (`npx tauri icon ...`)
+   ├─ windows/
+   │  └─ crest_installer_hooks.nsh  the uninstaller's extra step: take Crest's hooks out of Claude Code's settings
    └─ src/
-      ├─ main.rs                program entry; `--claude-code-hook` runs the hook and exits before Tauri starts
+      ├─ main.rs                program entry; `--claude-code-hook` runs the hook, `--remove-claude-code-hooks` removes the hooks (for the uninstaller), both exit before Tauri starts
       ├─ lib.rs                 wires the app: plugins, pill window, core, activity sources, commands
       ├─ backend_constants.rs   every Rust constant (windows, settings, priorities, timings)
       ├─ ipc_channel_names.rs   event, activity-kind and action names shared with the frontend
@@ -221,7 +223,8 @@ Crest/
       │  │  ├─ claude_code_permission_queue.rs    permission requests waiting for Allow / Deny, each hook answered once (pure, unit-tested)
       │  │  ├─ claude_code_permission_answer.rs   the alert's button actions and the hook's allow / deny JSON (unit-tested)
       │  │  ├─ claude_code_permission_description.rs  what the alert shows: the whole command, hidden characters made visible (unit-tested)
-      │  │  ├─ claude_code_permission_action_wording.rs  other tools in a few words: "Edit notes.md", "Open github.com" (unit-tested)
+      │  │  ├─ claude_code_permission_action_wording.rs  other tools in a few words: "Edit src\main.ts", "Open github.com" (unit-tested)
+      │  │  ├─ claude_code_permission_file_path.rs  a requested file from the project folder, else its full path with "~" (unit-tested)
       │  │  ├─ claude_code_permission_answering_switch.rs  "Answer permission requests in the pill", shared with the status thread
       │  │  ├─ claude_code_hook_event.rs          the hook fields Crest reads; which events it asks for
       │  │  ├─ claude_code_session_tracker.rs     every session's state from its hook events; news counter (pure, unit-tested)
@@ -354,22 +357,24 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 Not in a release yet (coming in 0.4.0); available when running from source. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch, green while working, amber when it needs you, grey when done (hover it for the status, click it to bring Claude Code forward); opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
 
-**Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as an alert with the project folder, the command (or "Edit notes.md", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
+**Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as an alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 
 - the buttons ignore clicks for half a second after the alert appears or the next request moves up (which also flashes once);
 - a command longer than 3 rows scrolls, and Allow works only once you've scrolled to its end;
 - a command too long to send to the pill (over 4,000 characters) can only be denied there: answer it in Claude Code;
 - invisible characters and characters that change the text's direction show as `�`, so what you read is what runs;
-- a web page is named by its real host (`https://github.com@evil.example/` shows as evil.example).
+- a web page is named by its real host (`https://github.com@evil.example/` shows as evil.example);
+- a file is named by where it is: from the project folder when it's inside it (`Edit src\main.ts`), else by its full path, with your home folder as `~` (`Edit ~\.claude\settings.json`).
 
 Claude Code's own deny and ask rules still apply after an Allow from the pill. Claude's questions to you (AskUserQuestion) and plan approval stay in Claude Code: the pill only says the session needs you.
 
-**What it changes.** Switching on adds hook entries to Claude Code's user settings (`~/.claude/settings.json`); the settings window shows exactly which before you switch, keeps a copy of the file first, and switching off removes only Crest's entries. Each hook runs `crest.exe --claude-code-hook`, which hands the event to the running Crest through a named pipe that only your Windows user can open (the hook also checks the pipe belongs to your user) and exits. Nothing leaves your PC: no network, no account. A Claude Code session keeps the hooks it read when it started, so after switching on (or changing the second switch) restart the sessions that are already running.
+**What it changes.** Switching on adds hook entries to Claude Code's user settings (`~/.claude/settings.json`); the settings window shows exactly which before you switch, keeps a copy of the file first, and switching off (or uninstalling Crest) removes only Crest's entries. Each hook runs `crest.exe --claude-code-hook`, which hands the event to the running Crest through a named pipe that only your Windows user can open (the hook also checks the pipe belongs to your user) and exits. Nothing leaves your PC: no network, no account. A Claude Code session keeps the hooks it read when it started, so after switching on (or changing the second switch) restart the sessions that are already running.
 
 ## Known limits
 
 - A prompt cancelled with Esc right after sending it leaves the pill on "Working" until the session's next prompt, or for up to 10 minutes: Claude Code reports no event for it.
 - A terminal closed hard (without ending Claude Code) stays in the session list for up to 10 minutes.
+- A single tool that runs longer than 10 minutes (a long build or test run) sends no events meanwhile, so its session leaves the pill until the tool finishes.
 - While a fullscreen app covers the pill's monitor, the pill (and a permission alert) is hidden: answer in Claude Code.
 - Plugging in or unplugging a monitor needs a restart of Crest to place the pill again.
 
