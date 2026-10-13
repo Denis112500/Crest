@@ -16,10 +16,33 @@
   --pill-compact-letter-spacing: 0.06em;
   --pill-expanded-letter-spacing: 0.04em;
   --pill-title-letter-spacing: 0.05em;
-  --pill-expanded-corner-radius: 30px;
   --pill-content-fade-duration: 180ms;
-  /* A damped spring (damping ratio 0.75, about 3% overshoot), sampled into CSS linear(). */
-  --pill-spring-easing: linear(0, 0.036, 0.123, 0.239, 0.365, 0.489, 0.604, 0.705, 0.79, 0.86, 0.914, 0.955, 0.985, 1.005, 1.018, 1.025, 1.028, 1.028, 1.026, 1.023, 1.02, 1.016, 1.013, 1.01, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 0.999, 1);
+  /* The glide (design phase, round 5): ease-in-out without overshoot. */
+  --pill-glide-easing: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* The Visor (design phase, round 2): the sides slope inward below a straight bit under each
+     shoulder, and the bottom corners are soft. Slope (from frontendConstants.ts, it affects the
+     layout) and corners grow while the pill opens. */
+  --pill-visor-shoulder-drop: 10px;
+  --pill-visor-compact-corner-width: 14px;
+  --pill-visor-compact-corner-height: 8px;
+  --pill-visor-expanded-corner-width: 28px;
+  --pill-visor-expanded-corner-height: 16px;
+
+  /* The light along the Visor's lower edge and the underglow on the screen below it. The
+     colours are Starlight for now (G.2); the light rule sets them later (G.3). Offset plus
+     twice the blur must stay inside PILL_UNDERGLOW_LOGICAL_MARGIN (12 px), or the window
+     region cuts the glow off. */
+  --pill-light-start-color: #cfe3ff;
+  --pill-light-middle-color: #ffffff;
+  --pill-light-end-color: #cfe3ff;
+  --pill-light-fade-length: 2%;
+  --pill-light-full-from: 18%;
+  --pill-light-full-until: 82%;
+  --pill-light-ring-thickness: 2px;
+  --pill-underglow-offset: 3px;
+  --pill-underglow-blur: 4px;
+  --pill-underglow-opacity: 0.72;
 
   /* Companion mark (at the end of the compact pill). The slot is as wide as the cover, the
      larger of the two marks; the hover disc matches the control buttons' hover. */
@@ -48,7 +71,8 @@
   --album-art-spinner-rotation-duration: 800ms;
 
   /* Compact music view */
-  --compact-music-padding-start: 7px;
+  /* Clear of the Visor's sloped side, which is about 8 px in where the cover ends. */
+  --compact-music-padding-start: 12px;
   --compact-music-padding-end: 14px;
   --compact-music-gap: 10px;
 

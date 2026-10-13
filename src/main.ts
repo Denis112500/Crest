@@ -3,6 +3,7 @@
 
 import "./styles/designTokens.css";
 import "./styles/pillShell.css";
+import "./styles/pillVisorOutline.css";
 
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";

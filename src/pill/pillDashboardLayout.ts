@@ -1,7 +1,11 @@
 import "../styles/pillDashboardLayout.css";
 
 import type { ActivityViewSet } from "../activities/activityViewSet";
-import { PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH, PILL_DASHBOARD_TILE_LOGICAL_WIDTH } from "../frontendConstants";
+import {
+  PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH,
+  PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
+  PILL_VISOR_EXPANDED_LOGICAL_SLOPE,
+} from "../frontendConstants";
 
 export interface PillDashboardSize {
   logicalWidth: number;
@@ -21,7 +25,8 @@ export class PillDashboardLayout {
     expandedLayerElement.append(this.dashboardRowElement);
   }
 
-  /** Shows these views as tiles, in this order; returns the size the open pill needs for them. */
+  /** Shows these views as tiles, in this order; returns the size the open pill needs for them:
+      the tiles plus the Visor's slope on each side (the expanded layer pads them in by it). */
   showTiles(tileViewSets: ActivityViewSet[]): PillDashboardSize {
     const rowChildElements = tileViewSets.flatMap((tileViewSet, tileIndex) => {
       const tileElement = this.findTileElement(tileViewSet.expandedViewElement);
@@ -36,7 +41,8 @@ export class PillDashboardLayout {
     return {
       logicalWidth:
         tileViewSets.length * PILL_DASHBOARD_TILE_LOGICAL_WIDTH +
-        Math.max(0, tileViewSets.length - 1) * PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH,
+        Math.max(0, tileViewSets.length - 1) * PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH +
+        2 * PILL_VISOR_EXPANDED_LOGICAL_SLOPE,
       logicalHeight: Math.max(0, ...tileViewSets.map((tileViewSet) => tileViewSet.expandedViewLogicalHeight())),
     };
   }

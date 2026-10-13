@@ -55,22 +55,31 @@ export const CLAUDE_CODE_PERMISSION_BUTTON_LOGICAL_HEIGHT = 32;
 // whatever was under the pointer can't land on them (decided 2026-10-10).
 export const CLAUDE_CODE_PERMISSION_BUTTON_ARMING_DELAY_MILLISECONDS = 500;
 
-// The spring overshoots its target by about 3%; this much spare room around the expanded
-// pill keeps the overshoot from being cut off by the window edge.
-export const PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN = 8;
-
-// The curved "shoulders" that join the notch to the screen edge stick out this far on
+// The Visor's shoulders curve from the screen edge into its sides; they stick out this far on
 // each side of the pill, so the window and the interactive area must include them.
-export const PILL_NOTCH_SHOULDER_LOGICAL_RADIUS = 8;
+export const PILL_NOTCH_SHOULDER_LOGICAL_WIDTH = 16;
 
-// The window always has the largest open size (the widest dashboard, plus overshoot room and
-// shoulders) and never moves or resizes; only its interactive area changes (see
-// calculatePillInteractiveArea.ts).
+// How far the Visor's sides slope inward from top to bottom. Open, the pill is wider than its
+// tiles by this much on each side and the tiles sit inside it, so no content runs into the
+// sloped sides (the alert's buttons did, 2026-10-14).
+export const PILL_VISOR_COMPACT_LOGICAL_SLOPE = 8;
+export const PILL_VISOR_EXPANDED_LOGICAL_SLOPE = 16;
+
+// The underglow (the pill's light falling onto the screen) spreads this far beside and below
+// the pill. Windows only draws inside the interactive area (SetWindowRgn), so the area must
+// include it; kept small, because Crest also takes the clicks there (decided 2026-10-14).
+// designTokens.css keeps the glow's offset and blur inside this margin.
+export const PILL_UNDERGLOW_LOGICAL_MARGIN = 12;
+
+// The window always has the largest open size (the widest dashboard, plus the Visor's slopes,
+// shoulders and the underglow) and never moves or resizes; only its interactive area changes
+// (see calculatePillInteractiveArea.ts). The glide doesn't overshoot, so no spare room is needed.
 export const PILL_WINDOW_LOGICAL_WIDTH =
-  PILL_DASHBOARD_MAX_LOGICAL_WIDTH + 2 * (PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN + PILL_NOTCH_SHOULDER_LOGICAL_RADIUS);
-export const PILL_WINDOW_LOGICAL_HEIGHT = PILL_EXPANDED_MAX_LOGICAL_HEIGHT + PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN;
+  PILL_DASHBOARD_MAX_LOGICAL_WIDTH +
+  2 * (PILL_VISOR_EXPANDED_LOGICAL_SLOPE + PILL_NOTCH_SHOULDER_LOGICAL_WIDTH + PILL_UNDERGLOW_LOGICAL_MARGIN);
+export const PILL_WINDOW_LOGICAL_HEIGHT = PILL_EXPANDED_MAX_LOGICAL_HEIGHT + PILL_UNDERGLOW_LOGICAL_MARGIN;
 
-export const PILL_MORPH_DURATION_MILLISECONDS = 600;
+export const PILL_MORPH_DURATION_MILLISECONDS = 560;
 // Fade-and-shrink when the pill hides, and the reverse when it appears.
 export const PILL_CONCEAL_DURATION_MILLISECONDS = 260;
 // If the browser skips the transitionend event (e.g. nothing actually changed), the

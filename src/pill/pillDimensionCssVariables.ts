@@ -19,7 +19,9 @@ import {
   PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH,
   PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
   PILL_MORPH_DURATION_MILLISECONDS,
-  PILL_NOTCH_SHOULDER_LOGICAL_RADIUS,
+  PILL_NOTCH_SHOULDER_LOGICAL_WIDTH,
+  PILL_VISOR_COMPACT_LOGICAL_SLOPE,
+  PILL_VISOR_EXPANDED_LOGICAL_SLOPE,
 } from "../frontendConstants";
 
 // Lets the CSS use the same numbers as the TypeScript (and therefore as Rust).
@@ -30,8 +32,10 @@ export function applyPillDimensionCssVariables(): void {
   rootStyle.setProperty("--pill-companion-mark-width", `${PILL_COMPANION_MARK_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-dashboard-tile-width", `${PILL_DASHBOARD_TILE_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-dashboard-tile-divider-width", `${PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH}px`);
-  rootStyle.setProperty("--pill-notch-shoulder-radius", `${PILL_NOTCH_SHOULDER_LOGICAL_RADIUS}px`);
-  rootStyle.setProperty("--pill-morph-duration",`${PILL_MORPH_DURATION_MILLISECONDS}ms`);
+  rootStyle.setProperty("--pill-notch-shoulder-width", `${PILL_NOTCH_SHOULDER_LOGICAL_WIDTH}px`);
+  rootStyle.setProperty("--pill-visor-compact-slope", `${PILL_VISOR_COMPACT_LOGICAL_SLOPE}px`);
+  rootStyle.setProperty("--pill-visor-expanded-slope", `${PILL_VISOR_EXPANDED_LOGICAL_SLOPE}px`);
+  rootStyle.setProperty("--pill-morph-duration", `${PILL_MORPH_DURATION_MILLISECONDS}ms`);
   rootStyle.setProperty("--pill-conceal-duration", `${PILL_CONCEAL_DURATION_MILLISECONDS}ms`);
   rootStyle.setProperty("--claude-code-expanded-padding", `${CLAUDE_CODE_EXPANDED_LOGICAL_PADDING}px`);
   rootStyle.setProperty("--claude-code-expanded-header-height", `${CLAUDE_CODE_EXPANDED_HEADER_LOGICAL_HEIGHT}px`);
