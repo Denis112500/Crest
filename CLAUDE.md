@@ -26,6 +26,7 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 - `notes/fullscreen-detection.md`: the pill hides or doesn't appear unexpectedly.
 - `notes/music-smtc.md`: the music activity, players, album art, buttons.
 - `notes/settings-window.md`: the settings window, launch at login, players, display choice.
+- `notes/design-spec.md`: the chosen look (Gauges): tokens, shapes, sizes, light rule, motion, build milestones G.1–G.6.
 - `notes/release-and-install.md`: before a release, an installer or autostart work.
 - `notes/measurements.md`: before measuring memory or CPU.
 - `notes/app-architecture.md`: changing the core (arbiter, sources, IPC).
