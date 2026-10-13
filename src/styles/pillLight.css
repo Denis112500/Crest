@@ -1,0 +1,131 @@
+/* The pill's light: the lit lower edge (.pill-light-ring) and the underglow below it, both
+   shaped by pillVisorOutline.css. pillLightController.ts sets the colours on the notch. Each lit
+   layer draws the current light in ::before and, during a sweep, the incoming light in ::after;
+   two masks hand the edge over from one to the other along the moving front. */
+
+@property --pill-light-start-color { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --pill-light-middle-color { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --pill-light-end-color { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --pill-light-strength { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --pill-light-incoming-start-color { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --pill-light-incoming-middle-color { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --pill-light-incoming-end-color { syntax: "<color>"; inherits: true; initial-value: transparent; }
+@property --pill-light-incoming-strength { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --pill-light-sweep-position { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+
+.pill-light-ring::before,
+.pill-light-ring::after,
+.pill-underglow-shape::before,
+.pill-underglow-shape::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* The light fades out at both ends, so it reads as a glow along the edge, not a stripe; the
+   strength dims all of it (paused music, a waiting session). */
+.pill-light-ring::before,
+.pill-underglow-shape::before {
+  background: linear-gradient(
+    90deg,
+    transparent var(--pill-light-fade-length),
+    color-mix(in srgb, var(--pill-light-start-color) calc(var(--pill-light-strength) * 100%), transparent)
+      var(--pill-light-full-from),
+    color-mix(in srgb, var(--pill-light-middle-color) calc(var(--pill-light-strength) * 100%), transparent) 50%,
+    color-mix(in srgb, var(--pill-light-end-color) calc(var(--pill-light-strength) * 100%), transparent)
+      var(--pill-light-full-until),
+    transparent calc(100% - var(--pill-light-fade-length))
+  );
+  /* A strength-only change (play / pause) fades; colour changes come as the sweep. */
+  transition:
+    --pill-light-start-color var(--pill-light-fade-duration) ease,
+    --pill-light-middle-color var(--pill-light-fade-duration) ease,
+    --pill-light-end-color var(--pill-light-fade-duration) ease,
+    --pill-light-strength var(--pill-light-fade-duration) ease;
+}
+
+/* The incoming light, led by a bright front. */
+.pill-light-ring::after,
+.pill-underglow-shape::after {
+  display: none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--pill-light-sweep-position) - var(--pill-light-sweep-front-width)),
+      var(--pill-light-sweep-front-color) var(--pill-light-sweep-position),
+      transparent var(--pill-light-sweep-position)
+    ),
+    linear-gradient(
+      90deg,
+      transparent var(--pill-light-fade-length),
+      color-mix(in srgb, var(--pill-light-incoming-start-color) calc(var(--pill-light-incoming-strength) * 100%), transparent)
+        var(--pill-light-full-from),
+      color-mix(in srgb, var(--pill-light-incoming-middle-color) calc(var(--pill-light-incoming-strength) * 100%), transparent)
+        50%,
+      color-mix(in srgb, var(--pill-light-incoming-end-color) calc(var(--pill-light-incoming-strength) * 100%), transparent)
+        var(--pill-light-full-until),
+      transparent calc(100% - var(--pill-light-fade-length))
+    );
+  mask-image: linear-gradient(90deg, #000 var(--pill-light-sweep-position), transparent var(--pill-light-sweep-position));
+}
+
+.pill-notch.is-sweeping-light {
+  animation: pill-light-sweep var(--pill-light-sweep-duration) var(--pill-glide-easing) forwards;
+}
+
+@keyframes pill-light-sweep {
+  from {
+    --pill-light-sweep-position: var(--pill-light-sweep-start-position);
+  }
+  to {
+    --pill-light-sweep-position: var(--pill-light-sweep-end-position);
+  }
+}
+
+.pill-notch.is-sweeping-light .pill-light-ring::after,
+.pill-notch.is-sweeping-light .pill-underglow-shape::after {
+  display: block;
+}
+
+/* Where the incoming light has arrived, the current light is gone (it may be brighter). */
+.pill-notch.is-sweeping-light .pill-light-ring::before,
+.pill-notch.is-sweeping-light .pill-underglow-shape::before {
+  mask-image: linear-gradient(90deg, transparent var(--pill-light-sweep-position), #000 var(--pill-light-sweep-position));
+}
+
+/* The sweep has ended: its colours become the current ones without fading from the old. */
+.pill-notch.is-committing-light .pill-light-ring::before,
+.pill-notch.is-committing-light .pill-underglow-shape::before {
+  transition: none;
+}
+
+.pill-underglow {
+  transform: translateY(var(--pill-underglow-offset));
+  filter: blur(var(--pill-underglow-blur));
+  opacity: var(--pill-underglow-opacity);
+  transition: opacity var(--pill-conceal-duration) var(--pill-glide-easing);
+}
+
+/* The glow hangs below the notch, so sliding the notch up wouldn't take all of it along. */
+.pill-notch.is-concealed .pill-underglow {
+  opacity: 0;
+}
+
+/* The marks follow the light: gold when Claude Code needs an OK, green for a finish not seen
+   yet (more specific than the views' own status colours, which they replace here). */
+.pill-notch[data-pill-light="needsPermission"] .compact-claude-code-view .claude-code-terminal-icon,
+.pill-notch[data-pill-light="needsPermission"] .companion-claude-code-view .companion-claude-code-icon {
+  color: var(--claude-code-needs-permission-color);
+}
+
+.pill-notch[data-pill-light="freshDone"] .compact-claude-code-view .claude-code-terminal-icon,
+.pill-notch[data-pill-light="freshDone"] .companion-claude-code-view .companion-claude-code-icon,
+.pill-notch[data-pill-light="freshDone"] .expanded-claude-code-view .claude-code-terminal-icon {
+  color: var(--claude-code-done-color);
+}
+
+.pill-notch[data-pill-light="freshDone"] .claude-code-session-row[data-session-status="done"] .claude-code-session-status-dot {
+  box-shadow:
+    inset 0 0 0 var(--claude-code-session-status-ring-width) var(--claude-code-done-color),
+    0 0 var(--claude-code-session-status-ring-glow-size) var(--claude-code-done-ring-glow-color);
+}

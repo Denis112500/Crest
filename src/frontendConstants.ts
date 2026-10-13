@@ -91,6 +91,11 @@ export const PILL_HOVER_EXPAND_DELAY_MILLISECONDS = 150;
 export const PILL_COLLAPSE_DELAY_AFTER_POINTER_LEAVES_MILLISECONDS = 350;
 export const PILL_ATTENTION_PEEK_DURATION_MILLISECONDS = 4000;
 
+// How long a change of the pill's light takes: the sweep carrying new colours along the edge,
+// and the fade of a strength-only change (pause). The sweep's end commits the new colours.
+export const PILL_LIGHT_SWEEP_DURATION_MILLISECONDS = 900;
+export const PILL_LIGHT_FADE_DURATION_MILLISECONDS = 400;
+
 // Endless animations are driven by timers at a low, fixed rate instead of running at the
 // monitor's refresh rate: at 239 Hz, CSS-animated bars cost about 35% of a CPU core.
 export const PLAYBACK_BARS_FRAMES_PER_SECOND = 15;

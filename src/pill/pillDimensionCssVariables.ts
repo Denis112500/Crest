@@ -18,6 +18,8 @@ import {
   PILL_CONCEAL_DURATION_MILLISECONDS,
   PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH,
   PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
+  PILL_LIGHT_FADE_DURATION_MILLISECONDS,
+  PILL_LIGHT_SWEEP_DURATION_MILLISECONDS,
   PILL_MORPH_DURATION_MILLISECONDS,
   PILL_NOTCH_SHOULDER_LOGICAL_WIDTH,
   PILL_VISOR_COMPACT_LOGICAL_SLOPE,
@@ -37,6 +39,8 @@ export function applyPillDimensionCssVariables(): void {
   rootStyle.setProperty("--pill-visor-expanded-slope", `${PILL_VISOR_EXPANDED_LOGICAL_SLOPE}px`);
   rootStyle.setProperty("--pill-morph-duration", `${PILL_MORPH_DURATION_MILLISECONDS}ms`);
   rootStyle.setProperty("--pill-conceal-duration", `${PILL_CONCEAL_DURATION_MILLISECONDS}ms`);
+  rootStyle.setProperty("--pill-light-sweep-duration", `${PILL_LIGHT_SWEEP_DURATION_MILLISECONDS}ms`);
+  rootStyle.setProperty("--pill-light-fade-duration", `${PILL_LIGHT_FADE_DURATION_MILLISECONDS}ms`);
   rootStyle.setProperty("--claude-code-expanded-padding", `${CLAUDE_CODE_EXPANDED_LOGICAL_PADDING}px`);
   rootStyle.setProperty("--claude-code-expanded-header-height", `${CLAUDE_CODE_EXPANDED_HEADER_LOGICAL_HEIGHT}px`);
   rootStyle.setProperty("--claude-code-expanded-section-gap", `${CLAUDE_CODE_EXPANDED_SECTION_LOGICAL_GAP}px`);

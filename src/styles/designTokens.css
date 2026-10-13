@@ -29,13 +29,32 @@
   --pill-visor-expanded-corner-width: 28px;
   --pill-visor-expanded-corner-height: 16px;
 
-  /* The light along the Visor's lower edge and the underglow on the screen below it. The
-     colours are Starlight for now (G.2); the light rule sets them later (G.3). Offset plus
-     twice the blur must stay inside PILL_UNDERGLOW_LOGICAL_MARGIN (12 px), or the window
-     region cuts the glow off. */
-  --pill-light-start-color: #cfe3ff;
-  --pill-light-middle-color: #ffffff;
-  --pill-light-end-color: #cfe3ff;
+  /* The light along the Visor's lower edge and the underglow on the screen below it, left to
+     right (pillLightController.ts picks a set by the light rule). Music has a colour of its own
+     that no Claude Code status uses: a cover's colours could look like "done" or "needs your
+     OK" (decided 2026-10-14). Offset plus twice the blur must stay inside PILL_UNDERGLOW_LOGICAL_MARGIN
+     (12 px), or the window region cuts the glow off. */
+  --pill-light-starlight-start-color: #cfe3ff;
+  --pill-light-starlight-middle-color: #ffffff;
+  --pill-light-starlight-end-color: #cfe3ff;
+  --pill-light-gold-start-color: #ffd98a;
+  --pill-light-gold-middle-color: #fff1c9;
+  --pill-light-gold-end-color: #ffd98a;
+  --pill-light-done-start-color: #7ee2a8;
+  --pill-light-done-middle-color: #c9f7dc;
+  --pill-light-done-end-color: #7ee2a8;
+  --pill-light-music-start-color: #8b7cf6;
+  --pill-light-music-middle-color: #c4b5fd;
+  --pill-light-music-end-color: #7c9cf6;
+  --pill-light-full-strength: 1;
+  --pill-light-paused-strength: 0.4;
+  --pill-light-waiting-strength: 0.38;
+  /* The sweep: a bright front this wide leads the new colours from just off one end to just
+     past the other. */
+  --pill-light-sweep-front-color: #ffffff;
+  --pill-light-sweep-front-width: 12%;
+  --pill-light-sweep-start-position: -15%;
+  --pill-light-sweep-end-position: 115%;
   --pill-light-fade-length: 2%;
   --pill-light-full-from: 18%;
   --pill-light-full-until: 82%;
@@ -98,6 +117,9 @@
   --claude-code-session-project-max-width: 45%;
   --claude-code-needs-permission-color: #ffd98a;
   --claude-code-idle-session-color: rgba(230, 240, 255, 0.38);
+  /* A finished session the user hasn't seen yet (design phase, L.2 answers). */
+  --claude-code-done-color: #7ee2a8;
+  --claude-code-done-ring-glow-color: rgba(126, 226, 168, 0.6);
   /* Session status shown as a small ring, not a filled dot; a ring that matters glows. */
   --claude-code-session-status-ring-width: 1.5px;
   --claude-code-session-status-ring-glow-size: 6px;

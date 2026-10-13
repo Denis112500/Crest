@@ -4,6 +4,7 @@
 import "./styles/designTokens.css";
 import "./styles/pillShell.css";
 import "./styles/pillVisorOutline.css";
+import "./styles/pillLight.css";
 
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -22,6 +23,7 @@ import { requestActivityFocus } from "./ipc/requestActivityFocus";
 import { requestPillWindowPlacement } from "./ipc/requestPillWindowPlacement";
 import { PillAttentionDetector } from "./pill/pillAttentionDetector";
 import { PillContentPresenter } from "./pill/pillContentPresenter";
+import { PillLightController } from "./pill/pillLightController";
 import { applyPillDimensionCssVariables } from "./pill/pillDimensionCssVariables";
 import { PillMorphController } from "./pill/pillMorphController";
 import { connectPillPointerInput } from "./pill/pillPointerInput";
@@ -47,25 +49,37 @@ async function startPill(): Promise<void> {
   const pillMorphController = new PillMorphController(pillShellElements, (isExpandedContentVisible) =>
     pillContentPresenter.setExpandedContentVisible(isExpandedContentVisible),
   );
-  const pillStateMachine = new PillStateMachine((expansionState) =>
-    pillMorphController.showExpansionState(expansionState),
-  );
+  const pillLightController = new PillLightController(pillShellElements.pillNotchElement);
+  // Opened with the pointer on it (hover, click), or pointed at while already open (after a
+  // peek): the user has seen what the pill shows. A peek alone doesn't count.
+  let isPillExpanded = false;
+  const pillStateMachine = new PillStateMachine((expansionState) => {
+    isPillExpanded = expansionState === "expanded";
+    pillMorphController.showExpansionState(expansionState);
+    if (isPillExpanded && pillStateMachine.isPointerOverPill) {
+      pillLightController.markSeenByUser();
+    }
+  });
   // Before the visibility controller: its "pointer left" handler relies on the state
   // machine having seen the same event first.
   connectPillPointerInput(pillShellElements, pillStateMachine, () => {
     // The pill's own click handler opens the dashboard right after; this asks Rust to make the
-    // clicked activity the main one, its first tile (or, for news on a paused one, to mark it
-    // seen).
+    // clicked activity the main one (its tile keeps its place) or, for news on a paused one, to
+    // mark it seen.
     const companionActivityKind = pillContentPresenter.currentCompanionActivityKind;
     if (companionActivityKind !== null) {
       requestActivityFocus(companionActivityKind).catch(reportCompanionFocusFailure);
     }
   });
-  const pillVisibilityController = new PillVisibilityController(
-    pillShellElements,
-    pillStateMachine,
-    (isPillOnScreen) => pillContentPresenter.setPillOnScreen(isPillOnScreen),
-  );
+  pillShellElements.pillShellElement.addEventListener("mouseenter", () => {
+    if (isPillExpanded) {
+      pillLightController.markSeenByUser();
+    }
+  });
+  const pillVisibilityController = new PillVisibilityController(pillShellElements, pillStateMachine, (isPillOnScreen) => {
+    pillContentPresenter.setPillOnScreen(isPillOnScreen);
+    pillLightController.setPillOnScreen(isPillOnScreen);
+  });
 
   const placePillWindowOnChosenDisplay = async (): Promise<void> => {
     await requestPillWindowPlacement(PILL_WINDOW_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT);
@@ -94,6 +108,7 @@ async function startPill(): Promise<void> {
     GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
     (pillArrangement) => {
       pillContentPresenter.showPillArrangement(pillArrangement);
+      pillLightController.showPillArrangement(pillArrangement);
       const alertActivity = pillArrangement.alertActivity;
       const hasAlertJustEnded = wasAlertLeading && alertActivity === null;
       wasAlertLeading = alertActivity !== null;

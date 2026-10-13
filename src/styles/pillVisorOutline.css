@@ -1,6 +1,6 @@
-/* The Visor's outline, the light along its lower edge and the underglow below it (design spec,
-   notes/design-spec.md). One outline clips three elements: the black Visor itself, the light
-   ring behind it, and the underglow behind that. The Visor's copy is lifted by the ring's
+/* The Visor's outline (design spec, notes/design-spec.md); the light itself is pillLight.css.
+   One outline clips three elements: the black Visor itself, the light ring behind it, and the
+   underglow behind that. The Visor's copy is lifted by the ring's
    thickness, so exactly that much of the light shows along every edge that faces down. */
 
 /* Registered, so they animate: slope and corners grow while the pill opens. */
@@ -85,27 +85,3 @@
   pointer-events: none;
 }
 
-/* The light fades out at both ends, so it reads as a glow along the edge, not a stripe. */
-.pill-light-ring,
-.pill-underglow-shape {
-  background: linear-gradient(
-    90deg,
-    transparent var(--pill-light-fade-length),
-    var(--pill-light-start-color) var(--pill-light-full-from),
-    var(--pill-light-middle-color) 50%,
-    var(--pill-light-end-color) var(--pill-light-full-until),
-    transparent calc(100% - var(--pill-light-fade-length))
-  );
-}
-
-.pill-underglow {
-  transform: translateY(var(--pill-underglow-offset));
-  filter: blur(var(--pill-underglow-blur));
-  opacity: var(--pill-underglow-opacity);
-  transition: opacity var(--pill-conceal-duration) var(--pill-glide-easing);
-}
-
-/* The glow hangs below the notch, so sliding the notch up wouldn't take all of it along. */
-.pill-notch.is-concealed .pill-underglow {
-  opacity: 0;
-}
