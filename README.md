@@ -117,17 +117,18 @@ Crest/
 │  │  ├─ requestActivityAction.ts       sends a button press to the activity's Rust source
 │  │  └─ requestActivityFocus.ts        the companion was clicked: make it main, or mark its news seen
 │  ├─ pill/
-│  │  ├─ pillShellElements.ts          the notch (with its shoulders), the capsule, its compact layer (main slot + companion segment) and expanded layer
+│  │  ├─ pillShellElements.ts          the notch (with its shoulders), the capsule, its compact layer (main slot + the companion's mark at the end) and expanded layer
 │  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
 │  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek, held open by an alert)
-│  │  ├─ pillPointerInput.ts           mouse events → state machine; a click on the companion segment
+│  │  ├─ pillPointerInput.ts           mouse events → state machine; a click on the companion's mark
 │  │  ├─ pillMorphController.ts        animates a state or height change and keeps the interactive area in step
 │  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse, compact or open at a given height
 │  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window
 │  │  ├─ pillVisibilityTypes.ts        the visibility Rust sends (visible? fullscreen app in front?)
 │  │  ├─ waitUntilNextFrameIsPainted.ts  resolves once the current content is on screen
 │  │  ├─ pillAttentionDetector.ts      whose news opens the pill: the leading activity's, else the companion's
-│  │  └─ pillContentPresenter.ts       puts the views in place: leading in the main slot, companion next to it, the open one: whoever has news or was clicked
+│  │  ├─ pillDashboardLayout.ts        the open pill: one tile per activity, side by side, and its size
+│  │  └─ pillContentPresenter.ts       puts the views in place: leading in the main slot, the companion's mark at the end, the open pill: the alert, the tile with news, or the dashboard
 │  ├─ activities/
 │  │  ├─ pillArrangementTypes.ts     the shape of what Rust sends (alert, main, companion)
 │  │  ├─ findLeadingActivity.ts      the alert if there is one, else the main activity
@@ -139,7 +140,7 @@ Crest/
 │  │  │  ├─ claudeCodeStatusTypes.ts     the Claude Code payload's shape
 │  │  │  ├─ claudeCodeViewSet.ts         the Claude Code activity's views; the open one is the list or the alert
 │  │  │  ├─ compactClaudeCodeView.ts     terminal mark, what the most urgent session is doing, "+N"
-│  │  │  ├─ companionClaudeCodeView.ts   next to the music: terminal mark coloured by status, one word
+│  │  │  ├─ companionClaudeCodeView.ts   next to the music: only the terminal mark, coloured by status
 │  │  │  ├─ expandedClaudeCodeView.ts    every session, most urgent first, "+N more"
 │  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status dot, project folder, what it's doing
 │  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its number of rows
@@ -154,7 +155,7 @@ Crest/
 │  │     ├─ nowPlayingTypes.ts       the music payload's shape
 │  │     ├─ musicViewSet.ts          the music activity's compact + expanded views
 │  │     ├─ compactMusicView.ts      tiny art, title, bars
-│  │     ├─ companionMusicView.ts    next to another activity: tiny art and bars
+│  │     ├─ companionMusicView.ts    next to another activity: only the tiny art
 │  │     ├─ expandedMusicView.ts     large art, title, artist, progress, buttons
 │  │     ├─ albumArtImage.ts         album art with a placeholder when missing and a ring while loading
 │  │     ├─ playbackBarsIndicator.ts bouncing bars while playing
@@ -174,8 +175,8 @@ Crest/
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
 │     └─ albumArtImage.css, compactMusicView.css, expandedMusicView.css,
 │        playbackBarsIndicator.css, playbackProgressBar.css, musicControlButtons.css,
-│        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionSegmentViews.css,
-│        claudeCodePermissionAlertView.css
+│        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionMarkViews.css,
+│        claudeCodePermissionAlertView.css, pillDashboardLayout.css
 └─ src-tauri/
    ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step; lists Crest's commands so each gets a permission
@@ -351,7 +352,7 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 ## Claude Code
 
-Not in a release yet (coming in 0.4.0); available when running from source. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it takes a small segment of the notch (`[ music | >_ Working ]`); opened, it lists every session, most urgent first.
+Not in a release yet (coming in 0.4.0); available when running from source. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch, green while working, amber when it needs you, grey when done (hover it for the status, click it to bring Claude Code forward); opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
 
 **Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as an alert with the project folder, the command (or "Edit notes.md", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 
