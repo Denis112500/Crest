@@ -3,10 +3,10 @@ import "../../styles/claudeCodePermissionAlertView.css";
 import { createSvgIconElement } from "../createSvgIconElement";
 import { createClaudeCodePermissionAnswerButtons } from "./claudeCodePermissionAnswerButtons";
 import { createClaudeCodePermissionCommandBox } from "./claudeCodePermissionCommandBox";
+import { CLAUDE_CODE_PRODUCT_NAME } from "./claudeCodeProductName";
 import type { ClaudeCodePermissionAlert, ClaudeCodePermissionDescription } from "./claudeCodeStatusTypes";
 import { CLAUDE_CODE_TERMINAL_ICON_PATH } from "./claudeCodeTerminalIconPath";
 
-const CLAUDE_CODE_PRODUCT_NAME = "Claude Code";
 const UNKNOWN_PROJECT_FOLDER_TEXT = "Unknown folder";
 const NEW_REQUEST_HIGHLIGHT_CLASS = "is-new-request";
 

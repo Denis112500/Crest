@@ -13,6 +13,7 @@ use crate::activity_sources::claude_code::claude_code_permission_description::{
     describe_permission_request, ClaudeCodePermissionDescription,
 };
 use crate::activity_sources::claude_code::claude_code_permission_file_path::PermissionRequestFolders;
+use crate::activity_sources::claude_code::last_path_part::find_last_path_part;
 use crate::claude_code_hook_channel::{PendingHookReply, NO_HOOK_DECISION};
 
 /// Claude Code sends these through the permission hook too, but they are questions for the user:
@@ -68,12 +69,7 @@ impl ClaudeCodePermissionQueue {
         self.pending_requests.push(PendingPermissionRequest {
             request_id,
             session_id: hook_event.session_id.clone(),
-            project_folder_name: hook_event
-                .cwd
-                .as_deref()
-                .and_then(|working_folder| working_folder.rsplit(['\\', '/']).find(|part| !part.is_empty()))
-                .unwrap_or_default()
-                .to_string(),
+            project_folder_name: hook_event.cwd.as_deref().and_then(find_last_path_part).unwrap_or_default().to_string(),
             tool_name: hook_event.tool_name.clone(),
             tool_input: hook_event.tool_input.clone(),
             request_description: describe_permission_request(

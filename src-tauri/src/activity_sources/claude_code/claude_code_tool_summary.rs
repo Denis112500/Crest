@@ -3,6 +3,7 @@
 
 use serde_json::Value;
 
+use crate::activity_sources::claude_code::last_path_part::find_last_path_part;
 use crate::backend_constants::CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS;
 
 const ELLIPSIS: char = '…';
@@ -29,7 +30,7 @@ pub fn summarize_tool_use(tool_name: &str, tool_input: Option<&Value>) -> String
 }
 
 fn describe_file_action(action: &str, file_path: Option<&str>) -> String {
-    match file_path.and_then(|path| path.rsplit(['\\', '/']).find(|part| !part.is_empty())) {
+    match file_path.and_then(find_last_path_part) {
         Some(file_name) => format!("{action} {file_name}"),
         None => format!("{action} a file"),
     }

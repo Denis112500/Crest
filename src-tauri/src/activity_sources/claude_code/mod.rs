@@ -19,7 +19,9 @@ mod claude_code_status_message;
 mod claude_code_status_thread;
 mod claude_code_tool_summary;
 mod claude_code_transcript_continuation;
+mod claude_code_tracked_session;
 mod claude_code_transcript_interrupt;
+mod last_path_part;
 mod transcript_tail_reader;
 
 pub use claude_code_hook_registration::{build_crest_hook_command, build_crest_hooks};

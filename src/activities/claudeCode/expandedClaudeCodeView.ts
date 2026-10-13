@@ -2,10 +2,9 @@ import "../../styles/expandedClaudeCodeView.css";
 
 import { createSvgIconElement } from "../createSvgIconElement";
 import { createClaudeCodeSessionRowElement } from "./claudeCodeSessionRowElement";
+import { CLAUDE_CODE_PRODUCT_NAME } from "./claudeCodeProductName";
 import type { ClaudeCodeStatusPayload } from "./claudeCodeStatusTypes";
 import { CLAUDE_CODE_TERMINAL_ICON_PATH } from "./claudeCodeTerminalIconPath";
-
-const CLAUDE_CODE_PRODUCT_NAME = "Claude Code";
 
 export interface ExpandedClaudeCodeView {
   expandedViewElement: HTMLElement;

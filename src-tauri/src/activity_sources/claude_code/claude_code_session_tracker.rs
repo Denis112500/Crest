@@ -1,5 +1,7 @@
 //! Follows every Claude Code session from its hook events and describes them for the pill.
-//! Pure (the caller passes the time in), so every rule is unit-tested.
+//! Pure (the caller passes the time in), so every rule is unit-tested. How one event changes one
+//! session is in `claude_code_tracked_session.rs`; this file keeps the sessions, their order,
+//! the news count and the timeouts.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -9,21 +11,9 @@ use crate::activity_core::{ActivityPresence, ActivityUpdate};
 use crate::activity_sources::claude_code::claude_code_hook_event::*;
 use crate::activity_sources::claude_code::claude_code_permission_answer::ClaudeCodePermissionAnswer;
 use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCodePermissionAlert;
-use crate::activity_sources::claude_code::claude_code_session_list::{
-    list_claude_code_sessions, ClaudeCodeSessionRow, ClaudeCodeSessionStatus, ListableClaudeCodeSession,
-};
-use crate::activity_sources::claude_code::claude_code_tool_summary::summarize_tool_use;
+use crate::activity_sources::claude_code::claude_code_session_list::{list_claude_code_sessions, ListableClaudeCodeSession};
+use crate::activity_sources::claude_code::claude_code_tracked_session::TrackedSession;
 use crate::backend_constants::CLAUDE_CODE_ACTIVITY_DISPLAY_PRIORITY;
-
-struct TrackedSession {
-    project_folder_name: String,
-    transcript_path: Option<PathBuf>,
-    /// `None` right after `SessionStart`: an idle new session has nothing to show yet.
-    session_status: Option<ClaudeCodeSessionStatus>,
-    tool_summary: Option<String>,
-    last_event_time: Instant,
-    last_event_order: u64,
-}
 
 #[derive(Default)]
 pub struct ClaudeCodeSessionTracker {
@@ -42,52 +32,12 @@ impl ClaudeCodeSessionTracker {
         }
         let event_order = self.next_event_order;
         self.next_event_order += 1;
-        // Crest may start in the middle of a session, so any event can be the first one seen.
-        let tracked_session = self.sessions_by_id.entry(hook_event.session_id.clone()).or_insert_with(|| TrackedSession {
-            project_folder_name: String::new(),
-            transcript_path: None,
-            session_status: None,
-            tool_summary: None,
-            last_event_time: event_time,
-            last_event_order: event_order,
-        });
-        if let Some(transcript_path) = &hook_event.transcript_path {
-            tracked_session.transcript_path = Some(PathBuf::from(transcript_path));
-        }
-        if let Some(working_folder) = &hook_event.cwd {
-            tracked_session.project_folder_name =
-                working_folder.rsplit(['\\', '/']).find(|part| !part.is_empty()).unwrap_or_default().to_string();
-        }
-        tracked_session.last_event_time = event_time;
-        tracked_session.last_event_order = event_order;
-        match (hook_event.hook_event_name.as_str(), hook_event.notification_type.as_deref()) {
-            (USER_PROMPT_SUBMIT_HOOK_EVENT, _) | (POST_TOOL_USE_HOOK_EVENT, _) | (POST_TOOL_USE_FAILURE_HOOK_EVENT, _) => {
-                tracked_session.show_status_without_tool(ClaudeCodeSessionStatus::Working)
-            }
-            (PRE_TOOL_USE_HOOK_EVENT, _) => {
-                tracked_session.session_status = Some(ClaudeCodeSessionStatus::Working);
-                let tool_name = hook_event.tool_name.as_deref().unwrap_or_default();
-                tracked_session.tool_summary = Some(summarize_tool_use(tool_name, hook_event.tool_input.as_ref()));
-            }
-            (STOP_HOOK_EVENT, _) => {
-                tracked_session.show_status_without_tool(ClaudeCodeSessionStatus::Done);
-                self.attention_event_count += 1;
-            }
-            // The request comes at once, the notification about 6 s later: one piece of news.
-            (PERMISSION_REQUEST_HOOK_EVENT, _) | (NOTIFICATION_HOOK_EVENT, Some(PERMISSION_PROMPT_NOTIFICATION)) => {
-                if tracked_session.session_status != Some(ClaudeCodeSessionStatus::NeedsPermission) {
-                    self.attention_event_count += 1;
-                }
-                tracked_session.show_status_without_tool(ClaudeCodeSessionStatus::NeedsPermission);
-            }
-            // Claude Code sends this about a minute after "done"; "done" says more, and a second
-            // peek a minute later would only be noise.
-            (NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION))
-                if tracked_session.session_status != Some(ClaudeCodeSessionStatus::Done) =>
-            {
-                tracked_session.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput)
-            }
-            _ => {}
+        let tracked_session = self
+            .sessions_by_id
+            .entry(hook_event.session_id.clone())
+            .or_insert_with(|| TrackedSession::new(event_time, event_order));
+        if tracked_session.apply_hook_event(hook_event, event_time, event_order) {
+            self.attention_event_count += 1;
         }
     }
 
@@ -99,48 +49,38 @@ impl ClaudeCodeSessionTracker {
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
             return;
         };
-        if !tracked_session.session_status.is_some_and(ClaudeCodeSessionStatus::is_busy) {
+        if !tracked_session.is_busy() {
             return;
         }
         self.next_event_order += 1;
-        tracked_session.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
-        tracked_session.last_event_time = event_time;
-        tracked_session.last_event_order = event_order;
+        tracked_session.show_interrupt(event_time, event_order);
     }
 
-    /// The pill answered the session's permission request. An allow lets the tool run; a deny
-    /// stops the turn, and no `Stop` follows an interrupted turn (docs), so the session is moved
-    /// on here. No peek either way: the user just did it.
+    /// The pill answered the session's permission request. No peek either way: the user just did it.
     pub fn record_permission_answer(&mut self, session_id: &str, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant) {
         let event_order = self.next_event_order;
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
             return;
         };
         self.next_event_order += 1;
-        tracked_session.show_status_without_tool(match permission_answer {
-            ClaudeCodePermissionAnswer::Allow => ClaudeCodeSessionStatus::Working,
-            ClaudeCodePermissionAnswer::Deny => ClaudeCodeSessionStatus::WaitingForInput,
-        });
-        tracked_session.last_event_time = event_time;
-        tracked_session.last_event_order = event_order;
+        tracked_session.show_permission_answer(permission_answer, event_time, event_order);
     }
 
     /// The busy sessions (working, or waiting for an OK) whose transcript is known: the ones to
     /// watch for an interrupt or a denied permission.
     pub fn busy_session_transcripts(&self) -> Vec<(String, PathBuf)> {
-        self.sessions_by_id
-            .iter()
-            .filter(|(_, tracked_session)| tracked_session.session_status.is_some_and(ClaudeCodeSessionStatus::is_busy))
-            .filter_map(|(session_id, tracked_session)| {
-                tracked_session.transcript_path.clone().map(|transcript_path| (session_id.clone(), transcript_path))
-            })
-            .collect()
+        self.transcripts_of_sessions_where(TrackedSession::is_busy)
     }
 
     /// Every session whose transcript is known, to look for one that continued under a new id.
     pub fn session_transcripts(&self) -> Vec<(String, PathBuf)> {
+        self.transcripts_of_sessions_where(|_| true)
+    }
+
+    fn transcripts_of_sessions_where(&self, is_wanted: impl Fn(&TrackedSession) -> bool) -> Vec<(String, PathBuf)> {
         self.sessions_by_id
             .iter()
+            .filter(|(_, tracked_session)| is_wanted(tracked_session))
             .filter_map(|(session_id, tracked_session)| {
                 tracked_session.transcript_path.clone().map(|transcript_path| (session_id.clone(), transcript_path))
             })
@@ -166,8 +106,7 @@ impl ClaudeCodeSessionTracker {
     /// Every session with something to show, as one activity: an alert while a permission request
     /// waits for an answer from the pill (it takes the pill over); else ongoing while any session
     /// works or waits for the user's OK (it keeps the pill on screen and sits next to playing
-    /// music). `None` = nothing to show. A session with a request still waiting shows "needs
-    /// your OK" whatever it sent since (a parallel tool call, an answer to its other request).
+    /// music). `None` = nothing to show.
     pub fn describe_activity(
         &self,
         permission_alert: Option<ClaudeCodePermissionAlert>,
@@ -177,19 +116,7 @@ impl ClaudeCodeSessionTracker {
             .sessions_by_id
             .iter()
             .filter_map(|(session_id, tracked_session)| {
-                let is_waiting_for_an_answer = sessions_waiting_for_an_answer.contains(session_id);
-                Some(ListableClaudeCodeSession {
-                    session_row: ClaudeCodeSessionRow {
-                        session_status: if is_waiting_for_an_answer {
-                            ClaudeCodeSessionStatus::NeedsPermission
-                        } else {
-                            tracked_session.session_status?
-                        },
-                        tool_summary: tracked_session.tool_summary.clone().filter(|_| !is_waiting_for_an_answer),
-                        project_folder_name: tracked_session.project_folder_name.clone(),
-                    },
-                    last_event_order: tracked_session.last_event_order,
-                })
+                tracked_session.listable_session(sessions_waiting_for_an_answer.contains(session_id))
             })
             .collect();
         if listable_sessions.is_empty() {
@@ -210,13 +137,6 @@ impl ClaudeCodeSessionTracker {
             attention_key: self.attention_event_count.to_string(),
             activity_payload: serde_json::to_value(status_payload).ok()?,
         })
-    }
-}
-
-impl TrackedSession {
-    fn show_status_without_tool(&mut self, session_status: ClaudeCodeSessionStatus) {
-        self.session_status = Some(session_status);
-        self.tool_summary = None;
     }
 }
 

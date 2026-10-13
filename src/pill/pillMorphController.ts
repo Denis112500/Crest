@@ -1,11 +1,7 @@
-import {
-  PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
-  PILL_EXPANDED_MAX_LOGICAL_HEIGHT,
-  PILL_MORPH_DURATION_MILLISECONDS,
-  PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS,
-} from "../frontendConstants";
+import { PILL_DASHBOARD_TILE_LOGICAL_WIDTH, PILL_EXPANDED_MAX_LOGICAL_HEIGHT } from "../frontendConstants";
 import { requestPillInteractiveArea } from "../ipc/requestPillInteractiveArea";
 import { calculatePillInteractiveArea, type PillShape } from "./calculatePillInteractiveArea";
+import { PillMorphSettleDetector } from "./pillMorphSettleDetector";
 import type { PillShellElements } from "./pillShellElements";
 import type { PillExpansionState } from "./pillStateMachine";
 
@@ -26,7 +22,7 @@ export interface PillContentLayout {
 // interactive area, then animate, so the growing pill is never clipped. Shrinking: animate
 // first, and only shrink the interactive area once the pill has settled.
 export class PillMorphController {
-  private settleFallbackTimer: number | undefined;
+  private readonly morphSettleDetector: PillMorphSettleDetector;
   // Until the first activity reports its own size; the pill starts compact, so it isn't seen.
   private expandedLogicalWidth = PILL_DASHBOARD_TILE_LOGICAL_WIDTH;
   private expandedLogicalHeight = PILL_EXPANDED_MAX_LOGICAL_HEIGHT;
@@ -37,12 +33,9 @@ export class PillMorphController {
     private readonly onExpandedContentVisibilityChange: (isExpandedContentVisible: boolean) => void,
   ) {
     this.applyExpandedSizeCssVariables();
-    pillShellElements.pillShellElement.addEventListener("transitionend", (transitionEndEvent) => {
-      const isSizeTransition = transitionEndEvent.propertyName === "height" || transitionEndEvent.propertyName === "width";
-      if (transitionEndEvent.target === pillShellElements.pillShellElement && isSizeTransition) {
-        this.settleInteractiveArea();
-      }
-    });
+    this.morphSettleDetector = new PillMorphSettleDetector(pillShellElements.pillShellElement, () =>
+      this.settleInteractiveArea(),
+    );
   }
 
   // After the window was placed again (another monitor, another scale), the interactive
@@ -57,16 +50,16 @@ export class PillMorphController {
   }
 
   showExpansionState(expansionState: PillExpansionState): void {
-    window.clearTimeout(this.settleFallbackTimer);
     const pillShellClassList = this.pillShellElements.pillShellElement.classList;
     if (expansionState === "expanded") {
+      this.morphSettleDetector.stopWaiting();
       this.applyInteractiveArea(true).catch(reportInteractiveAreaFailure);
       pillShellClassList.add(EXPANDED_SHELL_CLASS);
       this.onExpandedContentVisibilityChange(true);
       return;
     }
     pillShellClassList.remove(EXPANDED_SHELL_CLASS);
-    this.settleAfterMorph();
+    this.morphSettleDetector.waitForSettle();
   }
 
   // The open size only shows while open; while compact, only the CSS variables change. One
@@ -92,7 +85,7 @@ export class PillMorphController {
     this.expandedLogicalHeight = nextLogicalHeight;
     this.applyExpandedSizeCssVariables();
     if (isExpanded && isShrinking) {
-      this.settleAfterMorph();
+      this.morphSettleDetector.waitForSettle();
     }
   }
 
@@ -108,23 +101,13 @@ export class PillMorphController {
     }
     this.pillShellElements.pillShellElement.classList.toggle(WITH_COMPANION_SHELL_CLASS, isCompanionMarkShown);
     if (isCompact && !isCompanionMarkShown) {
-      this.settleAfterMorph();
+      this.morphSettleDetector.waitForSettle();
     }
   }
 
-  // If the browser skips the transitionend event, a timer settles the pill instead.
-  private settleAfterMorph(): void {
-    window.clearTimeout(this.settleFallbackTimer);
-    this.settleFallbackTimer = window.setTimeout(
-      () => this.settleInteractiveArea(),
-      PILL_MORPH_DURATION_MILLISECONDS + PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS,
-    );
-  }
-
-  // Reached when a size animation ends or by the fallback timer. It sends the area for the
+  // Reached when a size animation ends (PillMorphSettleDetector). It sends the area for the
   // shape the pill has now, so a late call after the pill changed its mind again is harmless.
   private settleInteractiveArea(): void {
-    window.clearTimeout(this.settleFallbackTimer);
     const isExpanded = this.isExpanded();
     this.applyInteractiveArea(isExpanded).catch(reportInteractiveAreaFailure);
     if (!isExpanded) {
