@@ -21,8 +21,8 @@ use crate::backend_constants::{CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE, CLAUDE_CO
 use crate::claude_code_hook_channel::{PendingHookReply, NO_HOOK_DECISION};
 
 /// Sleeps until a message arrives or the next deadline (the quietest session's silence timeout,
-/// the oldest request's maximum age). Ends on `StopPublishing`, or if starting the pipe server
-/// failed; every hook still waiting then gets "no decision". While answering in the pill is
+/// the oldest request's maximum age). Ends on `StopPublishing` (also sent when the pipe server
+/// couldn't start); every hook still waiting then gets "no decision". While answering in the pill is
 /// switched off, every request leaves right after it arrives.
 pub fn publish_claude_code_status(
     status_message_receiver: Receiver<ClaudeCodeStatusMessage>,
@@ -31,7 +31,8 @@ pub fn publish_claude_code_status(
     permission_answering_switch: ClaudeCodePermissionAnsweringSwitch,
 ) {
     let mut session_tracker = ClaudeCodeSessionTracker::default();
-    let mut permission_queue = ClaudeCodePermissionQueue::default();
+    let home_folder = std::env::home_dir().map(|home_folder| home_folder.to_string_lossy().into_owned());
+    let mut permission_queue = ClaudeCodePermissionQueue::new(home_folder);
     let mut interrupt_watch = ClaudeCodeInterruptWatch::new(interrupt_watch_sender);
     loop {
         let next_deadline = [

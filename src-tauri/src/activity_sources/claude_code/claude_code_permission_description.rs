@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::activity_sources::claude_code::claude_code_permission_action_wording::word_permission_action;
+use crate::activity_sources::claude_code::claude_code_permission_file_path::PermissionRequestFolders;
 use crate::backend_constants::{
     CLAUDE_CODE_PERMISSION_ACTION_MAX_CHARACTERS, CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS,
     CLAUDE_CODE_PERMISSION_COMMAND_TAB_WIDTH,
@@ -26,7 +27,11 @@ pub enum ClaudeCodePermissionDescription {
     Action { action_text: String },
 }
 
-pub fn describe_permission_request(tool_name: &str, tool_input: Option<&Value>) -> ClaudeCodePermissionDescription {
+pub fn describe_permission_request(
+    tool_name: &str,
+    tool_input: Option<&Value>,
+    request_folders: &PermissionRequestFolders,
+) -> ClaudeCodePermissionDescription {
     let command_text = tool_input.and_then(|input| input.get("command")).and_then(Value::as_str).map(str::trim);
     match (tool_name, command_text) {
         ("Bash" | "PowerShell", Some(command_text)) if !command_text.is_empty() => {
@@ -38,7 +43,8 @@ pub fn describe_permission_request(tool_name: &str, tool_input: Option<&Value>) 
             }
         }
         _ => {
-            let action_text = make_hidden_characters_visible(&word_permission_action(tool_name, tool_input)).replace('\n', " ");
+            let action_text =
+                make_hidden_characters_visible(&word_permission_action(tool_name, tool_input, request_folders)).replace('\n', " ");
             ClaudeCodePermissionDescription::Action {
                 action_text: cut_with_ellipsis(&action_text, CLAUDE_CODE_PERMISSION_ACTION_MAX_CHARACTERS),
             }
@@ -94,8 +100,10 @@ mod tests {
 
     use super::*;
 
+    const NO_FOLDERS: PermissionRequestFolders = PermissionRequestFolders { project_folder: None, home_folder: None };
+
     fn describe_command(command_text: &str) -> (String, bool) {
-        match describe_permission_request("Bash", Some(&json!({ "command": command_text }))) {
+        match describe_permission_request("Bash", Some(&json!({ "command": command_text })), &NO_FOLDERS) {
             ClaudeCodePermissionDescription::Command { command_text, is_command_cut } => (command_text, is_command_cut),
             other_description => panic!("expected a command, got {other_description:?}"),
         }
@@ -121,10 +129,11 @@ mod tests {
     #[test]
     fn other_tools_get_one_visible_line() {
         let file_input = json!({ "file_path": "C:\\project\\evil\u{202E}txt.exe" });
-        let action_of = |tool_name: &str, tool_input: Option<&Value>| describe_permission_request(tool_name, tool_input);
+        let action_of =
+            |tool_name: &str, tool_input: Option<&Value>| describe_permission_request(tool_name, tool_input, &NO_FOLDERS);
         assert_eq!(
             action_of("Edit", Some(&file_input)),
-            ClaudeCodePermissionDescription::Action { action_text: "Edit evil\u{FFFD}txt.exe".into() }
+            ClaudeCodePermissionDescription::Action { action_text: "Edit C:\\project\\evil\u{FFFD}txt.exe".into() }
         );
         assert_eq!(action_of("Bash", Some(&json!({ "command": "  " }))), ClaudeCodePermissionDescription::Action { action_text: "Run a command".into() });
         let ClaudeCodePermissionDescription::Action { action_text } =
@@ -138,7 +147,7 @@ mod tests {
 
     #[test]
     fn the_page_gets_the_kind_and_camel_case_fields() {
-        let description = describe_permission_request("Bash", Some(&json!({ "command": "ls" })));
+        let description = describe_permission_request("Bash", Some(&json!({ "command": "ls" })), &NO_FOLDERS);
         assert_eq!(
             serde_json::to_value(description).unwrap(),
             json!({ "descriptionKind": "command", "commandText": "ls", "isCommandCut": false })

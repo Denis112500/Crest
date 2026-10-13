@@ -80,6 +80,10 @@ pub const CLAUDE_CODE_ACTIVITY_DISPLAY_PRIORITY: u8 = 40;
 /// event to the running Crest and exits before Tauri starts.
 pub const CLAUDE_CODE_HOOK_ARGUMENT: &str = "--claude-code-hook";
 
+/// The uninstaller runs `crest.exe --remove-claude-code-hooks` before it deletes the files, so
+/// Claude Code isn't left with hooks that point at a deleted program.
+pub const CLAUDE_CODE_HOOK_REMOVAL_ARGUMENT: &str = "--remove-claude-code-hooks";
+
 /// A session that sends nothing for this long is dropped: a crashed or killed Claude Code never
 /// sends `SessionEnd`. Long enough for a slow tool (a full build) that reports nothing meanwhile.
 pub const CLAUDE_CODE_SESSION_SILENCE_TIMEOUT: Duration = Duration::from_secs(10 * 60);
@@ -102,6 +106,9 @@ pub const CLAUDE_CODE_PERMISSION_COMMAND_TAB_WIDTH: usize = 4;
 /// What other tools want ("Search the web for …") is cut to this many characters; the alert
 /// shows it on one line anyway.
 pub const CLAUDE_CODE_PERMISSION_ACTION_MAX_CHARACTERS: usize = 120;
+/// A file's path in the alert is shortened in the middle past this, so "Edit " plus the path
+/// fits the 380 px tile's one line and the line's own ellipsis never cuts off the file name.
+pub const CLAUDE_CODE_PERMISSION_FILE_PATH_MAX_CHARACTERS: usize = 40;
 
 /// How much of a transcript's end is searched for the line saying Claude Code continued the
 /// conversation under a new session id: that line comes last, after a cost summary (681 bytes

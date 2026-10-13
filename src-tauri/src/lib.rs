@@ -33,7 +33,8 @@ use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
 use user_settings_store::CrestUserSettingsStore;
 
-pub use backend_constants::CLAUDE_CODE_HOOK_ARGUMENT;
+pub use activity_sources::claude_code::remove_crest_hooks_from_claude_code_settings;
+pub use backend_constants::{CLAUDE_CODE_HOOK_ARGUMENT, CLAUDE_CODE_HOOK_REMOVAL_ARGUMENT};
 pub use claude_code_hook_channel::run_as_claude_code_hook;
 
 pub fn run_crest_app() {

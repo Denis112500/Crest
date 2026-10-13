@@ -1,14 +1,22 @@
-//! The few words the alert shows for a request that isn't a command: "Edit notes.md", "Open
+//! The few words the alert shows for a request that isn't a command: "Edit src\main.ts", "Open
 //! github.com", "Search the web for “tauri tray”". Its own phrases, not the working status's
-//! ("Searching the web"), because the user answers this one. Files by name only, web pages by
-//! host only.
+//! ("Searching the web"), because the user answers this one. Files by where they are
+//! (`claude_code_permission_file_path.rs`), web pages by host only.
 
 use serde_json::Value;
+
+use crate::activity_sources::claude_code::claude_code_permission_file_path::{
+    show_requested_file_path, PermissionRequestFolders,
+};
 
 const MCP_TOOL_NAME_PREFIX: &str = "mcp__";
 const MCP_TOOL_NAME_SEPARATOR: &str = "__";
 
-pub fn word_permission_action(tool_name: &str, tool_input: Option<&Value>) -> String {
+pub fn word_permission_action(
+    tool_name: &str,
+    tool_input: Option<&Value>,
+    request_folders: &PermissionRequestFolders,
+) -> String {
     let read_input_text = |field_name: &str| {
         tool_input
             .and_then(|input| input.get(field_name))
@@ -16,11 +24,9 @@ pub fn word_permission_action(tool_name: &str, tool_input: Option<&Value>) -> St
             .map(str::trim)
             .filter(|input_text| !input_text.is_empty())
     };
-    let file_name = |field_name: &str| {
-        read_input_text(field_name)
-            .and_then(|file_path| file_path.rsplit(['\\', '/']).find(|part| !part.is_empty()))
-            .unwrap_or("a file")
-            .to_string()
+    let file_path = |field_name: &str| match read_input_text(field_name) {
+        Some(requested_file_path) => show_requested_file_path(requested_file_path, request_folders),
+        None => "a file".to_string(),
     };
     let with_quoted_input = |phrase: &str, field_name: &str| match read_input_text(field_name) {
         Some(input_text) => format!("{phrase} for “{input_text}”"),
@@ -29,10 +35,10 @@ pub fn word_permission_action(tool_name: &str, tool_input: Option<&Value>) -> St
     match tool_name {
         // Only reached when the command is missing or empty.
         "Bash" | "PowerShell" => "Run a command".to_string(),
-        "Edit" | "MultiEdit" => format!("Edit {}", file_name("file_path")),
-        "NotebookEdit" => format!("Edit {}", file_name("notebook_path")),
-        "Write" => format!("Write {}", file_name("file_path")),
-        "Read" => format!("Read {}", file_name("file_path")),
+        "Edit" | "MultiEdit" => format!("Edit {}", file_path("file_path")),
+        "NotebookEdit" => format!("Edit {}", file_path("notebook_path")),
+        "Write" => format!("Write {}", file_path("file_path")),
+        "Read" => format!("Read {}", file_path("file_path")),
         "WebFetch" => match read_input_text("url").and_then(find_web_address_host) {
             Some(web_host) => format!("Open {web_host}"),
             None => "Open a web page".to_string(),
@@ -84,15 +90,22 @@ mod tests {
 
     use super::*;
 
+    const NO_FOLDERS: PermissionRequestFolders = PermissionRequestFolders { project_folder: None, home_folder: None };
+
     fn word_with_input(tool_name: &str, tool_input: Value) -> String {
-        word_permission_action(tool_name, Some(&tool_input))
+        word_permission_action(tool_name, Some(&tool_input), &NO_FOLDERS)
     }
 
     #[test]
-    fn file_tools_name_only_the_file() {
-        assert_eq!(word_with_input("Edit", json!({ "file_path": r"C:\Users\someone\project\notes.md" })), "Edit notes.md");
-        assert_eq!(word_with_input("Read", json!({ "file_path": "/home/someone/src/lib.rs" })), "Read lib.rs");
-        assert_eq!(word_permission_action("Write", None), "Write a file");
+    fn file_tools_say_where_the_file_is() {
+        let project_folders =
+            PermissionRequestFolders { project_folder: Some(r"C:\Users\someone\project"), home_folder: Some(r"C:\Users\someone") };
+        let word_file_action = |tool_name: &str, file_path: &str| {
+            word_permission_action(tool_name, Some(&json!({ "file_path": file_path })), &project_folders)
+        };
+        assert_eq!(word_file_action("Edit", r"C:\Users\someone\project\notes.md"), "Edit notes.md");
+        assert_eq!(word_file_action("Read", r"C:\Users\someone\.ssh\id_ed25519"), r"Read ~\.ssh\id_ed25519");
+        assert_eq!(word_permission_action("Write", None, &project_folders), "Write a file");
     }
 
     #[test]
@@ -111,15 +124,15 @@ mod tests {
     fn searches_quote_what_they_look_for() {
         assert_eq!(word_with_input("WebSearch", json!({ "query": "tauri tray icon" })), "Search the web for “tauri tray icon”");
         assert_eq!(word_with_input("Grep", json!({ "pattern": "fn main" })), "Search the code for “fn main”");
-        assert_eq!(word_permission_action("Glob", None), "Search the code");
+        assert_eq!(word_permission_action("Glob", None, &NO_FOLDERS), "Search the code");
     }
 
     #[test]
     fn subagents_skills_and_connected_tools_say_what_they_are() {
         assert_eq!(word_with_input("Task", json!({ "description": "Find the pipe code" })), "Start a subagent: Find the pipe code");
         assert_eq!(word_with_input("Skill", json!({ "skill": "code-review" })), "Use the skill code-review");
-        assert_eq!(word_permission_action("mcp__github__create_issue", None), "github: create issue");
-        assert_eq!(word_permission_action("mcp__broken", None), "Use a connected tool");
-        assert_eq!(word_permission_action("SomethingNew", None), "Use SomethingNew");
+        assert_eq!(word_permission_action("mcp__github__create_issue", None, &NO_FOLDERS), "github: create issue");
+        assert_eq!(word_permission_action("mcp__broken", None, &NO_FOLDERS), "Use a connected tool");
+        assert_eq!(word_permission_action("SomethingNew", None, &NO_FOLDERS), "Use SomethingNew");
     }
 }

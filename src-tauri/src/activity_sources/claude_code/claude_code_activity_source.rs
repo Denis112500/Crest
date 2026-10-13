@@ -50,15 +50,25 @@ impl ActivitySource for ClaudeCodeActivitySource {
                 )
             })
             .map_err(|error| error.to_string())?;
-        let running_hook_event_server =
+        let server_start_result =
             CurrentPlatformClaudeCodeHookChannel::start_hook_event_server(Box::new(move |hook_event_json, hook_reply| {
                 // If the status thread is gone, the message is dropped with its reply, which
                 // then answers "no decision" by itself.
                 let _ = status_message_sender
                     .send(ClaudeCodeStatusMessage::HookEvent { hook_event_json: hook_event_json.to_string(), hook_reply });
-            }))?;
-        self.running_hook_event_server = Some(running_hook_event_server);
-        Ok(())
+            }));
+        match server_start_result {
+            Ok(running_hook_event_server) => {
+                self.running_hook_event_server = Some(running_hook_event_server);
+                Ok(())
+            }
+            Err(server_start_error) => {
+                // The thread's channel never closes by itself (the interrupt watch and the
+                // answering switch hold senders too), so it must be told to end.
+                self.stop_publishing();
+                Err(server_start_error)
+            }
+        }
     }
 
     /// The server stops first, so no event arrives after the status thread's last word; that

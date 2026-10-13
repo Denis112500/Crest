@@ -12,6 +12,7 @@ use crate::activity_sources::claude_code::claude_code_hook_event::*;
 use crate::activity_sources::claude_code::claude_code_permission_description::{
     describe_permission_request, ClaudeCodePermissionDescription,
 };
+use crate::activity_sources::claude_code::claude_code_permission_file_path::PermissionRequestFolders;
 use crate::claude_code_hook_channel::{PendingHookReply, NO_HOOK_DECISION};
 
 /// Claude Code sends these through the permission hook too, but they are questions for the user:
@@ -46,9 +47,15 @@ struct PendingPermissionRequest {
 pub struct ClaudeCodePermissionQueue {
     pending_requests: Vec<PendingPermissionRequest>,
     next_request_id: u64,
+    /// Files there are shown as "~\…" in the alert; passed in, so the queue stays pure.
+    home_folder: Option<String>,
 }
 
 impl ClaudeCodePermissionQueue {
+    pub fn new(home_folder: Option<String>) -> Self {
+        Self { home_folder, ..Self::default() }
+    }
+
     /// A question rather than a permission is left to Claude Code: its hook ends at once.
     pub fn add_request(&mut self, hook_event: &ClaudeCodeHookEvent, hook_reply: Box<dyn PendingHookReply>, arrival_time: Instant) {
         let tool_name = hook_event.tool_name.as_deref().unwrap_or_default();
@@ -69,7 +76,14 @@ impl ClaudeCodePermissionQueue {
                 .to_string(),
             tool_name: hook_event.tool_name.clone(),
             tool_input: hook_event.tool_input.clone(),
-            request_description: describe_permission_request(tool_name, hook_event.tool_input.as_ref()),
+            request_description: describe_permission_request(
+                tool_name,
+                hook_event.tool_input.as_ref(),
+                &PermissionRequestFolders {
+                    project_folder: hook_event.cwd.as_deref(),
+                    home_folder: self.home_folder.as_deref(),
+                },
+            ),
             arrival_time,
             hook_reply,
         });
@@ -238,6 +252,29 @@ mod tests {
         }
         assert_eq!(replies(&sent_replies), vec![reply("AskUserQuestion", NO_HOOK_DECISION), reply("ExitPlanMode", NO_HOOK_DECISION)]);
         assert!(permission_queue.describe_alert().is_none());
+    }
+
+    #[test]
+    fn a_file_request_says_whether_the_file_is_in_the_session_project_or_elsewhere() {
+        let mut permission_queue = ClaudeCodePermissionQueue::new(Some(r"C:\Users\someone".to_string()));
+        let sent_replies = SentReplies::default();
+        for file_path in [r"C:\Projects\a\src\main.rs", r"C:\Users\someone\.claude\settings.json"] {
+            let mut edit_event = hook_event("a", PERMISSION_REQUEST_HOOK_EVENT, "");
+            edit_event.tool_name = Some("Edit".to_string());
+            edit_event.tool_input = Some(json!({ "file_path": file_path }));
+            let hook_reply = RecordedHookReply { request_label: file_path.to_string(), sent_replies: Arc::clone(&sent_replies) };
+            permission_queue.add_request(&edit_event, Box::new(hook_reply), Instant::now());
+        }
+        let shown_action = |permission_queue: &ClaudeCodePermissionQueue| match permission_queue.describe_alert() {
+            Some(ClaudeCodePermissionAlert {
+                request_description: ClaudeCodePermissionDescription::Action { action_text }, ..
+            }) => action_text,
+            other_alert => panic!("expected a file action, got {other_alert:?}"),
+        };
+        assert_eq!(shown_action(&permission_queue), r"Edit src\main.rs");
+        let first_request_id = permission_queue.describe_alert().unwrap().request_id;
+        permission_queue.answer_request(first_request_id, "allow");
+        assert_eq!(shown_action(&permission_queue), r"Edit ~\.claude\settings.json");
     }
 
     #[test]
