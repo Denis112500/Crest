@@ -8,9 +8,9 @@
 
 A small black notch hanging from the top center of the screen. It shows what's playing in any player that appears in Windows' own media controls (built and tested with YouTube Music and Brave), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
-Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration (there are none yet).
+Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration that needs them (none does yet: the Claude Code integration stays on your PC).
 
-> Status: 0.3.1 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. A settings window for starting with Windows, the monitor it sits on, and which players it shows.
+> Status: 0.4.0 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. New in 0.4.0, off until you switch it on: [Claude Code](#claude-code) sessions in the notch, with Allow / Deny for their permission requests. A settings window for starting with Windows, the monitor it sits on, which players it shows, and the Claude Code integration.
 
 Crest's tray icon (notification area, possibly behind the ^ arrow) has **Settings…** and **Quit Crest**. Starting Crest again while it runs also opens the settings.
 
@@ -359,7 +359,7 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 ## Claude Code
 
-Not in a release yet (coming in 0.4.0); available when running from source. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch, green while working, amber when it needs you, grey when done (hover it for the status, click it to bring Claude Code forward); opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
+Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch, green while working, amber when it needs you, grey when done (hover it for the status, click it to bring Claude Code forward); opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
 
 **Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as an alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 
