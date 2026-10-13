@@ -38,8 +38,8 @@ async function startPill(): Promise<void> {
   const pillShellElements = createPillShellElements();
   pillRootElement.append(pillShellElements.pillNotchElement);
 
-  // The presenter reports what its content needs from the pill's shape (open height, companion
-  // segment); it only does so once arrangements arrive, after the morph controller below exists.
+  // The presenter reports what its content needs from the pill's shape (open size, companion
+  // mark); it only does so once arrangements arrive, after the morph controller below exists.
   const pillContentPresenter = new PillContentPresenter(pillShellElements, (pillContentLayout) =>
     pillMorphController.showContentLayout(pillContentLayout),
   );

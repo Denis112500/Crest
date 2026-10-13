@@ -1,0 +1,45 @@
+/* The companion's mark at the end of the compact pill (companionMusicView.ts,
+   companionClaudeCodeView.ts). The view fills the whole clickable end, so its tooltip shows
+   anywhere there; the mark itself sits in a fixed slot at the end's start (mockup option B),
+   where the terminal mark and the slightly larger cover share one centre. */
+.companion-mark-view {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--companion-mark-slot-size);
+  place-items: center;
+  align-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* The hover disc behind the mark says "this is its own button" now that no divider does.
+   Positioned children paint in order, so the mark (positioned too) stays on top of it. */
+.companion-mark-view::before {
+  content: "";
+  position: absolute;
+  top: calc(50% - var(--companion-mark-hover-size) / 2);
+  left: calc((var(--companion-mark-slot-size) - var(--companion-mark-hover-size)) / 2);
+  width: var(--companion-mark-hover-size);
+  height: var(--companion-mark-hover-size);
+  border-radius: 50%;
+}
+
+.pill-companion-mark:hover .companion-mark-view::before {
+  background: var(--pill-companion-hover-background);
+}
+
+/* The terminal mark takes the colour of the most urgent session, like the open list's dots. */
+.companion-claude-code-icon {
+  position: relative;
+  width: var(--companion-claude-code-icon-size);
+  height: var(--companion-claude-code-icon-size);
+  color: var(--claude-code-idle-session-color);
+}
+
+.companion-claude-code-view[data-session-status="working"] .companion-claude-code-icon {
+  color: var(--claude-code-accent-color);
+}
+
+.companion-claude-code-view[data-session-status="needsPermission"] .companion-claude-code-icon {
+  color: var(--claude-code-needs-permission-color);
+}

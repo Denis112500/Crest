@@ -3,10 +3,10 @@
 // the interactive area, so the drawn pill and the window can never disagree.
 export const PILL_COMPACT_LOGICAL_WIDTH = 220;
 export const PILL_COMPACT_LOGICAL_HEIGHT = 36;
-// The compact pill grows by this much while a companion sits next to the main activity
-// (`[ music | >_ Working ]`): room for its longest word, "Needs OK" (57 px measured), with the
-// icon and the rounded end; 220 + 108 still fits inside the open pill's width.
-export const PILL_COMPANION_SEGMENT_LOGICAL_WIDTH = 108;
+// The compact pill grows by this much while a companion sits next to the main activity: only
+// its mark (the `>_` or a tiny cover) at the rounded end, no divider and no word (milestone F,
+// mockup option B); one pill height, so the end stays as round as the start.
+export const PILL_COMPANION_MARK_LOGICAL_WIDTH = 36;
 // The open pill is a dashboard: one tile per activity, side by side, with a thin divider
 // between them (layout A, decided 2026-10-12). A peek or an alert is a single tile.
 export const PILL_DASHBOARD_TILE_LOGICAL_WIDTH = 380;

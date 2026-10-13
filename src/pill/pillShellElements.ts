@@ -7,9 +7,9 @@ export interface PillShellElements {
   compactLayerElement: HTMLElement;
   /** Inside the compact layer: the main activity's small view. */
   compactMainSlotElement: HTMLElement;
-  /** Inside the compact layer, right of the main slot: the companion's view; shown only while
+  /** Inside the compact layer, at the end of the pill: the companion's mark; shown only while
       there is a companion. Clicking it makes that activity the one the pill opens on. */
-  companionSegmentElement: HTMLElement;
+  companionMarkElement: HTMLElement;
   expandedLayerElement: HTMLElement;
 }
 
@@ -26,9 +26,12 @@ export function createPillShellElements(): PillShellElements {
   compactLayerElement.className = "pill-compact-layer";
   const compactMainSlotElement = document.createElement("div");
   compactMainSlotElement.className = "pill-compact-main-slot";
-  const companionSegmentElement = document.createElement("div");
-  companionSegmentElement.className = "pill-companion-segment";
-  compactLayerElement.append(compactMainSlotElement, companionSegmentElement);
+  // A button for screen readers too, now that no word says what it is: the mark inside gives
+  // its name (the companion views label themselves).
+  const companionMarkElement = document.createElement("div");
+  companionMarkElement.className = "pill-companion-mark";
+  companionMarkElement.setAttribute("role", "button");
+  compactLayerElement.append(compactMainSlotElement, companionMarkElement);
   const expandedLayerElement = document.createElement("div");
   expandedLayerElement.className = "pill-expanded-layer";
   pillShellElement.append(compactLayerElement, expandedLayerElement);
@@ -38,7 +41,7 @@ export function createPillShellElements(): PillShellElements {
     pillShellElement,
     compactLayerElement,
     compactMainSlotElement,
-    companionSegmentElement,
+    companionMarkElement,
     expandedLayerElement,
   };
 }

@@ -27,7 +27,6 @@ export function createMusicViewSet(): ActivityViewSet {
     },
     setCompactPlaceOnScreen(compactPlaceOnScreen) {
       compactMusicView.setPillOnScreen(compactPlaceOnScreen === "main");
-      companionMusicView.setCompanionOnScreen(compactPlaceOnScreen === "companion");
     },
   };
 }

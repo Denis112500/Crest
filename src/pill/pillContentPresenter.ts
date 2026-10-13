@@ -9,7 +9,7 @@ import type { PillContentLayout } from "./pillMorphController";
 import type { PillShellElements } from "./pillShellElements";
 
 // Puts activities' views into the pill: the leading activity (the alert, else the main one)
-// in the compact main slot, the companion in the segment next to it. The open pill shows the
+// in the compact main slot, the companion's mark at the end of the pill. The open pill shows the
 // alert alone while there is one; else, after a peek, only the tile with news until it closes;
 // else the dashboard: main, companion, then the dashboard-only activities. Each activity keeps
 // one view set, built when it gets a place and updated in place after, so running animations
@@ -118,7 +118,7 @@ export class PillContentPresenter {
     const companionViewSet = this.companionActivityKind === null ? null : this.findViewSet(this.companionActivityKind);
     const openPillViewSets = this.findOpenPillViewSets();
     replaceSlotContentIfDifferent(this.pillShellElements.compactMainSlotElement, leadingViewSet.compactViewElement);
-    replaceSlotContentIfDifferent(this.pillShellElements.companionSegmentElement, companionViewSet?.companionViewElement ?? null);
+    replaceSlotContentIfDifferent(this.pillShellElements.companionMarkElement, companionViewSet?.companionViewElement ?? null);
     const dashboardSize = this.pillDashboardLayout.showTiles(openPillViewSets);
     for (const activityViewSet of [...this.viewSetByActivityKind.values(), this.nothingToShowViewSet]) {
       const compactPlace =
@@ -129,7 +129,7 @@ export class PillContentPresenter {
     this.onContentLayoutChange({
       expandedLogicalWidth: dashboardSize.logicalWidth,
       expandedLogicalHeight: dashboardSize.logicalHeight,
-      isCompanionSegmentShown: companionViewSet !== null,
+      isCompanionMarkShown: companionViewSet !== null,
     });
   }
 

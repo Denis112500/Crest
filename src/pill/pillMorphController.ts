@@ -18,7 +18,7 @@ const EXPANDED_HEIGHT_CSS_VARIABLE = "--pill-expanded-height";
 export interface PillContentLayout {
   expandedLogicalWidth: number;
   expandedLogicalHeight: number;
-  isCompanionSegmentShown: boolean;
+  isCompanionMarkShown: boolean;
 }
 
 // Carries out a change of state or size in the right order. Growing (opening, more tiles or
@@ -30,7 +30,7 @@ export class PillMorphController {
   // Until the first activity reports its own size; the pill starts compact, so it isn't seen.
   private expandedLogicalWidth = PILL_DASHBOARD_TILE_LOGICAL_WIDTH;
   private expandedLogicalHeight = PILL_EXPANDED_MAX_LOGICAL_HEIGHT;
-  private isCompanionSegmentShown = false;
+  private isCompanionMarkShown = false;
 
   constructor(
     private readonly pillShellElements: PillShellElements,
@@ -53,7 +53,7 @@ export class PillMorphController {
 
   showContentLayout(pillContentLayout: PillContentLayout): void {
     this.showExpandedContentSize(pillContentLayout.expandedLogicalWidth, pillContentLayout.expandedLogicalHeight);
-    this.showCompanionSegment(pillContentLayout.isCompanionSegmentShown);
+    this.showCompanionMark(pillContentLayout.isCompanionMarkShown);
   }
 
   showExpansionState(expansionState: PillExpansionState): void {
@@ -96,18 +96,18 @@ export class PillMorphController {
     }
   }
 
-  // The companion segment only widens the compact pill; while open, only the class changes.
-  private showCompanionSegment(isCompanionSegmentShown: boolean): void {
-    if (isCompanionSegmentShown === this.isCompanionSegmentShown) {
+  // The companion's mark only widens the compact pill; while open, only the class changes.
+  private showCompanionMark(isCompanionMarkShown: boolean): void {
+    if (isCompanionMarkShown === this.isCompanionMarkShown) {
       return;
     }
     const isCompact = !this.isExpanded();
-    this.isCompanionSegmentShown = isCompanionSegmentShown;
-    if (isCompact && isCompanionSegmentShown) {
+    this.isCompanionMarkShown = isCompanionMarkShown;
+    if (isCompact && isCompanionMarkShown) {
       this.applyInteractiveArea(false).catch(reportInteractiveAreaFailure);
     }
-    this.pillShellElements.pillShellElement.classList.toggle(WITH_COMPANION_SHELL_CLASS, isCompanionSegmentShown);
-    if (isCompact && !isCompanionSegmentShown) {
+    this.pillShellElements.pillShellElement.classList.toggle(WITH_COMPANION_SHELL_CLASS, isCompanionMarkShown);
+    if (isCompact && !isCompanionMarkShown) {
       this.settleAfterMorph();
     }
   }
@@ -140,7 +140,7 @@ export class PillMorphController {
             expandedLogicalWidth: this.expandedLogicalWidth,
             expandedLogicalHeight: this.expandedLogicalHeight,
           }
-        : { expansionState: "compact", isCompanionSegmentShown: this.isCompanionSegmentShown },
+        : { expansionState: "compact", isCompanionMarkShown: this.isCompanionMarkShown },
     );
   }
 

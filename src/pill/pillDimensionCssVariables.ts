@@ -14,7 +14,7 @@ import {
   CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT,
   PILL_COMPACT_LOGICAL_HEIGHT,
   PILL_COMPACT_LOGICAL_WIDTH,
-  PILL_COMPANION_SEGMENT_LOGICAL_WIDTH,
+  PILL_COMPANION_MARK_LOGICAL_WIDTH,
   PILL_CONCEAL_DURATION_MILLISECONDS,
   PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH,
   PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
@@ -27,7 +27,7 @@ export function applyPillDimensionCssVariables(): void {
   const rootStyle = document.documentElement.style;
   rootStyle.setProperty("--pill-compact-width", `${PILL_COMPACT_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-compact-height", `${PILL_COMPACT_LOGICAL_HEIGHT}px`);
-  rootStyle.setProperty("--pill-companion-segment-width", `${PILL_COMPANION_SEGMENT_LOGICAL_WIDTH}px`);
+  rootStyle.setProperty("--pill-companion-mark-width", `${PILL_COMPANION_MARK_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-dashboard-tile-width", `${PILL_DASHBOARD_TILE_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-dashboard-tile-divider-width", `${PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH}px`);
   rootStyle.setProperty("--pill-notch-shoulder-radius", `${PILL_NOTCH_SHOULDER_LOGICAL_RADIUS}px`);

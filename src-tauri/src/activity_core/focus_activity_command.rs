@@ -1,4 +1,4 @@
-//! The command the pill page calls when the companion segment is clicked: that activity
+//! The command the pill page calls when the companion mark is clicked: that activity
 //! becomes the main one until it stops.
 
 use tauri::State;

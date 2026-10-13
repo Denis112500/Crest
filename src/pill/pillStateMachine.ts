@@ -30,13 +30,13 @@ export class PillStateMachine {
     this.startHoverExpandCountdownIfCompact();
   }
 
-  /** Over the companion segment the pill doesn't open by itself: hover and a click there would
+  /** Over the companion's mark the pill doesn't open by itself: hover and a click there would
       fight (it would open before most clicks land). A click on it opens the pill instead. */
   handlePointerEnteredCompanion(): void {
     window.clearTimeout(this.pendingHoverExpandTimer);
   }
 
-  /** Back over the main segment (or leaving the pill, which handlePointerLeft settles). */
+  /** Back over the main activity (or leaving the pill, which handlePointerLeft settles). */
   handlePointerLeftCompanion(): void {
     if (this.isPointerCurrentlyOverPill) {
       this.startHoverExpandCountdownIfCompact();

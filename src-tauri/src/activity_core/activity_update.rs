@@ -12,7 +12,7 @@ pub enum ActivityPresence {
     /// ongoing, and the pill hides after a while.
     Lingering,
     /// Happening now (music playing): keeps the pill on screen and can share it as the
-    /// companion segment.
+    /// companion (its mark at the end of the closed pill).
     Ongoing,
     /// Needs the user now (a permission request): takes over the whole pill until it ends.
     Alert,

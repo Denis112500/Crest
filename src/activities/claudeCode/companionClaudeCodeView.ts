@@ -1,39 +1,34 @@
-import "../../styles/companionSegmentViews.css";
+import "../../styles/companionMarkViews.css";
 
 import { createSvgIconElement } from "../createSvgIconElement";
-import type { ClaudeCodeSessionStatus, ClaudeCodeStatusPayload } from "./claudeCodeStatusTypes";
+import type { ClaudeCodeStatusPayload } from "./claudeCodeStatusTypes";
 import { CLAUDE_CODE_TERMINAL_ICON_PATH } from "./claudeCodeTerminalIconPath";
-
-// One or two words, because the segment is narrow; the open pill says the rest.
-const COMPANION_WORD_BY_SESSION_STATUS: Record<ClaudeCodeSessionStatus, string> = {
-  working: "Working",
-  needsPermission: "Needs OK",
-  waitingForInput: "Waiting",
-  done: "Done",
-};
+import { describeClaudeCodeSessionStatus } from "./describeClaudeCodeSessionStatus";
 
 export interface CompanionClaudeCodeView {
   companionViewElement: HTMLElement;
   showClaudeCodeStatus(claudeCodeStatus: ClaudeCodeStatusPayload): void;
 }
 
-// Claude Code next to the music: the terminal mark, coloured by the most urgent session's
-// status (as the dots in the open list), and a word for it.
+// Claude Code next to the music: only the terminal mark, coloured by the most urgent session's
+// status (as the dots in the open list). The status in words is in its tooltip and accessible
+// name, since the pill no longer has room for a word (milestone F).
 export function createCompanionClaudeCodeView(): CompanionClaudeCodeView {
   const companionViewElement = document.createElement("div");
-  companionViewElement.className = "companion-segment-view companion-claude-code-view";
+  companionViewElement.className = "companion-mark-view companion-claude-code-view";
+  companionViewElement.setAttribute("role", "img");
   const terminalIconElement = createSvgIconElement(CLAUDE_CODE_TERMINAL_ICON_PATH);
   terminalIconElement.classList.add("companion-claude-code-icon");
-  const statusWordElement = document.createElement("span");
-  statusWordElement.className = "companion-segment-text";
-  companionViewElement.append(terminalIconElement, statusWordElement);
+  companionViewElement.append(terminalIconElement);
 
   return {
     companionViewElement,
     showClaudeCodeStatus(claudeCodeStatus) {
-      const topSessionStatus = claudeCodeStatus.listedSessions[0].sessionStatus;
-      companionViewElement.dataset.sessionStatus = topSessionStatus;
-      statusWordElement.textContent = COMPANION_WORD_BY_SESSION_STATUS[topSessionStatus];
+      const topSession = claudeCodeStatus.listedSessions[0];
+      companionViewElement.dataset.sessionStatus = topSession.sessionStatus;
+      const claudeCodeCompanionDescription = `Claude Code: ${describeClaudeCodeSessionStatus(topSession)}`;
+      companionViewElement.title = claudeCodeCompanionDescription;
+      companionViewElement.setAttribute("aria-label", claudeCodeCompanionDescription);
     },
   };
 }

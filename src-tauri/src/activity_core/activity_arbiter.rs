@@ -74,7 +74,7 @@ impl ActivityArbiter {
         self.present_current_arrangement();
     }
 
-    /// The user clicked the companion segment. Something ongoing becomes the main one; news on a
+    /// The user clicked the companion mark. Something ongoing becomes the main one; news on a
     /// lingering activity counts as seen, so it leaves the companion place.
     pub fn focus_activity(&mut self, activity_kind: &str) -> Result<(), String> {
         let recorded_activity = self

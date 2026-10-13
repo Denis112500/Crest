@@ -29,16 +29,15 @@ pub struct PillActivity {
 }
 
 /// The layout of the pill (Phase 2, item 8 design): an alert takes over the whole pill;
-/// otherwise `[ main | companion ]`, and the companion stands for `other_ongoing_count`
-/// more ongoing activities ("+N"). The open pill (dashboard, milestone E) shows main,
-/// companion and `dashboard_only_activities` as tiles.
+/// otherwise the main activity, with the companion's mark at the end of the closed pill. The
+/// open pill (dashboard, milestone E) shows main, companion and `dashboard_only_activities` as
+/// tiles.
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PillArrangement {
     pub alert_activity: Option<PillActivity>,
     pub main_activity: Option<PillActivity>,
     pub companion_activity: Option<PillActivity>,
-    pub other_ongoing_count: usize,
     /// Every other non-alert activity, only ever a tile in the open pill: ongoing ones by rank,
     /// then lingering ones, most recent first. Kept apart from main and companion so no payload
     /// (album art) crosses to the page twice; never counts for visibility, so a paused player
@@ -101,9 +100,8 @@ pub fn arrange_pill_activities(
         .collect();
     let main_activity = main_record.map(place_in_pill);
     let companion_activity = companion_record.map(place_in_pill);
-    let other_ongoing_count = remaining_ongoing.len().saturating_sub(1);
 
-    PillArrangement { alert_activity, main_activity, companion_activity, other_ongoing_count, dashboard_only_activities }
+    PillArrangement { alert_activity, main_activity, companion_activity, dashboard_only_activities }
 }
 
 /// The lingering activity with the newest news, if that is newer than the main one's and the
@@ -186,7 +184,6 @@ mod tests {
         let arrangement = arrange_pill_activities(&[&music, &claude_code], None);
         assert_eq!(kind_of(&arrangement.main_activity), Some("claude-code"));
         assert_eq!(kind_of(&arrangement.companion_activity), Some("music"));
-        assert_eq!(arrangement.other_ongoing_count, 0);
     }
 
     #[test]
@@ -227,16 +224,6 @@ mod tests {
     }
 
     #[test]
-    fn more_than_two_ongoing_activities_are_counted_behind_the_companion() {
-        let music = recorded("music", ActivityPresence::Ongoing, 50, 0);
-        let first_session = recorded("claude-code", ActivityPresence::Ongoing, 60, 1);
-        let timer = recorded("timer", ActivityPresence::Ongoing, 40, 2);
-        let arrangement = arrange_pill_activities(&[&music, &first_session, &timer], None);
-        assert_eq!(kind_of(&arrangement.companion_activity), Some("music"));
-        assert_eq!(arrangement.other_ongoing_count, 1);
-    }
-
-    #[test]
     fn alerts_take_over_and_queue_by_priority_then_arrival() {
         let music = recorded("music", ActivityPresence::Ongoing, 50, 0);
         let earlier_alert = recorded("claude-code", ActivityPresence::Alert, 60, 1);
@@ -258,7 +245,6 @@ mod tests {
         let arrangement = arrange_pill_activities(&[&music, &finished_session], None);
         assert_eq!(kind_of(&arrangement.main_activity), Some("music"));
         assert_eq!(kind_of(&arrangement.companion_activity), Some("claude-code"));
-        assert_eq!(arrangement.other_ongoing_count, 0);
     }
 
     #[test]
@@ -325,7 +311,6 @@ mod tests {
         assert_eq!(kind_of(&arrangement.main_activity), Some("claude-code"));
         assert_eq!(kind_of(&arrangement.companion_activity), Some("music"));
         assert_eq!(dashboard_only_kinds(&arrangement), vec!["podcast", "timer", "audiobook", "radio"]);
-        assert_eq!(arrangement.other_ongoing_count, 2);
     }
 
     #[test]

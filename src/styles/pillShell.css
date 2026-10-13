@@ -87,10 +87,10 @@ body {
     border-radius var(--pill-morph-duration) var(--pill-spring-easing);
 }
 
-/* A companion sits next to the main activity: the compact pill widens by its segment. Before
+/* A companion sits next to the main activity: the compact pill widens by its mark. Before
    .is-expanded, which wins while open (same specificity, later rule). */
 .pill-shell.has-companion {
-  width: calc(var(--pill-compact-width) + var(--pill-companion-segment-width));
+  width: calc(var(--pill-compact-width) + var(--pill-companion-mark-width));
 }
 
 /* --pill-expanded-width / -height follow the open pill's tiles; PillMorphController sets them
@@ -126,24 +126,19 @@ body {
   height: 100%;
 }
 
-/* A separate, clickable segment: a thin divider on its left and a lighter background under the
-   pointer say "this is its own thing". It doesn't open the pill on hover; a click does. */
-.pill-companion-segment {
+/* The companion's clickable end of the pill: no divider, only its mark (milestone F); the hover
+   disc is drawn by the mark (companionMarkViews.css). It doesn't open the pill on hover; a
+   click does. */
+.pill-companion-mark {
   display: none;
   flex: none;
-  box-sizing: border-box;
-  width: var(--pill-companion-segment-width);
+  width: var(--pill-companion-mark-width);
   height: 100%;
-  border-left: 1px solid var(--pill-companion-divider-color);
   cursor: pointer;
 }
 
-.pill-shell.has-companion .pill-companion-segment {
-  display: flex;
-}
-
-.pill-companion-segment:hover {
-  background: var(--pill-companion-hover-background);
+.pill-shell.has-companion .pill-companion-mark {
+  display: block;
 }
 
 .pill-expanded-layer {

@@ -1,14 +1,14 @@
 import {
   PILL_COMPACT_LOGICAL_HEIGHT,
   PILL_COMPACT_LOGICAL_WIDTH,
-  PILL_COMPANION_SEGMENT_LOGICAL_WIDTH,
+  PILL_COMPANION_MARK_LOGICAL_WIDTH,
   PILL_NOTCH_SHOULDER_LOGICAL_RADIUS,
   PILL_SPRING_OVERSHOOT_LOGICAL_MARGIN,
   PILL_WINDOW_LOGICAL_WIDTH,
 } from "../frontendConstants";
 
 export type PillShape =
-  | { expansionState: "compact"; isCompanionSegmentShown: boolean }
+  | { expansionState: "compact"; isCompanionMarkShown: boolean }
   | { expansionState: "expanded"; expandedLogicalWidth: number; expandedLogicalHeight: number };
 
 export interface PillInteractiveArea {
@@ -25,7 +25,7 @@ export interface PillInteractiveArea {
 export function calculatePillInteractiveArea(pillShape: PillShape): PillInteractiveArea {
   if (pillShape.expansionState === "compact") {
     const compactLogicalWidth =
-      PILL_COMPACT_LOGICAL_WIDTH + (pillShape.isCompanionSegmentShown ? PILL_COMPANION_SEGMENT_LOGICAL_WIDTH : 0);
+      PILL_COMPACT_LOGICAL_WIDTH + (pillShape.isCompanionMarkShown ? PILL_COMPANION_MARK_LOGICAL_WIDTH : 0);
     const compactNotchLogicalWidth = compactLogicalWidth + 2 * PILL_NOTCH_SHOULDER_LOGICAL_RADIUS;
     return {
       logicalLeft: (PILL_WINDOW_LOGICAL_WIDTH - compactNotchLogicalWidth) / 2,
