@@ -29,6 +29,7 @@
 .expanded-music-title {
   font-size: var(--expanded-music-title-font-size);
   font-weight: var(--pill-title-font-weight);
+  letter-spacing: var(--pill-title-letter-spacing);
 }
 
 .expanded-music-artist {

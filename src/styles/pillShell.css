@@ -10,6 +10,7 @@ body {
 
 body {
   font-family: var(--pill-font-family);
+  font-weight: var(--pill-font-weight);
   cursor: default;
   user-select: none;
 }
@@ -116,6 +117,7 @@ body {
    then the incoming one fades in. Overlapping fades showed two songs on top of each other. */
 .pill-compact-layer {
   display: flex;
+  letter-spacing: var(--pill-compact-letter-spacing);
   height: var(--pill-compact-height);
   transition-delay: var(--pill-content-fade-duration);
 }
@@ -144,6 +146,7 @@ body {
 .pill-expanded-layer {
   width: var(--pill-expanded-width);
   height: var(--pill-expanded-height);
+  letter-spacing: var(--pill-expanded-letter-spacing);
   opacity: 0;
   pointer-events: none;
 }

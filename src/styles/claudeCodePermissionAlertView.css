@@ -29,6 +29,7 @@
   flex: none;
   font-size: var(--expanded-claude-code-title-font-size);
   font-weight: var(--pill-title-font-weight);
+  letter-spacing: var(--pill-title-letter-spacing);
 }
 
 /* Long folder names end in "…"; min-width: 0 lets a flex child shrink below its text width. */
@@ -49,6 +50,7 @@
 .claude-code-permission-description {
   flex: none;
   padding: var(--claude-code-permission-description-padding) var(--claude-code-permission-description-padding-inline);
+  border-left: var(--claude-code-permission-description-rule-width) solid var(--claude-code-needs-permission-color);
   border-radius: var(--claude-code-permission-description-radius);
   background: var(--claude-code-permission-description-background);
 }
@@ -73,9 +75,12 @@
   text-overflow: ellipsis;
 }
 
+/* Normal letter spacing, not the pill's wide one: estimateClaudeCodeCommandRowCount.ts measures
+   the font without spacing, and extra spacing would make it count too few rows. */
 .claude-code-permission-description[data-description-kind="command"] {
   font-family: var(--claude-code-command-font-family);
   font-size: var(--claude-code-command-font-size);
+  letter-spacing: normal;
 }
 
 /* A command keeps its spaces (indentation matters) and wraps at any character, as
@@ -113,16 +118,19 @@
   padding: 0;
   border: none;
   border-radius: calc(var(--claude-code-permission-button-height) / 2);
-  background: var(--claude-code-permission-deny-background);
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--claude-code-permission-deny-outline-width) var(--claude-code-permission-deny-outline-color);
   color: var(--pill-text-color);
   font: inherit;
-  font-weight: var(--pill-title-font-weight);
+  font-weight: var(--claude-code-permission-button-font-weight);
+  letter-spacing: var(--claude-code-permission-button-letter-spacing);
   cursor: default;
   transition: opacity var(--pill-content-fade-duration);
 }
 
 .claude-code-permission-button.is-allow {
-  background: var(--claude-code-accent-color);
+  background: var(--claude-code-permission-allow-background);
+  box-shadow: var(--claude-code-permission-allow-glow);
   color: var(--pill-background-color);
 }
 

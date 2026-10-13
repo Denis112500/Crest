@@ -4,11 +4,18 @@
 :root {
   /* Pill */
   --pill-background-color: #000000;
-  --pill-text-color: #f5f5f7;
-  --pill-secondary-text-opacity: 0.6;
-  --pill-font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --pill-text-color: #ffffff;
+  --pill-secondary-text-opacity: 0.58;
+  /* Bahnschrift Semilight with air between the letters (design phase round 3, changed in
+     round 6): Windows' own DIN-style variable font, so nothing has to be bundled. Segoe UI
+     Variable Display Light (300) was too thin on an OLED screen. */
+  --pill-font-family: "Bahnschrift", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --pill-font-size: 13px;
-  --pill-title-font-weight: 600;
+  --pill-font-weight: 350;
+  --pill-title-font-weight: 350;
+  --pill-compact-letter-spacing: 0.06em;
+  --pill-expanded-letter-spacing: 0.04em;
+  --pill-title-letter-spacing: 0.05em;
   --pill-expanded-corner-radius: 30px;
   --pill-content-fade-duration: 180ms;
   /* A damped spring (damping ratio 0.75, about 3% overshoot), sampled into CSS linear(). */
@@ -24,7 +31,7 @@
   --companion-claude-code-icon-size: 16px;
 
   /* Dashboard (the open pill's tiles; restyled in the look pass) */
-  --pill-dashboard-divider-color: rgba(255, 255, 255, 0.14);
+  --pill-dashboard-divider-color: rgba(230, 240, 255, 0.1);
   --pill-dashboard-divider-inset: 16px;
 
   /* Album art */
@@ -52,8 +59,9 @@
   --expanded-music-title-font-size: 15px;
   --expanded-music-artist-font-size: 13px;
 
-  /* Claude Code views. The accent is a calm terminal green, not Anthropic's brand color. */
-  --claude-code-accent-color: #7ee2a8;
+  /* Claude Code views. Working is Starlight white and needing an OK is gold (design phase,
+     round 4); neither is Anthropic's brand color. */
+  --claude-code-accent-color: #e6f0ff;
   --claude-code-terminal-icon-size: 18px;
   --compact-claude-code-padding-start: 12px;
   --compact-claude-code-padding-end: 14px;
@@ -62,23 +70,35 @@
   --expanded-claude-code-title-font-size: 15px;
   /* Session rows (their heights and gaps come from frontendConstants.ts). */
   --claude-code-session-row-inner-gap: 8px;
-  --claude-code-session-status-dot-size: 8px;
+  --claude-code-session-status-dot-size: 9px;
   --claude-code-session-project-max-width: 45%;
-  --claude-code-needs-permission-color: #ffc861;
-  --claude-code-idle-session-color: rgba(245, 245, 247, 0.45);
-  /* Permission alert (its heights come from frontendConstants.ts). Allow is green, Deny grey,
-     so the two can't be mixed up at a glance. */
+  --claude-code-needs-permission-color: #ffd98a;
+  --claude-code-idle-session-color: rgba(230, 240, 255, 0.38);
+  /* Session status shown as a small ring, not a filled dot; a ring that matters glows. */
+  --claude-code-session-status-ring-width: 1.5px;
+  --claude-code-session-status-ring-glow-size: 6px;
+  --claude-code-working-ring-glow-color: rgba(230, 240, 255, 0.7);
+  --claude-code-needs-permission-ring-glow-color: rgba(255, 217, 138, 0.7);
+  /* Permission alert (its heights come from frontendConstants.ts). Allow is filled bright
+     white, Deny only outlined, so the two can't be mixed up at a glance. */
   --claude-code-permission-header-gap: 8px;
-  --claude-code-permission-description-radius: 10px;
-  --claude-code-permission-description-background: rgba(255, 255, 255, 0.08);
+  --claude-code-permission-description-radius: 3px;
+  /* Strong enough to read as gold on an OLED panel (0.06 looked black there). */
+  --claude-code-permission-description-background: rgba(255, 217, 138, 0.11);
+  --claude-code-permission-description-rule-width: 2px;
   --claude-code-command-font-family: "Cascadia Mono", Consolas, monospace;
   --claude-code-command-font-size: 12px;
   --claude-code-permission-button-gap: 10px;
-  --claude-code-permission-deny-background: rgba(255, 255, 255, 0.14);
+  --claude-code-permission-button-font-weight: 400;
+  --claude-code-permission-button-letter-spacing: 0.08em;
+  --claude-code-permission-allow-background: #f4f8ff;
+  --claude-code-permission-allow-glow: 0 0 14px rgba(255, 241, 201, 0.35);
+  --claude-code-permission-deny-outline-width: 1px;
+  --claude-code-permission-deny-outline-color: rgba(230, 240, 255, 0.28);
   --claude-code-permission-button-hover-brightness: 1.15;
   --claude-code-command-scrollbar-color: rgba(255, 255, 255, 0.3);
   /* A request that moves up in the queue flashes once, so it can't pass for the one just answered. */
-  --claude-code-permission-new-request-highlight: rgba(255, 200, 97, 0.35);
+  --claude-code-permission-new-request-highlight: rgba(255, 217, 138, 0.35);
   --claude-code-permission-new-request-highlight-duration: 700ms;
   --claude-code-permission-note-font-size: 12px;
 
