@@ -105,17 +105,23 @@
   background: var(--claude-code-command-scrollbar-color);
 }
 
+/* On the right, under the end of the command (design spec, Gauges): the eye reads the command
+   first and arrives at the answers. */
 .claude-code-permission-buttons {
   flex: none;
   display: flex;
+  justify-content: flex-end;
   gap: var(--claude-code-permission-button-gap);
   height: var(--claude-code-permission-button-height);
 }
 
+/* At least the usual width; a longer label ("Read to the end") makes its button grow instead of
+   running past its edges. */
 .claude-code-permission-button {
-  flex: 1;
+  flex: none;
+  min-width: var(--claude-code-permission-button-min-width);
   height: 100%;
-  padding: 0;
+  padding: 0 var(--claude-code-permission-button-padding-inline);
   border: none;
   border-radius: calc(var(--claude-code-permission-button-height) / 2);
   background: transparent;
@@ -151,7 +157,7 @@
 
 /* In Allow's place when the command is too long to show here. */
 .claude-code-permission-too-long-note {
-  flex: 1;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;

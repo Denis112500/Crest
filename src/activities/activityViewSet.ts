@@ -12,6 +12,8 @@ export interface ActivityViewSet {
   companionViewElement: HTMLElement;
   expandedViewElement: HTMLElement;
   showActivityPayload(activityPayload: unknown): void;
+  /** How wide this activity's tile is for what it shows now (logical pixels). */
+  expandedViewLogicalWidth(): number;
   /** How tall the open pill should be for what this activity shows now (logical pixels). */
   expandedViewLogicalHeight(): number;
   /** Lets views pause animations nobody can see, like the open progress ring while compact. */

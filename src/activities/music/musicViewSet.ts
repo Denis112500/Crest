@@ -1,4 +1,4 @@
-import { MUSIC_EXPANDED_LOGICAL_HEIGHT } from "../../frontendConstants";
+import { MUSIC_EXPANDED_LOGICAL_HEIGHT, PILL_DASHBOARD_TILE_LOGICAL_WIDTH } from "../../frontendConstants";
 import type { ActivityViewSet } from "../activityViewSet";
 import { createCompactMusicView } from "./compactMusicView";
 import { createCompanionMusicView } from "./companionMusicView";
@@ -46,6 +46,7 @@ export function createMusicViewSet(): ActivityViewSet {
       expandedMusicView.showNowPlaying(nowPlaying);
       followAlbumArtColors(nowPlaying.albumArtDataUrl);
     },
+    expandedViewLogicalWidth: () => PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
     expandedViewLogicalHeight: () => MUSIC_EXPANDED_LOGICAL_HEIGHT,
     setExpandedViewVisible(isExpandedViewVisible) {
       expandedMusicView.setProgressAnimationActive(isExpandedViewVisible);

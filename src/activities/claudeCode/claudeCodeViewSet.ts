@@ -1,3 +1,4 @@
+import { CLAUDE_CODE_PERMISSION_ALERT_LOGICAL_WIDTH, PILL_DASHBOARD_TILE_LOGICAL_WIDTH } from "../../frontendConstants";
 import type { ActivityViewSet } from "../activityViewSet";
 import { calculateClaudeCodeExpandedHeight } from "./calculateClaudeCodeExpandedHeight";
 import { calculateClaudeCodePermissionAlertHeight } from "./calculateClaudeCodePermissionAlertHeight";
@@ -21,6 +22,7 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
   expandedSlotElement.className = "claude-code-expanded-slot";
   // Replaced by the first payload, which always comes right after the views are mounted.
   let expandedLogicalHeight = calculateClaudeCodeExpandedHeight(1, false);
+  let isPermissionAlertShown = false;
   let isExpandedViewVisible = false;
   return {
     compactViewElement: compactClaudeCodeView.compactViewElement,
@@ -36,8 +38,10 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
         const requestRowCount = permissionAlertView.showPermissionAlert(permissionAlert);
         showInExpandedSlot(expandedSlotElement, permissionAlertView.alertViewElement);
         expandedLogicalHeight = calculateClaudeCodePermissionAlertHeight(requestRowCount);
+        isPermissionAlertShown = true;
         return;
       }
+      isPermissionAlertShown = false;
       permissionAlertView.forgetShownRequest();
       expandedClaudeCodeView.showClaudeCodeStatus(claudeCodeStatus);
       showInExpandedSlot(expandedSlotElement, expandedClaudeCodeView.expandedViewElement);
@@ -46,6 +50,8 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
         claudeCodeStatus.unlistedSessionCount > 0,
       );
     },
+    expandedViewLogicalWidth: () =>
+      isPermissionAlertShown ? CLAUDE_CODE_PERMISSION_ALERT_LOGICAL_WIDTH : PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
     expandedViewLogicalHeight: () => expandedLogicalHeight,
     // Called again after every change, so only the moment it becomes visible counts: an alert
     // that was hidden (during a game) gets its pause before clicks count when it shows again.

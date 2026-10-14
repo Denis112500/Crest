@@ -18,6 +18,14 @@ export const PILL_DASHBOARD_MAX_TILE_COUNT = 2;
 export const PILL_DASHBOARD_MAX_LOGICAL_WIDTH =
   PILL_DASHBOARD_MAX_TILE_COUNT * PILL_DASHBOARD_TILE_LOGICAL_WIDTH +
   (PILL_DASHBOARD_MAX_TILE_COUNT - 1) * PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH;
+// The permission alert is one tile of its own width: wide and shallow, so a long command needs
+// fewer rows (about 70 characters per row at 560, 45 at the old 380).
+export const CLAUDE_CODE_PERMISSION_ALERT_LOGICAL_WIDTH = 560;
+// The widest the open pill's content ever gets: the full dashboard or the alert.
+export const PILL_EXPANDED_MAX_CONTENT_LOGICAL_WIDTH = Math.max(
+  PILL_DASHBOARD_MAX_LOGICAL_WIDTH,
+  CLAUDE_CODE_PERMISSION_ALERT_LOGICAL_WIDTH,
+);
 // The open pill is as tall as its tallest tile (each view set reports its own height), up to
 // this much; the window is sized for it.
 export const PILL_EXPANDED_MAX_LOGICAL_HEIGHT = 200;
@@ -72,11 +80,11 @@ export const PILL_VISOR_EXPANDED_LOGICAL_SLOPE = 16;
 // designTokens.css keeps the glow's offset and blur inside this margin.
 export const PILL_UNDERGLOW_LOGICAL_MARGIN = 12;
 
-// The window always has the largest open size (the widest dashboard, plus the Visor's slopes,
+// The window always has the largest open size (the widest content, plus the Visor's slopes,
 // shoulders and the underglow) and never moves or resizes; only its interactive area changes
 // (see calculatePillInteractiveArea.ts). The glide doesn't overshoot, so no spare room is needed.
 export const PILL_WINDOW_LOGICAL_WIDTH =
-  PILL_DASHBOARD_MAX_LOGICAL_WIDTH +
+  PILL_EXPANDED_MAX_CONTENT_LOGICAL_WIDTH +
   2 * (PILL_VISOR_EXPANDED_LOGICAL_SLOPE + PILL_NOTCH_SHOULDER_LOGICAL_WIDTH + PILL_UNDERGLOW_LOGICAL_MARGIN);
 export const PILL_WINDOW_LOGICAL_HEIGHT = PILL_EXPANDED_MAX_LOGICAL_HEIGHT + PILL_UNDERGLOW_LOGICAL_MARGIN;
 

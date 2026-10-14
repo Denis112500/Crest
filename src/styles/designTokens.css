@@ -140,6 +140,8 @@
   --claude-code-command-font-family: "Cascadia Mono", Consolas, monospace;
   --claude-code-command-font-size: 12px;
   --claude-code-permission-button-gap: 10px;
+  --claude-code-permission-button-min-width: 112px;
+  --claude-code-permission-button-padding-inline: 16px;
   --claude-code-permission-button-font-weight: 400;
   --claude-code-permission-button-letter-spacing: 0.08em;
   --claude-code-permission-allow-background: #f4f8ff;
