@@ -10,32 +10,10 @@
 param([int]$SampleCount = 5, [int]$SampleIntervalSeconds = 2)
 
 $bytesPerMegabyte = 1MB
-$crestProcess = Get-CimInstance Win32_Process -Filter "Name='crest.exe'" | Select-Object -First 1
-if (-not $crestProcess) { "Crest is not running"; exit 1 }
+$crestProcesses = @(& "$PSScriptRoot/find_crest_processes.ps1")
+if ($crestProcesses.Count -eq 0) { "Crest is not running"; exit 1 }
 
-# Crest starts the WebView2 browser process, which starts the renderer, GPU and helper processes.
-$allProcesses = Get-CimInstance Win32_Process
-$crestProcessTree = [System.Collections.Generic.List[object]]::new()
-$processesToVisit = [System.Collections.Generic.Queue[object]]::new()
-$processesToVisit.Enqueue($crestProcess)
-while ($processesToVisit.Count -gt 0) {
-    $visitedProcess = $processesToVisit.Dequeue()
-    $crestProcessTree.Add($visitedProcess)
-    $allProcesses | Where-Object { $_.ParentProcessId -eq $visitedProcess.ProcessId } | ForEach-Object { $processesToVisit.Enqueue($_) }
-}
-
-function Get-ProcessRole($processDescription) {
-    $commandLine = "$($processDescription.CommandLine)"
-    if ($processDescription.Name -eq 'crest.exe') { return 'Crest (Rust)' }
-    if ($commandLine -match '--type=renderer') { return 'WebView2 renderer (page, JS)' }
-    if ($commandLine -match '--type=gpu-process') { return 'WebView2 GPU (drawing)' }
-    if ($commandLine -match '--type=crashpad-handler') { return 'WebView2 crash reporter' }
-    if ($commandLine -match '--utility-sub-type=([\w.]+)') { return "WebView2 utility ($($Matches[1] -replace '^.*\.', ''))" }
-    if ($commandLine -match '--type=(\S+)') { return "WebView2 $($Matches[1])" }
-    return 'WebView2 browser (manager)'
-}
-
-$crestProcessIds = $crestProcessTree.ProcessId
+$crestProcessIds = $crestProcesses.ProcessId
 $samplesByProcessId = @{}
 for ($sampleIndex = 0; $sampleIndex -lt $SampleCount; $sampleIndex++) {
     Get-CimInstance Win32_PerfFormattedData_PerfProc_Process |
@@ -47,12 +25,12 @@ for ($sampleIndex = 0; $sampleIndex -lt $SampleCount; $sampleIndex++) {
     if ($sampleIndex -lt $SampleCount - 1) { Start-Sleep -Seconds $SampleIntervalSeconds }
 }
 
-$processMemoryRows = foreach ($processDescription in $crestProcessTree) {
-    $processSamples = $samplesByProcessId[$processDescription.ProcessId]
+$processMemoryRows = foreach ($crestProcessEntry in $crestProcesses) {
+    $processSamples = $samplesByProcessId[$crestProcessEntry.ProcessId]
     if (-not $processSamples) { continue }
     [pscustomobject]@{
-        Role                   = Get-ProcessRole $processDescription
-        ProcessId              = $processDescription.ProcessId
+        Role                   = $crestProcessEntry.Role
+        ProcessId              = $crestProcessEntry.ProcessId
         PrivateWorkingSetMB    = [math]::Round(($processSamples | ForEach-Object { $_[0] } | Measure-Object -Average).Average / $bytesPerMegabyte, 1)
         PrivateBytesMB         = [math]::Round(($processSamples | ForEach-Object { $_[1] } | Measure-Object -Average).Average / $bytesPerMegabyte, 1)
         WorkingSetMB           = [math]::Round(($processSamples | ForEach-Object { $_[2] } | Measure-Object -Average).Average / $bytesPerMegabyte, 1)

@@ -104,6 +104,9 @@ export const PILL_ATTENTION_PEEK_DURATION_MILLISECONDS = 4000;
 // and the fade of a strength-only change (pause). The sweep's end commits the new colours.
 export const PILL_LIGHT_SWEEP_DURATION_MILLISECONDS = 900;
 export const PILL_LIGHT_FADE_DURATION_MILLISECONDS = 400;
+// A new status line from Claude Code sweeps the light at most this often: it changes every few
+// seconds while Claude Code works, and each sweep repaints the blurred light for 900 ms.
+export const PILL_LIGHT_STATUS_SWEEP_MIN_GAP_MILLISECONDS = 8000;
 
 // The song's position is redrawn by a timer at a low, fixed rate instead of at the monitor's
 // refresh rate (at 239 Hz, CSS-animated bars once cost about 35% of a CPU core), and only while

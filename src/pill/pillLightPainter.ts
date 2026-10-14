@@ -42,6 +42,15 @@ export class PillLightPainter {
     }
   }
 
+  /** Something new to see in the same colours (a new track, a new status line): one pass of the
+      bright front over the current light. Skipped while a sweep runs or the pill is off screen. */
+  sweepShownLight(): void {
+    if (this.sweepingLightColors || !this.shownLightColors || !this.isPillOnScreen) {
+      return;
+    }
+    this.startSweep(this.shownLightColors);
+  }
+
   setPillOnScreen(isPillOnScreen: boolean): void {
     this.isPillOnScreen = isPillOnScreen;
     if (!isPillOnScreen) {

@@ -1,6 +1,8 @@
 import type { PillActivity, PillArrangement } from "../activities/pillArrangementTypes";
 import { CLAUDE_CODE_ACTIVITY_KIND } from "../ipc/ipcChannelNames";
+import { PILL_LIGHT_STATUS_SWEEP_MIN_GAP_MILLISECONDS } from "../frontendConstants";
 import { decidePillLightKind, type PillLightKind } from "./decidePillLightKind";
+import { describePillLightNews, type PillLightNews } from "./describePillLightNews";
 import { type PillLightColors, PillLightPainter } from "./pillLightPainter";
 import { readPillLightPalette } from "./readPillLightPalette";
 
@@ -14,6 +16,8 @@ export class PillLightController {
   private readonly pillLightPainter: PillLightPainter;
   private latestPillArrangement: PillArrangement | null = null;
   private lastSeenClaudeCodeAttentionKey: string | null = null;
+  private lastPillLightNews: PillLightNews | null = null;
+  private lastStatusSweepTimeMilliseconds = Number.NEGATIVE_INFINITY;
 
   constructor(private readonly pillNotchElement: HTMLElement) {
     this.pillLightPainter = new PillLightPainter(pillNotchElement);
@@ -21,7 +25,10 @@ export class PillLightController {
 
   showPillArrangement(pillArrangement: PillArrangement): void {
     this.latestPillArrangement = pillArrangement;
+    // First the light itself: a change of colour already sweeps, and a sweep for news below then
+    // finds one running and adds nothing.
     this.updateLight();
+    this.sweepForNews(describePillLightNews(pillArrangement));
   }
 
   /** The user opened the pill, or pointed at it while it was open: Claude Code's news so far is
@@ -38,6 +45,28 @@ export class PillLightController {
 
   setPillOnScreen(isPillOnScreen: boolean): void {
     this.pillLightPainter.setPillOnScreen(isPillOnScreen);
+  }
+
+  // A new track always sweeps; Claude Code's status line changes every few seconds while it
+  // works, so its sweeps are kept apart (each one repaints the blurred light for a moment). The
+  // first arrangement isn't news: it's what was there when Crest started.
+  private sweepForNews(pillLightNews: PillLightNews): void {
+    const previousPillLightNews = this.lastPillLightNews;
+    this.lastPillLightNews = pillLightNews;
+    if (!previousPillLightNews) {
+      return;
+    }
+    const isNewTrack =
+      pillLightNews.musicTrackKey !== null && pillLightNews.musicTrackKey !== previousPillLightNews.musicTrackKey;
+    const isNewStatusLine =
+      pillLightNews.claudeCodeStatusKey !== null &&
+      pillLightNews.claudeCodeStatusKey !== previousPillLightNews.claudeCodeStatusKey;
+    const now = performance.now();
+    const isStatusSweepDue = now - this.lastStatusSweepTimeMilliseconds >= PILL_LIGHT_STATUS_SWEEP_MIN_GAP_MILLISECONDS;
+    if (isNewTrack || (isNewStatusLine && isStatusSweepDue)) {
+      this.lastStatusSweepTimeMilliseconds = now;
+      this.pillLightPainter.sweepShownLight();
+    }
   }
 
   private updateLight(): void {
