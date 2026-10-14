@@ -15,10 +15,11 @@ export interface AlbumArtImage {
 }
 
 // Album art with a spinning ring while a new track's art is on its way, and a music-note
-// placeholder when the player sends none, or something the browser can't decode.
-export function createAlbumArtImage(sizeClassName: string): AlbumArtImage {
+// placeholder when the player sends none, or something the browser can't decode. Its size comes
+// from the cover gauge around it (coverProgressGauge.css).
+export function createAlbumArtImage(): AlbumArtImage {
   const albumArtElement = document.createElement("div");
-  albumArtElement.classList.add("album-art", sizeClassName, MISSING_ART_CLASS);
+  albumArtElement.classList.add("album-art", MISSING_ART_CLASS);
   const albumArtPictureElement = document.createElement("img");
   albumArtPictureElement.className = "album-art-picture";
   albumArtPictureElement.alt = "";

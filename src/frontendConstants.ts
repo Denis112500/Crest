@@ -8,11 +8,12 @@ export const PILL_COMPACT_LOGICAL_HEIGHT = 36;
 // mockup option B); one pill height, so the end stays as round as the start.
 export const PILL_COMPANION_MARK_LOGICAL_WIDTH = 36;
 // The open pill is a dashboard: one tile per activity, side by side, with a thin divider
-// between them (layout A, decided 2026-10-12). A peek or an alert is a single tile.
-export const PILL_DASHBOARD_TILE_LOGICAL_WIDTH = 380;
+// between them (layout A, decided 2026-10-12), wide and shallow (design spec, Gauges). A peek or
+// an alert is a single tile.
+export const PILL_DASHBOARD_TILE_LOGICAL_WIDTH = 400;
 export const PILL_DASHBOARD_TILE_DIVIDER_LOGICAL_WIDTH = 1;
 // One tile per activity source that exists (music, Claude Code). A third source needs a decision
-// first: three tiles would be 1142 wide (notes, milestone E).
+// first: three tiles would be 1202 wide.
 export const PILL_DASHBOARD_MAX_TILE_COUNT = 2;
 export const PILL_DASHBOARD_MAX_LOGICAL_WIDTH =
   PILL_DASHBOARD_MAX_TILE_COUNT * PILL_DASHBOARD_TILE_LOGICAL_WIDTH +
@@ -20,23 +21,23 @@ export const PILL_DASHBOARD_MAX_LOGICAL_WIDTH =
 // The open pill is as tall as its tallest tile (each view set reports its own height), up to
 // this much; the window is sized for it.
 export const PILL_EXPANDED_MAX_LOGICAL_HEIGHT = 200;
-export const MUSIC_EXPANDED_LOGICAL_HEIGHT = 176;
+export const MUSIC_EXPANDED_LOGICAL_HEIGHT = 128;
 export const NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT = 96;
 
 // The open Claude Code view: a header, one row per listed session (at most 3, decided in Rust's
 // CLAUDE_CODE_LISTED_SESSION_MAX_COUNT), then "+N more". Its height is calculated from these
 // (calculateClaudeCodeExpandedHeight.ts), so the CSS gets the same numbers; 3 rows + "+N more"
-// = 180, inside PILL_EXPANDED_MAX_LOGICAL_HEIGHT.
-export const CLAUDE_CODE_EXPANDED_LOGICAL_PADDING = 16;
-export const CLAUDE_CODE_EXPANDED_HEADER_LOGICAL_HEIGHT = 28;
+// = 172, inside PILL_EXPANDED_MAX_LOGICAL_HEIGHT.
+export const CLAUDE_CODE_EXPANDED_LOGICAL_PADDING = 18;
+export const CLAUDE_CODE_EXPANDED_HEADER_LOGICAL_HEIGHT = 22;
 export const CLAUDE_CODE_EXPANDED_SECTION_LOGICAL_GAP = 12;
-export const CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT = 24;
+export const CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT = 22;
 export const CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP = 4;
 export const CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT = 16;
 
 // The permission alert: the same padding, header and gaps as above, then the request in a box
 // with this inner padding (a command wraps and shows up to 3 rows, scrolling past that), then
-// the Allow / Deny row. 3 rows = 182, inside PILL_EXPANDED_MAX_LOGICAL_HEIGHT
+// the Allow / Deny row. 3 rows = 180, inside PILL_EXPANDED_MAX_LOGICAL_HEIGHT
 // (calculateClaudeCodePermissionAlertHeight.ts adds it up).
 export const CLAUDE_CODE_PERMISSION_DESCRIPTION_LINE_LOGICAL_HEIGHT = 18;
 export const CLAUDE_CODE_PERMISSION_DESCRIPTION_LOGICAL_PADDING = 6;
@@ -96,13 +97,24 @@ export const PILL_ATTENTION_PEEK_DURATION_MILLISECONDS = 4000;
 export const PILL_LIGHT_SWEEP_DURATION_MILLISECONDS = 900;
 export const PILL_LIGHT_FADE_DURATION_MILLISECONDS = 400;
 
-// Endless animations are driven by timers at a low, fixed rate instead of running at the
-// monitor's refresh rate: at 239 Hz, CSS-animated bars cost about 35% of a CPU core.
-export const PLAYBACK_BARS_FRAMES_PER_SECOND = 15;
-// The progress bar moves about 2 px per second; a few redraws per second look continuous.
-export const PLAYBACK_PROGRESS_REDRAWS_PER_SECOND = 4;
+// The song's position is redrawn by a timer at a low, fixed rate instead of at the monitor's
+// refresh rate (at 239 Hz, CSS-animated bars once cost about 35% of a CPU core), and only while
+// it's seen and playing. Open, the ring is 258 px around and the clock shows seconds; closed,
+// the ring is 75 px around, so a 3-minute song moves it about 0.4 px per second.
+export const PLAYBACK_POSITION_OPEN_REDRAWS_PER_SECOND = 4;
+export const PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND = 1;
 
-// Each bar rises and falls with its own period, so they never move in step.
-export const PLAYBACK_BAR_BOUNCE_PERIODS_MILLISECONDS = [1800, 1400, 2100, 1600];
-// A resting (paused) bar is this fraction of its full height.
-export const PLAYBACK_BAR_RESTING_SCALE = 0.3;
+// The cover gauge: the cover in a ring that shows the song's progress (design spec, Gauges).
+// Box, cover and ring radius in logical pixels; the ring's stroke width too.
+export const COVER_GAUGE_COMPACT_GEOMETRY = { boxSize: 26, coverSize: 18, ringRadius: 12, ringWidth: 1.6 };
+export const COVER_GAUGE_COMPANION_GEOMETRY = { boxSize: 24, coverSize: 16, ringRadius: 11, ringWidth: 1.5 };
+export const COVER_GAUGE_EXPANDED_GEOMETRY = { boxSize: 88, coverSize: 70, ringRadius: 41, ringWidth: 2.5 };
+
+// The ring's colours come from the cover, drawn once per track into a canvas this small (three
+// thirds of 8 × 8 pixels each are averaged), then made more vivid and kept in a lightness range
+// where they read on black without glaring.
+export const ALBUM_ART_RING_SAMPLE_LOGICAL_WIDTH = 24;
+export const ALBUM_ART_RING_SAMPLE_LOGICAL_HEIGHT = 8;
+export const ALBUM_ART_RING_SATURATION_BOOST = 1.3;
+export const ALBUM_ART_RING_MIN_LIGHTNESS = 0.55;
+export const ALBUM_ART_RING_MAX_LIGHTNESS = 0.75;

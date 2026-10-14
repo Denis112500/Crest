@@ -1,35 +1,47 @@
 import "../../styles/compactMusicView.css";
 
-import { createAlbumArtImage } from "./albumArtImage";
+import { COVER_GAUGE_COMPACT_GEOMETRY, PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND } from "../../frontendConstants";
+import { createCoverProgressGauge } from "./coverProgressGauge";
 import type { NowPlayingPayload } from "./nowPlayingTypes";
-import { createPlaybackBarsIndicator } from "./playbackBarsIndicator";
+import { createPlaybackPositionTicker } from "./playbackPositionTicker";
+import type { AlbumArtRingColors } from "./sampleAlbumArtRingColors";
 
 export interface CompactMusicView {
   compactViewElement: HTMLElement;
   showNowPlaying(nowPlaying: NowPlayingPayload): void;
+  showRingColors(albumArtRingColors: AlbumArtRingColors | null): void;
   setPillOnScreen(isPillOnScreen: boolean): void;
 }
 
-// The small pill: tiny album art, the title, and bars that bounce while playing.
+// The small pill: the cover in its progress ring, and the title. The ring moves once a second
+// while the song plays and the pill is on screen; a hidden window doesn't stop page timers in
+// WebView2, so it stops itself while the pill is off screen (during a game, for example).
 export function createCompactMusicView(): CompactMusicView {
   const compactViewElement = document.createElement("div");
   compactViewElement.className = "compact-music-view";
-  const compactAlbumArt = createAlbumArtImage("album-art-compact");
+  const coverGauge = createCoverProgressGauge(COVER_GAUGE_COMPACT_GEOMETRY);
   const compactTitleElement = document.createElement("span");
   compactTitleElement.className = "compact-music-title";
-  const playbackBars = createPlaybackBarsIndicator();
-  compactViewElement.append(compactAlbumArt.albumArtElement, compactTitleElement, playbackBars.barsIndicatorElement);
+  compactViewElement.append(coverGauge.gaugeElement, compactTitleElement);
+  const positionTicker = createPlaybackPositionTicker((playbackPosition) =>
+    coverGauge.drawPlaybackPosition(playbackPosition),
+  );
 
   return {
     compactViewElement,
     showNowPlaying(nowPlaying) {
-      compactAlbumArt.showAlbumArt(nowPlaying.albumArtDataUrl, nowPlaying.isAlbumArtLoading);
+      const isPlaying = nowPlaying.playbackState === "playing";
+      coverGauge.showAlbumArt(nowPlaying.albumArtDataUrl, nowPlaying.isAlbumArtLoading);
+      coverGauge.showIsPlaying(isPlaying);
       // textContent, never innerHTML: a track title must not be able to inject markup.
       compactTitleElement.textContent = nowPlaying.trackTitle;
-      playbackBars.showIsPlaying(nowPlaying.playbackState === "playing");
+      positionTicker.showTimeline(nowPlaying.timeline, isPlaying);
+    },
+    showRingColors(albumArtRingColors) {
+      coverGauge.showRingColors(albumArtRingColors);
     },
     setPillOnScreen(isPillOnScreen) {
-      playbackBars.setPillOnScreen(isPillOnScreen);
+      positionTicker.setRedrawsPerSecond(isPillOnScreen ? PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND : 0);
     },
   };
 }

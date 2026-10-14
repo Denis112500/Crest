@@ -8,24 +8,6 @@
   background: var(--album-art-placeholder-background);
 }
 
-.album-art-compact {
-  width: var(--album-art-compact-size);
-  height: var(--album-art-compact-size);
-  border-radius: var(--album-art-compact-radius);
-}
-
-.album-art-companion {
-  width: var(--album-art-companion-size);
-  height: var(--album-art-companion-size);
-  border-radius: var(--album-art-companion-radius);
-}
-
-.album-art-expanded {
-  width: var(--album-art-expanded-size);
-  height: var(--album-art-expanded-size);
-  border-radius: var(--album-art-expanded-radius);
-}
-
 .album-art-picture {
   position: absolute;
   inset: 0;

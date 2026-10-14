@@ -1,0 +1,47 @@
+/* The cover gauge (coverProgressGauge.ts): the round cover inside a ring showing the song's
+   progress. Box and cover sizes come from frontendConstants.ts per place (closed, companion,
+   open), set on the gauge itself. Without the song's own colours, the ring has music's colour. */
+.cover-progress-gauge {
+  --cover-gauge-ring-start-color: var(--pill-light-music-start-color);
+  --cover-gauge-ring-middle-color: var(--pill-light-music-middle-color);
+  --cover-gauge-ring-end-color: var(--pill-light-music-end-color);
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--cover-gauge-box-size);
+  height: var(--cover-gauge-box-size);
+}
+
+.cover-progress-gauge svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.cover-progress-track {
+  fill: none;
+  stroke: var(--cover-gauge-track-color);
+}
+
+.cover-progress-ring {
+  fill: none;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 var(--cover-gauge-ring-glow-size) var(--cover-gauge-ring-glow-color));
+}
+
+.cover-progress-gauge .album-art {
+  width: var(--cover-gauge-cover-size);
+  height: var(--cover-gauge-cover-size);
+  border-radius: 50%;
+}
+
+/* Paused: the ring keeps its place but goes quiet, like the pill's own light. */
+.cover-progress-gauge.is-paused .cover-progress-ring {
+  opacity: var(--cover-gauge-paused-ring-opacity);
+  filter: none;
+}
+
+.cover-progress-gauge.is-paused .album-art {
+  filter: saturate(var(--cover-gauge-paused-cover-saturation)) brightness(var(--cover-gauge-paused-cover-brightness));
+}

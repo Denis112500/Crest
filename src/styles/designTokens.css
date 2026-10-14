@@ -63,13 +63,11 @@
   --pill-underglow-blur: 4px;
   --pill-underglow-opacity: 0.72;
 
-  /* Companion mark (at the end of the compact pill). The slot is as wide as the cover, the
+  /* Companion mark (at the end of the compact pill). The slot is as wide as the cover gauge, the
      larger of the two marks; the hover disc matches the control buttons' hover. */
   --pill-companion-hover-background: rgba(255, 255, 255, 0.12);
-  --companion-mark-slot-size: 18px;
+  --companion-mark-slot-size: 24px;
   --companion-mark-hover-size: 28px;
-  --album-art-companion-size: 18px;
-  --album-art-companion-radius: 5px;
   --companion-claude-code-icon-size: 16px;
 
   /* Dashboard (the open pill's tiles; restyled in the look pass) */
@@ -79,10 +77,6 @@
   /* Album art */
   --album-art-placeholder-background: #2c2c2e;
   --album-art-placeholder-icon-opacity: 0.55;
-  --album-art-compact-size: 22px;
-  --album-art-compact-radius: 6px;
-  --album-art-expanded-size: 64px;
-  --album-art-expanded-radius: 14px;
   --album-art-spinner-size: 50%;
   --album-art-spinner-stroke-width: 2px;
   --album-art-spinner-color: #f5f5f7;
@@ -95,12 +89,23 @@
   --compact-music-padding-end: 14px;
   --compact-music-gap: 10px;
 
+  /* Cover gauge (sizes from frontendConstants.ts): a faint track, the progress ring with a soft
+     glow, and a quieter look while paused. */
+  --cover-gauge-track-color: rgba(255, 255, 255, 0.14);
+  --cover-gauge-ring-glow-size: 2px;
+  --cover-gauge-ring-glow-color: rgba(255, 255, 255, 0.3);
+  --cover-gauge-paused-ring-opacity: 0.4;
+  --cover-gauge-paused-cover-saturation: 0.5;
+  --cover-gauge-paused-cover-brightness: 0.75;
+
   /* Expanded music view */
-  --expanded-music-padding: 16px;
-  --expanded-music-section-gap: 10px;
-  --expanded-music-header-gap: 14px;
+  --expanded-music-padding: 16px 20px;
+  --expanded-music-column-gap: 18px;
+  --expanded-music-row-gap: 10px;
   --expanded-music-title-font-size: 15px;
   --expanded-music-artist-font-size: 13px;
+  --expanded-music-time-font-size: 11px;
+  --expanded-music-buttons-alignment-offset: -6px;
 
   /* Claude Code views. Working is Starlight white and needing an OK is gold (design phase,
      round 4); neither is Anthropic's brand color. */
@@ -110,7 +115,7 @@
   --compact-claude-code-padding-end: 14px;
   --compact-claude-code-gap: 8px;
   --expanded-claude-code-header-gap: 12px;
-  --expanded-claude-code-title-font-size: 15px;
+  --expanded-claude-code-title-font-size: 14px;
   /* Session rows (their heights and gaps come from frontendConstants.ts). */
   --claude-code-session-row-inner-gap: 8px;
   --claude-code-session-status-dot-size: 9px;
@@ -148,25 +153,12 @@
   --claude-code-permission-new-request-highlight-duration: 700ms;
   --claude-code-permission-note-font-size: 12px;
 
-  /* Playing bars */
-  --playback-bar-color: #f5f5f7;
-  --playback-bar-width: 3px;
-  --playback-bar-gap: 2px;
-  --playback-bars-height: 14px;
-
-  /* Progress bar */
-  --progress-track-color: rgba(255, 255, 255, 0.22);
-  --progress-fill-color: #f5f5f7;
-  --progress-track-height: 4px;
-  --progress-label-font-size: 11px;
-  --progress-label-width: 38px;
-
-  /* Control buttons */
-  --control-button-size: 36px;
-  --control-button-icon-size: 22px;
-  --control-play-pause-button-size: 44px;
-  --control-play-pause-icon-size: 30px;
-  --control-button-gap: 26px;
+  /* Control buttons (smaller in the shallow Gauges tile) */
+  --control-button-size: 30px;
+  --control-button-icon-size: 18px;
+  --control-play-pause-button-size: 36px;
+  --control-play-pause-icon-size: 24px;
+  --control-button-gap: 8px;
   --control-button-hover-background: rgba(255, 255, 255, 0.12);
   /* Dim enough to read as "not now", still visible so the row keeps its shape. */
   --control-button-disabled-opacity: 0.3;
