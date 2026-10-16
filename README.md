@@ -1,7 +1,7 @@
 # Crest
 
 <p align="center">
-  <img src="docs/crest-demo.gif" width="460" alt="Crest: a black notch at the top of the screen shows the playing song, opens into a player with album art, title, progress and buttons, and closes again">
+  <img src="docs/crest-demo.gif" width="520" alt="Crest: a black notch with sloped sides hangs from the top of the screen, its lower edge lit violet; it shows the song with its cover in a progress ring, glides open into the player when the pointer arrives, skips to the next track, and closes again">
 </p>
 
 > **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave); shared as-is, no support guaranteed.
@@ -11,23 +11,39 @@ A small black notch hanging from the top center of the screen. It shows what's p
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration that needs them (none does yet: the Claude Code integration stays on your PC).
 
 > Status: 0.4.0 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. New in 0.4.0, off until you switch it on: [Claude Code](#claude-code) sessions in the notch, with Allow / Deny for their permission requests. A settings window for starting with Windows, the monitor it sits on, which players it shows, and the Claude Code integration.
+>
+> The code here already has the next version's **new look** (not released yet): a notch with sloped sides whose lit edge tells you what's going on, the song's progress as a ring around its cover, a wide and shallow dashboard, and a wider permission alert. See [What it looks like](#what-it-looks-like).
 
 Crest's tray icon (notification area, possibly behind the ^ arrow) has **Settings…** and **Quit Crest**. Starting Crest again while it runs also opens the settings.
 
 ## What it looks like
 
 <p align="center">
-  <img src="docs/crest-expanded.png" width="460" alt="The open pill: album art, song title and artists, elapsed and remaining time, previous, pause and next buttons">
+  <img src="docs/crest-expanded.png" width="520" alt="The open pill: the cover inside a ring showing the song's progress, title and artist, previous, pause and next buttons, and the time">
 </p>
 
-Compact, it's a small notch with the album art, the title and bouncing bars; hovered or clicked (or when a new song starts), it opens into the player above, and it slides up into the screen edge when there's nothing to show.
+<p align="center">
+  <img src="docs/crest-dashboard.png" width="760" alt="The open dashboard: the music on the left, Claude Code's sessions on the right, the lower edge lit white because Claude Code is working">
+</p>
 
-<sub>Music in the demo: "C U Again" by Jéja, Mikk Mäe, CARTOON and Futuristik, and "On & On" by CARTOON and Jéja (feat. Daniel Levi), NCS releases, provided by [NoCopyrightSounds](https://ncs.io).</sub>
+Closed, it's a small black notch with sloped sides (a "visor") showing the cover in its progress ring and the title. Hovered or clicked (or when a new song starts), it glides open; with music and Claude Code at once, it opens into a dashboard with one tile each, music always on the left. It slides up into the screen edge when there's nothing to show.
+
+The notch's lower edge is lit, and the light says what's going on, so you don't have to read anything:
+
+- **gold**: a Claude Code session needs your OK;
+- **white**: Claude Code is working, even while music plays;
+- **green**: a session has just finished, until you've looked (opened the pill);
+- **violet**: music is playing (dimmer while paused). Music has a colour of its own on purpose: a cover's colours could look like a status. The song's own colours are in the ring around its cover;
+- **dim white**: everything else, like a session waiting for you.
+
+A change of colour travels along the edge as one sweep of light, and a new track or a new status line sends one sweep too; then the light stands still. The text is Windows 11's own Bahnschrift, so nothing extra is bundled.
+
+<sub>Music in the demo: "The Apocalypse" by NIVIRO, and "Dreams pt. II" by Lost Sky (feat. Sara Skinner), NCS releases, provided by [NoCopyrightSounds](https://ncs.io).</sub>
 
 ## What makes Crest different
 
 - **Private by default.** Crest sends no telemetry and needs no account. It reads what's playing only from Windows' own media controls (SMTC): no scraping, no unofficial APIs, no cookies. Future integrations will be off until you switch them on, use free APIs only, talk to their own service only, and keep any keys in Windows Credential Manager (never in files).
-- **Light on your PC.** Everything is event-driven, with no polling loops: 0% CPU while idle, paused or hidden, and about 5% of one core while music plays. While hidden, Crest asks WebView2 to keep as little in RAM as it can: about 16–32 MB in Task Manager (measured). The settings window only exists while it's open.
+- **Light on your PC.** Everything is event-driven, with no polling loops: nothing runs while idle, paused or hidden (measured: 0.1% of one core with the pill hidden, WebView2's own housekeeping). While music plays, the progress ring moves once a second while closed and four times a second while open; the light only moves for a moment when something changes. While hidden, Crest asks WebView2 to keep as little in RAM as it can: about 16–35 MB in Task Manager (measured). The settings window only exists while it's open.
 - **Built for Linux too (planned).** All Windows-specific code (media and window behavior) sits behind small interfaces, so a KDE Plasma on Wayland version can plug in next to it: MPRIS for media, layer-shell for the pill window. Not built yet.
 
 ## How it's built
@@ -73,9 +89,9 @@ Which players the pill may show is a `MediaPlayerFilter`: every player, or only 
 
 ### The window and the animation
 
-The open pill is as tall as what the activity shows (music and Claude Code differ), and the native window is always as big as the tallest open pill (plus a little room for the spring's overshoot and the notch's curved shoulders), sits at the very top of the chosen monitor, and only moves when you choose another monitor. What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. Growing (opening, or taller content while open): the area grows first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
+The open pill is as wide and tall as what it shows (one tile, the dashboard, the wider permission alert), and the native window is always as big as the largest open pill (plus the notch's shoulders and its 12-pixel underglow), sits at the very top of the chosen monitor, and only moves when you choose another monitor. What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. Windows also draws only inside that rectangle, which is why the underglow stays small: the rectangle includes it. Growing (opening, or taller content while open): the area grows first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
 
-On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (hover, leave, click, a new track), and `pillMorphController.ts` carries it out. Endless animations (the playing bars, the progress bar) run on slow timers (15 and 4 updates per second) rather than at the monitor's refresh rate; on a 240 Hz screen that is the difference between about 35% and 5% of a CPU core while music plays. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
+On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (hover, leave, click, a new track), and `pillMorphController.ts` carries it out. The notch's outline is one CSS `clip-path: shape()` written in percentages, so it follows the size while CSS animates it (an ease-in-out glide, no overshoot); the light is two gradient layers behind it, and a blurred copy below is the underglow. The progress ring is redrawn by a slow timer (once a second closed, four times open) rather than at the monitor's refresh rate: on a 240 Hz screen, the old CSS-animated playing bars once cost about 35% of a CPU core. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
 
 ### The settings window
 
@@ -117,22 +133,28 @@ Crest/
 │  │  ├─ requestActivityAction.ts       sends a button press to the activity's Rust source
 │  │  └─ requestActivityFocus.ts        the companion was clicked: make it main, or mark its news seen
 │  ├─ pill/
-│  │  ├─ pillShellElements.ts          the notch (with its shoulders), the capsule, its compact layer (main slot + the companion's mark at the end) and expanded layer
+│  │  ├─ pillShellElements.ts          the notch: underglow, light, and the Visor with its compact layer (main slot + the companion's mark at the end) and expanded layer
 │  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
 │  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek, held open by an alert)
 │  │  ├─ pillPointerInput.ts           mouse events → state machine; a click on the companion's mark
 │  │  ├─ pillMorphController.ts        animates a state or height change and keeps the interactive area in step
 │  │  ├─ pillMorphSettleDetector.ts    says when a size animation has ended (its event, or a timer if it never comes)
-│  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse, compact or open at a given height
+│  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse (and the only part Windows draws): pill, shoulders, underglow
 │  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window
 │  │  ├─ pillVisibilityTypes.ts        the visibility Rust sends (visible? fullscreen app in front?)
 │  │  ├─ waitUntilNextFrameIsPainted.ts  resolves once the current content is on screen
 │  │  ├─ pillAttentionDetector.ts      whose news opens the pill: the leading activity's, else the companion's
-│  │  ├─ pillDashboardLayout.ts        the open pill: one tile per activity, side by side, and its size
-│  │  └─ pillContentPresenter.ts       puts the views in place: leading in the main slot, the companion's mark at the end, the open pill: the alert, the tile with news, or the dashboard
+│  │  ├─ pillDashboardLayout.ts        the open pill: one tile per activity, side by side, each as wide as its view says, and the pill's size
+│  │  ├─ pillContentPresenter.ts       puts the views in place: leading in the main slot, the companion's mark at the end, the open pill: the alert, the tile with news, or the dashboard
+│  │  ├─ decidePillLightKind.ts        the light rule: gold, white, green until seen, violet for music, dim
+│  │  ├─ describePillLightNews.ts      what counts as news for a sweep (a new track, a new status line)
+│  │  ├─ pillLightController.ts        decides the light from what Rust sends and what the user has seen
+│  │  ├─ pillLightPainter.ts           paints it: a sweep for a new colour or news, a fade for dimming
+│  │  └─ readPillLightPalette.ts       the light's colours and strengths, read once from the design tokens
 │  ├─ activities/
 │  │  ├─ pillArrangementTypes.ts     the shape of what Rust sends (alert, main, companion)
 │  │  ├─ findLeadingActivity.ts      the alert if there is one, else the main activity
+│  │  ├─ orderActivitiesByTilePosition.ts  every activity keeps its place in the dashboard (music left)
 │  │  ├─ activityViewSet.ts          what an activity's views must provide
 │  │  ├─ activityViewRegistry.ts     activity kind → its view set (plugin point)
 │  │  ├─ nothingToShowViewSet.ts     shown when no activity has anything
@@ -155,13 +177,14 @@ Crest/
 │  │  │  └─ claudeCodeTerminalIconPath.ts  a plain ">_" (not Anthropic's logo)
 │  │  └─ music/
 │  │     ├─ nowPlayingTypes.ts       the music payload's shape
-│  │     ├─ musicViewSet.ts          the music activity's compact + expanded views
-│  │     ├─ compactMusicView.ts      tiny art, title, bars
-│  │     ├─ companionMusicView.ts    next to another activity: only the tiny art
-│  │     ├─ expandedMusicView.ts     large art, title, artist, progress, buttons
+│  │     ├─ musicViewSet.ts          the music activity's views; reads the cover's colours once for their rings
+│  │     ├─ compactMusicView.ts      the cover in its progress ring, the title
+│  │     ├─ companionMusicView.ts    next to another activity: only the cover in its small ring
+│  │     ├─ expandedMusicView.ts     the cover in its ring, title, artist, buttons, the time
 │  │     ├─ albumArtImage.ts         album art with a placeholder when missing and a ring while loading
-│  │     ├─ playbackBarsIndicator.ts bouncing bars while playing
-│  │     ├─ playbackProgressBar.ts   position computed between updates; animates only when visible
+│  │     ├─ coverProgressGauge.ts    the round cover inside a ring showing the song's progress
+│  │     ├─ playbackPositionTicker.ts  the song's position between Rust's reports; redraws only while playing and seen
+│  │     ├─ sampleAlbumArtRingColors.ts  three colours from the cover for its ring, read once per track
 │  │     └─ musicControlButtons.ts   previous / play-pause / next, dimmed when the player refuses one
 │  ├─ settings/
 │  │  ├─ settingsWindowMain.ts       settings entry: fills the cards
@@ -172,11 +195,13 @@ Crest/
 │  │  ├─ claudeCodeIntegrationSettingCard.ts  the Claude Code switches + exactly what they add to Claude Code's settings
 │  │  └─ crestBuildDescriptionLine.ts  the About card: which Crest is running
 │  └─ styles/
-│     ├─ designTokens.css       every color, spacing, duration and the spring curve (pill and settings)
-│     ├─ pillShell.css          transparent page, notch shape, the morph and slide animations
+│     ├─ designTokens.css       every color, spacing, duration, the glide curve and the light's colours (pill and settings)
+│     ├─ pillShell.css          transparent page, the notch's box and layers, the morph and slide animations
+│     ├─ pillVisorOutline.css   the Visor's outline (one clip-path for the notch, its light and its glow)
+│     ├─ pillLight.css          the lit edge, the underglow, the sweep, and the marks following the light
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
-│     └─ albumArtImage.css, compactMusicView.css, expandedMusicView.css,
-│        playbackBarsIndicator.css, playbackProgressBar.css, musicControlButtons.css,
+│     └─ albumArtImage.css, coverProgressGauge.css, compactMusicView.css, expandedMusicView.css,
+│        musicControlButtons.css,
 │        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionMarkViews.css,
 │        claudeCodePermissionAlertView.css, pillDashboardLayout.css
 └─ src-tauri/
@@ -359,9 +384,9 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 ## Claude Code
 
-Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch, green while working, amber when it needs you, grey when done (hover it for the status, click it to bring Claude Code forward); opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
+Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch (hover it for the status, click it to bring Claude Code forward), and the notch's lit edge tells you its state: white while working, gold when it needs you, green when a session has just finished (until you've looked). Opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
 
-**Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as an alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
+**Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as a wide alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 
 - the buttons ignore clicks for half a second after the alert appears or the next request moves up (which also flashes once);
 - a command longer than 3 rows scrolls, and Allow works only once you've scrolled to its end;
