@@ -12,7 +12,7 @@ Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + V
 
 > Status: 0.4.0 is published ([download](../../releases/latest)). A compact notch (album art, title, playing bars) that springs open into a large view (art, title, artist, progress, previous/play-pause/next) on hover, click, or a new track; hides when the music has been paused for 30 s, the player closes, or a fullscreen app (a game, a video) covers its monitor. New in 0.4.0, off until you switch it on: [Claude Code](#claude-code) sessions in the notch, with Allow / Deny for their permission requests. A settings window for starting with Windows, the monitor it sits on, which players it shows, and the Claude Code integration.
 >
-> The code here already has the next version's **new look** (not released yet): a notch with sloped sides whose lit edge tells you what's going on, the song's progress as a ring around its cover, a wide and shallow dashboard, and a wider permission alert. See [What it looks like](#what-it-looks-like).
+> The code here already has the next version's **new look** (not released yet): a notch with sloped sides whose lit edge tells you what's going on, the song's progress as a ring around its cover, a wide and shallow dashboard, a wider permission alert, and a speaker button in the music tile for the system volume. See [What it looks like](#what-it-looks-like).
 
 Crest's tray icon (notification area, possibly behind the ^ arrow) has **Settings…** and **Quit Crest**. Starting Crest again while it runs also opens the settings.
 
@@ -27,6 +27,8 @@ Crest's tray icon (notification area, possibly behind the ^ arrow) has **Setting
 </p>
 
 Closed, it's a small black notch with sloped sides (a "visor") showing the cover in its progress ring and the title. Hovered or clicked (or when a new song starts), it glides open; with music and Claude Code at once, it opens into a dashboard with one tile each, music always on the left. It slides up into the screen edge when there's nothing to show.
+
+In the open music tile, a speaker button after next-track slides out a thin slider for the **system volume** (all sound, like the speaker icon in the taskbar). The playback buttons step aside while it's open; it follows the volume keys, the mouse wheel moves it 2 % per notch, and it slides back by itself a few seconds after you leave it. Moving it while muted turns the sound back on, as Windows' own slider does. It isn't a replacement for Windows' volume popup.
 
 The notch's lower edge is lit, and the light says what's going on, so you don't have to read anything:
 
@@ -43,7 +45,7 @@ A change of colour travels along the edge as one sweep of light, and a new track
 ## What makes Crest different
 
 - **Private by default.** Crest sends no telemetry and needs no account. It reads what's playing only from Windows' own media controls (SMTC): no scraping, no unofficial APIs, no cookies. Future integrations will be off until you switch them on, use free APIs only, talk to their own service only, and keep any keys in Windows Credential Manager (never in files).
-- **Light on your PC.** Everything is event-driven, with no polling loops: nothing runs while idle, paused or hidden (measured: 0.1% of one core with the pill hidden, WebView2's own housekeeping). While music plays, the progress ring moves once a second while closed and four times a second while open; the light only moves for a moment when something changes. While hidden, Crest asks WebView2 to keep as little in RAM as it can: about 16–35 MB in Task Manager (measured). The settings window only exists while it's open.
+- **Light on your PC.** Everything is event-driven, with no polling loops: nothing runs while idle, paused or hidden (measured: 0.1% of one core with the pill hidden, WebView2's own housekeeping). While music plays, the progress ring moves once a second while closed and four times a second while open; the light only moves for a moment when something changes. While hidden, Crest asks WebView2 to keep as little in RAM as it can: about 16–40 MB in Task Manager (measured). The settings window only exists while it's open.
 - **Built for Linux too (planned).** All Windows-specific code (media and window behavior) sits behind small interfaces, so a KDE Plasma on Wayland version can plug in next to it: MPRIS for media, layer-shell for the pill window. Not built yet.
 
 ## How it's built
@@ -86,6 +88,16 @@ The music source doesn't talk to Windows directly. It uses a trait, `MediaSource
 - **Linux, later** (`media/linux_mpris/`): a second struct implementing the same `MediaSource` trait over MPRIS, the D-Bus standard that Linux media players and browsers use. `media/mod.rs` picks the implementation for the current OS at compile time (`#[cfg(target_os = ...)]`), so nothing else in the app changes.
 
 Which players the pill may show is a `MediaPlayerFilter`: every player, or only a list. The settings window changes it while the media thread runs, by sending it a message, so the pill follows at once.
+
+### System volume: the same idea, its own small channel
+
+The volume slider isn't an activity (it doesn't decide what the pill shows), so it has its own event and two commands: "here's the volume now" (`{ level, isMuted }`, or nothing when there's no output device), "what is it now?" and "set it to this level". Behind them is another small trait, `SystemVolumePlatform`.
+
+- **Windows** (`system_volume/windows_core_audio/`): Core Audio, the API behind the taskbar's speaker slider. One background thread owns everything; Windows calls Crest back when the level, the mute or the default output device changes (speakers → headphones), and those callbacks only send the thread a message. No polling.
+- **Crest's own changes:** every level Crest sets carries an ID of Crest's, and Windows hands that ID back in its change notification. So Crest knows which changes it made itself and doesn't send them back to the slider, where a late echo of an earlier drag step would pull the knob backwards.
+- **The page** listens only while the open music tile is on screen, and sends at most one new level every 50 ms while you drag (always ending on where you let go).
+
+Measured: with the pill hidden, Crest used no measurable CPU over a minute with the volume watching running, and an open slider costs about the same as a closed one.
 
 ### The window and the animation
 
@@ -131,7 +143,9 @@ Crest/
 │  │  ├─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
 │  │  ├─ requestPillWindowConceal.ts    asks Rust to hide the window
 │  │  ├─ requestActivityAction.ts       sends a button press to the activity's Rust source
-│  │  └─ requestActivityFocus.ts        the companion was clicked: make it main, or mark its news seen
+│  │  ├─ requestActivityFocus.ts        the companion was clicked: make it main, or mark its news seen
+│  │  ├─ createRustStateFollower.ts     follows Rust-owned state only while it's shown (listens on show, stops on hide)
+│  │  └─ requestSystemVolumeLevel.ts    asks Rust to set the system volume
 │  ├─ pill/
 │  │  ├─ pillShellElements.ts          the notch: underglow, light, and the Visor with its compact layer (main slot + the companion's mark at the end) and expanded layer
 │  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
@@ -180,7 +194,12 @@ Crest/
 │  │     ├─ musicViewSet.ts          the music activity's views; reads the cover's colours once for their rings
 │  │     ├─ compactMusicView.ts      the cover in its progress ring, the title
 │  │     ├─ companionMusicView.ts    next to another activity: only the cover in its small ring
-│  │     ├─ expandedMusicView.ts     the cover in its ring, title, artist, buttons, the time
+│  │     ├─ expandedMusicView.ts     the cover in its ring, title, artist, buttons, the speaker, the time
+│  │     ├─ systemVolumeControl.ts   the speaker button and the slider it slides out; closes by itself
+│  │     ├─ systemVolumeSlider.ts    the volume line (a real range input), the level as a number, the wheel
+│  │     ├─ systemVolumeSpeakerIcons.ts  speaker icons: muted, one wave, two waves
+│  │     ├─ systemVolumeTypes.ts     the system volume's shape
+│  │     ├─ createLatestValueThrottle.ts  while dragging: at most one new level every 50 ms, always the last
 │  │     ├─ albumArtImage.ts         album art with a placeholder when missing and a ring while loading
 │  │     ├─ coverProgressGauge.ts    the round cover inside a ring showing the song's progress
 │  │     ├─ playbackPositionTicker.ts  the song's position between Rust's reports; redraws only while playing and seen
@@ -201,7 +220,7 @@ Crest/
 │     ├─ pillLight.css          the lit edge, the underglow, the sweep, and the marks following the light
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
 │     └─ albumArtImage.css, coverProgressGauge.css, compactMusicView.css, expandedMusicView.css,
-│        musicControlButtons.css,
+│        musicControlButtons.css, systemVolumeControl.css,
 │        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionMarkViews.css,
 │        claudeCodePermissionAlertView.css, pillDashboardLayout.css
 └─ src-tauri/
@@ -319,6 +338,23 @@ Crest/
       │     ├─ appbar_watcher_thread_state.rs     what the window procedure needs, per thread
       │     ├─ front_window_change_hook.rs        while a game is reported: re-checks on every front-window change
       │     └─ front_window_fullscreen_check.rs   does the front window cover the pill's monitor?
+      ├─ system_volume/
+      │  ├─ mod.rs              declares the module; picks this OS's implementation
+      │  ├─ system_volume_platform.rs   trait: watch the system volume, set its level
+      │  ├─ system_volume_level.rs      a valid level: 0 to 1 in whole percent (unit-tested)
+      │  ├─ system_volume_reading.rs    what the OS reports, and what the page shows
+      │  ├─ system_volume_announcer.rs  keeps the current volume; tells the page only real changes, never Crest's own (unit-tested)
+      │  ├─ system_volume_commands.rs   the two commands the pill page calls
+      │  ├─ system_volume_startup.rs    starts watching when Crest starts
+      │  └─ windows_core_audio/
+      │     ├─ mod.rs
+      │     ├─ core_audio_system_volume.rs        Windows SystemVolumePlatform: starts the worker thread
+      │     ├─ core_audio_worker_thread.rs        COM setup + the message loop; owns every Core Audio object
+      │     ├─ core_audio_worker_message.rs       what can wake the worker (a change, a new device, a requested level)
+      │     ├─ default_output_follower.rs         opens the default output device, again when it changes
+      │     ├─ watched_output_endpoint.rs         the device's volume control with Crest's callback registered
+      │     ├─ endpoint_volume_change_callback.rs Windows calls it on a level or mute change (unit-tested)
+      │     └─ default_output_change_callback.rs  Windows calls it when the default device changes (unit-tested)
       ├─ pill_window/
       │  ├─ mod.rs              declares the module; picks this OS's implementation
       │  ├─ pill_window_platform.rs    trait: the OS-specific overlay behavior
