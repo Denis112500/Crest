@@ -9,6 +9,10 @@ pub const PILL_VISIBILITY_CHANGED_EVENT: &str = "pill-visibility-changed";
 /// Event telling the pill window the user chose another monitor, so it places itself again.
 pub const PILL_DISPLAY_CHANGED_EVENT: &str = "pill-display-changed";
 
+/// Event carrying the system volume (`{ level, isMuted }`, `null` = no output device). Not sent
+/// for a change the pill's own slider made: the page already shows it.
+pub const SYSTEM_VOLUME_CHANGED_EVENT: &str = "system-volume-changed";
+
 /// Activity kind of the music source; the frontend picks its views by this name.
 pub const MUSIC_ACTIVITY_KIND: &str = "music";
 

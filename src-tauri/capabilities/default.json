@@ -12,6 +12,8 @@
     "allow-get-current-pill-arrangement",
     "allow-focus-activity",
     "allow-get-current-pill-visibility",
-    "allow-perform-activity-action"
+    "allow-perform-activity-action",
+    "allow-get-current-system-volume",
+    "allow-set-system-volume-level"
   ]
 }

@@ -592,6 +592,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "webview2-com",
  "windows",
+ "windows-core",
 ]
 
 [[package]]
