@@ -33,6 +33,10 @@
   max-width: 0;
   overflow: hidden;
   opacity: 0;
+  /* A layer of its own: the cover ring next to it is redrawn four times a second, and drawn on
+     the same layer the slider's blurred glow was drawn again each time (open: 1.7 % of a core,
+     closed: 0.6 %, measured 2026-10-17; cause unverified until measured again). */
+  will-change: transform;
   transition:
     flex-grow var(--system-volume-slide-duration) var(--pill-glide-easing),
     max-width var(--system-volume-slide-duration) var(--pill-glide-easing),

@@ -7,7 +7,7 @@ import {
   SYSTEM_VOLUME_SPEAKER_TWO_WAVES_FROM_LEVEL,
 } from "../../frontendConstants";
 import { GET_CURRENT_SYSTEM_VOLUME_COMMAND, SYSTEM_VOLUME_CHANGED_EVENT } from "../../ipc/ipcChannelNames";
-import { listenForRustStateChanges } from "../../ipc/listenForRustStateChanges";
+import { createRustStateFollower } from "../../ipc/createRustStateFollower";
 import { requestSystemVolumeLevel } from "../../ipc/requestSystemVolumeLevel";
 import { createLatestValueThrottle } from "./createLatestValueThrottle";
 import { createSystemVolumeSlider } from "./systemVolumeSlider";
@@ -31,6 +31,7 @@ export interface SystemVolumeControl {
 export function createSystemVolumeControl(
   controlRowElement: HTMLElement,
   elementsGivingWayToSlider: HTMLElement[],
+  onSliderOpenChanged: (isSliderOpen: boolean) => void,
 ): SystemVolumeControl {
   const speakerButtonElement = document.createElement("button");
   speakerButtonElement.type = "button";
@@ -42,12 +43,8 @@ export function createSystemVolumeControl(
   let shownSystemVolume: SystemVolume | null = null;
   let isSliderOpen = false;
   let isPointerOnSlider = false;
-  let isTileSeen = false;
   let autoCloseTimer: number | undefined;
   let armingTimer: number | undefined;
-  let stopFollowingSystemVolume: (() => void) | null = null;
-  // Changes each time following starts or stops, so a late answer from an earlier start is dropped.
-  let followingGeneration = 0;
 
   const levelRequestThrottle = createLatestValueThrottle((level: number) => {
     requestSystemVolumeLevel(level).catch((requestError: unknown) => {
@@ -91,6 +88,7 @@ export function createSystemVolumeControl(
     }
   };
   const setSliderOpen = (isOpen: boolean): void => {
+    const hasOpenChanged = isOpen !== isSliderOpen;
     isSliderOpen = isOpen;
     controlRowElement.classList.toggle(SLIDER_OPEN_CLASS, isOpen);
     speakerButtonElement.setAttribute("aria-expanded", String(isOpen));
@@ -110,6 +108,9 @@ export function createSystemVolumeControl(
       );
     }
     restartAutoClose();
+    if (hasOpenChanged) {
+      onSliderOpenChanged(isOpen);
+    }
   };
 
   speakerButtonElement.addEventListener("click", () => setSliderOpen(!isSliderOpen));
@@ -125,42 +126,21 @@ export function createSystemVolumeControl(
   setSliderOpen(false);
   showSystemVolume(null);
 
+  const systemVolumeFollower = createRustStateFollower<SystemVolume | null>(
+    SYSTEM_VOLUME_CHANGED_EVENT,
+    GET_CURRENT_SYSTEM_VOLUME_COMMAND,
+    showSystemVolume,
+  );
+
   return {
     speakerButtonElement,
     sliderElement,
     setSeen(isSeen) {
-      // Reported again with every arrangement; only a real change starts or stops following.
-      if (isSeen === isTileSeen) {
-        return;
-      }
-      isTileSeen = isSeen;
-      followingGeneration += 1;
-      stopFollowingSystemVolume?.();
-      stopFollowingSystemVolume = null;
-      if (!isSeen) {
+      // Reported again with every arrangement; the follower ignores repeats.
+      systemVolumeFollower.setFollowing(isSeen);
+      if (!isSeen && isSliderOpen) {
         setSliderOpen(false);
-        return;
       }
-      const thisFollowingGeneration = followingGeneration;
-      listenForRustStateChanges<SystemVolume | null>(
-        SYSTEM_VOLUME_CHANGED_EVENT,
-        GET_CURRENT_SYSTEM_VOLUME_COMMAND,
-        (systemVolume) => {
-          if (thisFollowingGeneration === followingGeneration) {
-            showSystemVolume(systemVolume);
-          }
-        },
-      )
-        .then((stopListening) => {
-          if (thisFollowingGeneration === followingGeneration) {
-            stopFollowingSystemVolume = stopListening;
-          } else {
-            stopListening();
-          }
-        })
-        .catch((followError: unknown) => {
-          console.error("Crest could not follow the system volume:", followError);
-        });
     },
   };
 }

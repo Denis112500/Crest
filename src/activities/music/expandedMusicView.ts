@@ -40,10 +40,19 @@ export function createExpandedMusicView(): ExpandedMusicView {
   playbackTimeElement.className = "expanded-music-time";
   const controlRowElement = document.createElement("div");
   controlRowElement.className = "expanded-music-control-row";
-  const systemVolumeControl = createSystemVolumeControl(controlRowElement, [
-    musicControlButtons.controlButtonsElement,
-    playbackTimeElement,
-  ]);
+  // While the volume slider covers the time, the time isn't rewritten (once a second, laying the
+  // row out again): nothing unseen should change. It's drawn once when the slider closes.
+  let isTimeCoveredBySlider = false;
+  const systemVolumeControl = createSystemVolumeControl(
+    controlRowElement,
+    [musicControlButtons.controlButtonsElement, playbackTimeElement],
+    (isSliderOpen) => {
+      isTimeCoveredBySlider = isSliderOpen;
+      if (!isSliderOpen) {
+        positionTicker.redrawNow();
+      }
+    },
+  );
   controlRowElement.append(
     musicControlButtons.controlButtonsElement,
     systemVolumeControl.speakerButtonElement,
@@ -56,7 +65,7 @@ export function createExpandedMusicView(): ExpandedMusicView {
     coverGauge.drawPlaybackPosition(playbackPosition);
     // Live streams and players without a duration: the time keeps its space, without content.
     playbackTimeElement.classList.toggle(WITHOUT_TIMELINE_CLASS, playbackPosition === null);
-    if (playbackPosition) {
+    if (playbackPosition && !isTimeCoveredBySlider) {
       const { positionMilliseconds, durationMilliseconds } = playbackPosition;
       const playbackTimeText = `${formatPlaybackClock(positionMilliseconds)} / -${formatPlaybackClock(durationMilliseconds - positionMilliseconds)}`;
       if (playbackTimeElement.textContent !== playbackTimeText) {

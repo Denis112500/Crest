@@ -10,6 +10,8 @@ export interface PlaybackPositionTicker {
   showTimeline(timeline: NowPlayingTimeline | null, isPlaying: boolean): void;
   /** How often to redraw while playing; 0 while nobody sees it (no timer runs then). */
   setRedrawsPerSecond(redrawsPerSecond: number): void;
+  /** Draws the current position once, outside the timer (something that was hidden shows again). */
+  redrawNow(): void;
 }
 
 // Works out the song's position between Rust's reports (it reports a position and when it was
@@ -50,6 +52,7 @@ export function createPlaybackPositionTicker(drawPlaybackPosition: (playbackPosi
       isTrackPlaying = isPlaying;
       restartRedrawing();
     },
+    redrawNow: drawCurrentPosition,
     setRedrawsPerSecond(redrawsPerSecond) {
       if (redrawsPerSecond !== currentRedrawsPerSecond) {
         currentRedrawsPerSecond = redrawsPerSecond;
