@@ -108,12 +108,12 @@ export const PILL_LIGHT_FADE_DURATION_MILLISECONDS = 400;
 // seconds while Claude Code works, and each sweep repaints the blurred light for 900 ms.
 export const PILL_LIGHT_STATUS_SWEEP_MIN_GAP_MILLISECONDS = 8000;
 
-// The song's position is redrawn by a timer at a low, fixed rate instead of at the monitor's
-// refresh rate (at 239 Hz, CSS-animated bars once cost about 35% of a CPU core), and only while
-// it's seen and playing. Open, the ring is 258 px around and the clock shows seconds; closed,
-// the ring is 75 px around, so a 3-minute song moves it about 0.4 px per second.
-export const PLAYBACK_POSITION_OPEN_REDRAWS_PER_SECOND = 4;
-export const PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND = 1;
+// The song's position is redrawn once per whole second of the song (playbackPositionTicker.ts),
+// not at the monitor's refresh rate (at 239 Hz, CSS-animated bars once cost about 35% of a CPU
+// core), and only while it's seen and playing. The open ring is 258 px around, so a 3-minute song
+// moves it about 1.4 px a step; the closed ring is 75 px around (about 0.4 px). The timer wakes
+// this long after the second begins, so the clock already reads the new second.
+export const PLAYBACK_POSITION_REDRAW_AFTER_WHOLE_SECOND_MILLISECONDS = 5;
 
 // The cover gauge: the cover in a ring that shows the song's progress (design spec, Gauges).
 // Box, cover and ring radius in logical pixels; the ring's stroke width too.

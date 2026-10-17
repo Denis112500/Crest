@@ -1,6 +1,6 @@
 import "../../styles/expandedMusicView.css";
 
-import { COVER_GAUGE_EXPANDED_GEOMETRY, PLAYBACK_POSITION_OPEN_REDRAWS_PER_SECOND } from "../../frontendConstants";
+import { COVER_GAUGE_EXPANDED_GEOMETRY } from "../../frontendConstants";
 import { createCoverProgressGauge } from "./coverProgressGauge";
 import { createMusicControlButtons } from "./musicControlButtons";
 import type { NowPlayingPayload } from "./nowPlayingTypes";
@@ -20,9 +20,9 @@ export interface ExpandedMusicView {
 }
 
 // The open pill (Gauges): the cover in its progress ring on the left; title and artist; below
-// them the playback buttons, the speaker and the time ("1:43 / -1:51"). Ring and time move 4
-// times a second while the pill is open and the song plays. The speaker's slider takes the
-// whole row while it's open.
+// them the playback buttons, the speaker and the time ("1:43 / -1:51"). Ring and time move
+// together once a second while the pill is open and the song plays. The speaker's slider takes
+// the whole row while it's open.
 export function createExpandedMusicView(): ExpandedMusicView {
   const expandedViewElement = document.createElement("div");
   expandedViewElement.className = "expanded-music-view";
@@ -91,7 +91,7 @@ export function createExpandedMusicView(): ExpandedMusicView {
       coverGauge.showRingColors(albumArtRingColors);
     },
     setExpandedViewVisible(isExpandedViewVisible) {
-      positionTicker.setRedrawsPerSecond(isExpandedViewVisible ? PLAYBACK_POSITION_OPEN_REDRAWS_PER_SECOND : 0);
+      positionTicker.setPositionSeen(isExpandedViewVisible);
       systemVolumeControl.setSeen(isExpandedViewVisible);
     },
   };

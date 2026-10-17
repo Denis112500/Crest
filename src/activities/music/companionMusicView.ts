@@ -1,6 +1,6 @@
 import "../../styles/companionMarkViews.css";
 
-import { COVER_GAUGE_COMPANION_GEOMETRY, PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND } from "../../frontendConstants";
+import { COVER_GAUGE_COMPANION_GEOMETRY } from "../../frontendConstants";
 import { createCoverProgressGauge } from "./coverProgressGauge";
 import type { NowPlayingPayload } from "./nowPlayingTypes";
 import { createPlaybackPositionTicker } from "./playbackPositionTicker";
@@ -50,7 +50,7 @@ export function createCompanionMusicView(): CompanionMusicView {
       coverGauge.showRingColors(albumArtRingColors);
     },
     setCompanionOnScreen(isCompanionOnScreen) {
-      positionTicker.setRedrawsPerSecond(isCompanionOnScreen ? PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND : 0);
+      positionTicker.setPositionSeen(isCompanionOnScreen);
     },
   };
 }

@@ -1,6 +1,6 @@
 import "../../styles/compactMusicView.css";
 
-import { COVER_GAUGE_COMPACT_GEOMETRY, PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND } from "../../frontendConstants";
+import { COVER_GAUGE_COMPACT_GEOMETRY } from "../../frontendConstants";
 import { createCoverProgressGauge } from "./coverProgressGauge";
 import type { NowPlayingPayload } from "./nowPlayingTypes";
 import { createPlaybackPositionTicker } from "./playbackPositionTicker";
@@ -41,7 +41,7 @@ export function createCompactMusicView(): CompactMusicView {
       coverGauge.showRingColors(albumArtRingColors);
     },
     setPillOnScreen(isPillOnScreen) {
-      positionTicker.setRedrawsPerSecond(isPillOnScreen ? PLAYBACK_POSITION_COMPACT_REDRAWS_PER_SECOND : 0);
+      positionTicker.setPositionSeen(isPillOnScreen);
     },
   };
 }
