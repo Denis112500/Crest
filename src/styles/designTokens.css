@@ -106,6 +106,19 @@
   --expanded-music-artist-font-size: 13px;
   --expanded-music-time-font-size: 11px;
   --expanded-music-buttons-alignment-offset: -6px;
+  /* The control row gives way to the volume slider (layout C): the playback buttons and the time
+     shrink from these widths (a bit more than they need) to nothing. */
+  --expanded-music-transport-max-width: 120px;
+  --expanded-music-time-max-width: 96px;
+
+  /* System-volume slider: the cover ring's line (faint track, Starlight fill with the ring's glow,
+     round ends), a small knob, the level as a number after it. Muted dims it like a paused ring. */
+  --system-volume-slide-duration: 240ms;
+  --system-volume-slider-gap: 10px;
+  --system-volume-slider-hit-height: 20px;
+  --system-volume-slider-line-thickness: 3px;
+  --system-volume-slider-thumb-size: 10px;
+  --system-volume-readout-width: 26px;
 
   /* Claude Code views. Working is Starlight white and needing an OK is gold (design phase,
      round 4); neither is Anthropic's brand color. */

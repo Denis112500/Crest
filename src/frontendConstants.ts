@@ -129,3 +129,18 @@ export const ALBUM_ART_RING_SAMPLE_LOGICAL_HEIGHT = 8;
 export const ALBUM_ART_RING_SATURATION_BOOST = 1.3;
 export const ALBUM_ART_RING_MIN_LIGHTNESS = 0.55;
 export const ALBUM_ART_RING_MAX_LIGHTNESS = 0.75;
+
+// The system-volume slider in the open music tile (V.1, decided 2026-10-17). It closes by itself
+// this long after it was last touched, never while the pointer is on it.
+export const SYSTEM_VOLUME_SLIDER_AUTO_CLOSE_MILLISECONDS = 4000;
+// Opening slides the line under the pointer (the speaker moves to the row's start), so the line
+// ignores clicks this long after opening: a quick second click meant to close can't set the
+// volume (decided 2026-10-17; same length as the Allow / Deny arming).
+export const SYSTEM_VOLUME_SLIDER_ARMING_DELAY_MILLISECONDS = 500;
+// While dragging, the level goes to Rust at most this often (each step is a Core Audio call and a
+// notification to every app watching the volume); the drag's last position always follows.
+export const SYSTEM_VOLUME_SET_MIN_INTERVAL_MILLISECONDS = 50;
+// One mouse-wheel notch over the open slider (Windows' volume keys also step 2 %, unverified).
+export const SYSTEM_VOLUME_WHEEL_STEP_PERCENT = 2;
+// From this level up the speaker shows two sound waves, below it one.
+export const SYSTEM_VOLUME_SPEAKER_TWO_WAVES_FROM_LEVEL = 0.5;

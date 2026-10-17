@@ -8,6 +8,8 @@ export const GET_CURRENT_PILL_ARRANGEMENT_COMMAND = "get_current_pill_arrangemen
 export const GET_CURRENT_PILL_VISIBILITY_COMMAND = "get_current_pill_visibility";
 export const PERFORM_ACTIVITY_ACTION_COMMAND = "perform_activity_action";
 export const FOCUS_ACTIVITY_COMMAND = "focus_activity";
+export const GET_CURRENT_SYSTEM_VOLUME_COMMAND = "get_current_system_volume";
+export const SET_SYSTEM_VOLUME_LEVEL_COMMAND = "set_system_volume_level";
 // Settings window only (see src-tauri/capabilities/settings_window.json).
 export const READ_CREST_BUILD_DESCRIPTION_COMMAND = "read_crest_build_description";
 export const READ_LAUNCH_AT_LOGIN_SETTING_COMMAND = "read_launch_at_login_setting";
@@ -24,6 +26,7 @@ export const CHANGE_CLAUDE_CODE_PERMISSION_ANSWERING_SETTING_COMMAND = "change_c
 export const PILL_ARRANGEMENT_CHANGED_EVENT = "pill-arrangement-changed";
 export const PILL_VISIBILITY_CHANGED_EVENT = "pill-visibility-changed";
 export const PILL_DISPLAY_CHANGED_EVENT = "pill-display-changed";
+export const SYSTEM_VOLUME_CHANGED_EVENT = "system-volume-changed";
 
 export const MUSIC_ACTIVITY_KIND = "music";
 export const MUSIC_TOGGLE_PLAY_PAUSE_ACTION = "toggle-play-pause";

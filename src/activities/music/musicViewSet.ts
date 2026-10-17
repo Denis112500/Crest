@@ -49,7 +49,7 @@ export function createMusicViewSet(): ActivityViewSet {
     expandedViewLogicalWidth: () => PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
     expandedViewLogicalHeight: () => MUSIC_EXPANDED_LOGICAL_HEIGHT,
     setExpandedViewVisible(isExpandedViewVisible) {
-      expandedMusicView.setProgressAnimationActive(isExpandedViewVisible);
+      expandedMusicView.setExpandedViewVisible(isExpandedViewVisible);
     },
     setCompactPlaceOnScreen(compactPlaceOnScreen) {
       compactMusicView.setPillOnScreen(compactPlaceOnScreen === "main");

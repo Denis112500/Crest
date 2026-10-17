@@ -6,6 +6,7 @@ import { createMusicControlButtons } from "./musicControlButtons";
 import type { NowPlayingPayload } from "./nowPlayingTypes";
 import { createPlaybackPositionTicker, type PlaybackPosition } from "./playbackPositionTicker";
 import type { AlbumArtRingColors } from "./sampleAlbumArtRingColors";
+import { createSystemVolumeControl } from "./systemVolumeControl";
 
 const MILLISECONDS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
@@ -15,12 +16,13 @@ export interface ExpandedMusicView {
   expandedViewElement: HTMLElement;
   showNowPlaying(nowPlaying: NowPlayingPayload): void;
   showRingColors(albumArtRingColors: AlbumArtRingColors | null): void;
-  setProgressAnimationActive(isProgressAnimationActive: boolean): void;
+  setExpandedViewVisible(isExpandedViewVisible: boolean): void;
 }
 
 // The open pill (Gauges): the cover in its progress ring on the left; title and artist; below
-// them the playback buttons and the time ("1:43 / -1:51"). Ring and time move 4 times a second
-// while the pill is open and the song plays.
+// them the playback buttons, the speaker and the time ("1:43 / -1:51"). Ring and time move 4
+// times a second while the pill is open and the song plays. The speaker's slider takes the
+// whole row while it's open.
 export function createExpandedMusicView(): ExpandedMusicView {
   const expandedViewElement = document.createElement("div");
   expandedViewElement.className = "expanded-music-view";
@@ -36,12 +38,19 @@ export function createExpandedMusicView(): ExpandedMusicView {
   const musicControlButtons = createMusicControlButtons();
   const playbackTimeElement = document.createElement("span");
   playbackTimeElement.className = "expanded-music-time";
-  expandedViewElement.append(
-    coverGauge.gaugeElement,
-    trackTextElement,
+  const controlRowElement = document.createElement("div");
+  controlRowElement.className = "expanded-music-control-row";
+  const systemVolumeControl = createSystemVolumeControl(controlRowElement, [
     musicControlButtons.controlButtonsElement,
     playbackTimeElement,
+  ]);
+  controlRowElement.append(
+    musicControlButtons.controlButtonsElement,
+    systemVolumeControl.speakerButtonElement,
+    systemVolumeControl.sliderElement,
+    playbackTimeElement,
   );
+  expandedViewElement.append(coverGauge.gaugeElement, trackTextElement, controlRowElement);
 
   const drawPlaybackPosition = (playbackPosition: PlaybackPosition): void => {
     coverGauge.drawPlaybackPosition(playbackPosition);
@@ -72,8 +81,9 @@ export function createExpandedMusicView(): ExpandedMusicView {
     showRingColors(albumArtRingColors) {
       coverGauge.showRingColors(albumArtRingColors);
     },
-    setProgressAnimationActive(isProgressAnimationActive) {
-      positionTicker.setRedrawsPerSecond(isProgressAnimationActive ? PLAYBACK_POSITION_OPEN_REDRAWS_PER_SECOND : 0);
+    setExpandedViewVisible(isExpandedViewVisible) {
+      positionTicker.setRedrawsPerSecond(isExpandedViewVisible ? PLAYBACK_POSITION_OPEN_REDRAWS_PER_SECOND : 0);
+      systemVolumeControl.setSeen(isExpandedViewVisible);
     },
   };
 }

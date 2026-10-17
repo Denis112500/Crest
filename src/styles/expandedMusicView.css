@@ -1,5 +1,5 @@
 /* The open music tile (Gauges): the cover gauge on the left across both rows; title and artist
-   on top; the playback buttons and the time below them. */
+   on top; the control row (playback buttons, speaker, time) below them. */
 .expanded-music-view {
   box-sizing: border-box;
   display: grid;
@@ -41,20 +41,40 @@
   opacity: var(--pill-secondary-text-opacity);
 }
 
-/* The buttons' own padding would push them right of the text; pulled back to line up. */
-.expanded-music-view > .music-control-buttons {
-  grid-column: 2;
+/* Playback buttons, speaker, time; the volume slider takes the row while open
+   (systemVolumeControl.css). It keeps the play button's height, so the title doesn't move when
+   the buttons give way. The buttons' own padding would push them right of the text; pulled back
+   to line up. */
+.expanded-music-control-row {
+  grid-column: 2 / 4;
   grid-row: 2;
-  justify-content: flex-start;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--control-play-pause-button-size);
   margin-left: var(--expanded-music-buttons-alignment-offset);
 }
 
+.expanded-music-control-row > .music-control-buttons {
+  flex: none;
+  justify-content: flex-start;
+  max-width: var(--expanded-music-transport-max-width);
+  overflow: hidden;
+  transition:
+    max-width var(--system-volume-slide-duration) var(--pill-glide-easing),
+    opacity var(--system-volume-slide-duration) var(--pill-glide-easing);
+}
+
 .expanded-music-time {
-  grid-column: 3;
-  grid-row: 2;
-  justify-self: end;
-  align-self: center;
+  flex: none;
+  margin-left: auto;
+  max-width: var(--expanded-music-time-max-width);
+  overflow: hidden;
+  white-space: nowrap;
   font-size: var(--expanded-music-time-font-size);
+  transition:
+    max-width var(--system-volume-slide-duration) var(--pill-glide-easing),
+    opacity var(--system-volume-slide-duration) var(--pill-glide-easing);
   opacity: var(--pill-secondary-text-opacity);
   /* Equal-width digits, so the time doesn't jiggle as it counts. */
   font-variant-numeric: tabular-nums;
