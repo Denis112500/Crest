@@ -101,6 +101,12 @@ pub const CLAUDE_CODE_PERMISSION_HOOK_TIMEOUT: Duration = Duration::from_secs(11
 /// one is cut there and can then only be denied from the pill. 2 % of 1,092 commands measured in
 /// local transcripts were longer (2026-10-11).
 pub const CLAUDE_CODE_PERMISSION_COMMAND_MAX_CHARACTERS: usize = 4000;
+/// The same limit for a connected (MCP) tool's call as the alert lists it (its name, then one
+/// line per input field): longer, it is cut there and can only be denied from the pill.
+pub const CLAUDE_CODE_PERMISSION_TOOL_CALL_MAX_CHARACTERS: usize = 4000;
+/// The further lines of a multi-line input value are indented this many spaces, so they can't
+/// pass for input fields of their own.
+pub const CLAUDE_CODE_PERMISSION_TOOL_CALL_VALUE_INDENT_WIDTH: usize = 2;
 /// A tab in a command shows as this many spaces, so the page can count its rows.
 pub const CLAUDE_CODE_PERMISSION_COMMAND_TAB_WIDTH: usize = 4;
 /// What other tools want ("Search the web for …") is cut to this many characters; the alert

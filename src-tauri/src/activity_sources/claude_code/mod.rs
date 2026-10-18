@@ -12,6 +12,7 @@ mod claude_code_permission_answering_switch;
 mod claude_code_permission_description;
 mod claude_code_permission_file_path;
 mod claude_code_permission_queue;
+mod claude_code_permission_tool_call_listing;
 mod claude_code_session_list;
 mod claude_code_session_tracker;
 mod claude_code_settings_file;

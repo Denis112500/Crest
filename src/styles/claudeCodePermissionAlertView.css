@@ -77,7 +77,8 @@
 
 /* Normal letter spacing, not the pill's wide one: estimateClaudeCodeCommandRowCount.ts measures
    the font without spacing, and extra spacing would make it count too few rows. */
-.claude-code-permission-description[data-description-kind="command"] {
+.claude-code-permission-description[data-description-kind="command"],
+.claude-code-permission-description[data-description-kind="toolCall"] {
   font-family: var(--claude-code-command-font-family);
   font-size: var(--claude-code-command-font-size);
   letter-spacing: normal;

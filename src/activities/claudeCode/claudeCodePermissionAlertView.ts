@@ -45,15 +45,18 @@ export function createClaudeCodePermissionAlertView(): ClaudeCodePermissionAlert
   descriptionElement.addEventListener("animationend", () => descriptionElement.classList.remove(NEW_REQUEST_HIGHLIGHT_CLASS));
   const actionLineElement = document.createElement("div");
   actionLineElement.className = "claude-code-permission-action-line";
-  let isCommandShown = false;
+  let isCommandBoxShown = false;
   const commandBox = createClaudeCodePermissionCommandBox(() => answerButtons.refreshButtons());
-  const answerButtons = createClaudeCodePermissionAnswerButtons(() => !isCommandShown || commandBox.hasWholeCommandBeenSeen());
+  const answerButtons = createClaudeCodePermissionAnswerButtons(
+    () => !isCommandBoxShown || commandBox.hasWholeCommandBeenSeen(),
+  );
   alertViewElement.append(headerElement, descriptionElement, answerButtons.buttonRowElement);
 
-  // Returns the request's row count.
+  // Returns the request's row count. A connected tool's call goes in the command box too: it must
+  // be read to the end before Allow, like a command.
   const showRequestDescription = (requestDescription: ClaudeCodePermissionDescription): number => {
     descriptionElement.dataset.descriptionKind = requestDescription.descriptionKind;
-    isCommandShown = requestDescription.descriptionKind === "command";
+    isCommandBoxShown = requestDescription.descriptionKind !== "action";
     if (requestDescription.descriptionKind === "action") {
       // textContent, never innerHTML: names from Claude Code must not be able to inject markup.
       actionLineElement.textContent = requestDescription.actionText;
@@ -61,7 +64,9 @@ export function createClaudeCodePermissionAlertView(): ClaudeCodePermissionAlert
       return 1;
     }
     descriptionElement.replaceChildren(commandBox.commandBoxElement);
-    return commandBox.showCommand(requestDescription.commandText);
+    return commandBox.showCommand(
+      requestDescription.descriptionKind === "command" ? requestDescription.commandText : requestDescription.callText,
+    );
   };
 
   let shownRequestId: number | null = null;
@@ -86,10 +91,7 @@ export function createClaudeCodePermissionAlertView(): ClaudeCodePermissionAlert
       shownRequestId = permissionAlert.requestId;
       const requestDescription = permissionAlert.requestDescription;
       shownRowCount = showRequestDescription(requestDescription);
-      answerButtons.prepareForRequest(
-        permissionAlert.requestId,
-        requestDescription.descriptionKind === "command" && requestDescription.isCommandCut,
-      );
+      answerButtons.prepareForRequest(permissionAlert.requestId, isRequestCut(requestDescription));
       if (didRequestMoveUp) {
         descriptionElement.classList.remove(NEW_REQUEST_HIGHLIGHT_CLASS);
         // Next frame, so the class change restarts the animation if one is still running.
@@ -99,4 +101,15 @@ export function createClaudeCodePermissionAlertView(): ClaudeCodePermissionAlert
       return shownRowCount;
     },
   };
+}
+
+function isRequestCut(requestDescription: ClaudeCodePermissionDescription): boolean {
+  switch (requestDescription.descriptionKind) {
+    case "command":
+      return requestDescription.isCommandCut;
+    case "toolCall":
+      return requestDescription.isCallCut;
+    case "action":
+      return false;
+  }
 }

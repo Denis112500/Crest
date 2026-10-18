@@ -10,10 +10,12 @@ export interface ClaudeCodeSessionRow {
   projectFolderName: string;
 }
 
-/** A command as it will run (lines separated by "\n", hidden characters shown as "�"), or a
-    short action like "Edit notes.md". `isCommandCut`: too long to send whole, ends in "…". */
+/** A command as it will run (lines separated by "\n", hidden characters shown as "�"), a
+    connected tool's name with one line per input field, or a short action like "Edit notes.md".
+    `isCommandCut` / `isCallCut`: too long to send whole, ends in "…". */
 export type ClaudeCodePermissionDescription =
   | { descriptionKind: "command"; commandText: string; isCommandCut: boolean }
+  | { descriptionKind: "toolCall"; callText: string; isCallCut: boolean }
   | { descriptionKind: "action"; actionText: string };
 
 export interface ClaudeCodePermissionAlert {
