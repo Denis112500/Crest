@@ -181,7 +181,7 @@ Crest/
 │  │  │  ├─ expandedClaudeCodeView.ts    every session, most urgent first, "+N more"
 │  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status dot, project folder, what it's doing
 │  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its number of rows
-│  │  │  ├─ claudeCodePermissionAlertView.ts  a permission request: session, command or action, Allow / Deny
+│  │  │  ├─ claudeCodePermissionAlertView.ts  a permission request: session, command, MCP call or action, Allow / Deny
 │  │  │  ├─ claudeCodePermissionCommandBox.ts  the command, wrapped, 3 rows tall and scrolling; knows when all was seen
 │  │  │  ├─ claudeCodePermissionAnswerButtons.ts  Deny / Allow: a short pause, one answer, Allow only once all was seen
 │  │  │  ├─ estimateClaudeCodeCommandRowCount.ts  how many rows a command wraps into (sizes the box)
@@ -268,8 +268,9 @@ Crest/
       │  │  ├─ claude_code_status_thread.rs       owns the tracker and the permission queue, answers the hooks
       │  │  ├─ claude_code_permission_queue.rs    permission requests waiting for Allow / Deny, each hook answered once (pure, unit-tested)
       │  │  ├─ claude_code_permission_answer.rs   the alert's button actions and the hook's allow / deny JSON (unit-tested)
-      │  │  ├─ claude_code_permission_description.rs  what the alert shows: the whole command, hidden characters made visible (unit-tested)
+      │  │  ├─ claude_code_permission_description.rs  what the alert shows: the whole command or MCP call, hidden characters made visible (unit-tested)
       │  │  ├─ claude_code_permission_action_wording.rs  other tools in a few words: "Edit src\main.ts", "Open github.com" (unit-tested)
+      │  │  ├─ claude_code_permission_tool_call_listing.rs  an MCP tool's input, one "key: value" line per field (unit-tested)
       │  │  ├─ claude_code_permission_file_path.rs  a requested file from the project folder, else its full path with "~" (unit-tested)
       │  │  ├─ claude_code_permission_answering_switch.rs  "Answer permission requests in the pill", shared with the status thread
       │  │  ├─ claude_code_hook_event.rs          the hook fields Crest reads; which events it asks for
@@ -422,11 +423,11 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch (hover it for the status, click it to bring Claude Code forward), and the notch's lit edge tells you its state: white while working, gold when it needs you, green when a session has just finished (until you've looked). Opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
 
-**Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as a wide alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
+**Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as a wide alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …; for a connected MCP tool its name and every input field, like `github: create issue` then `title: …`) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 
 - the buttons ignore clicks for half a second after the alert appears or the next request moves up (which also flashes once);
-- a command longer than 3 rows scrolls, and Allow works only once you've scrolled to its end;
-- a command too long to send to the pill (over 4,000 characters) can only be denied there: answer it in Claude Code;
+- a command (or an MCP tool's input) longer than 3 rows scrolls, and Allow works only once you've scrolled to its end;
+- a command or MCP tool call too long to send to the pill (over 4,000 characters) can only be denied there: answer it in Claude Code;
 - invisible characters and characters that change the text's direction show as `�`, so what you read is what runs;
 - a web page is named by its real host (`https://github.com@evil.example/` shows as evil.example);
 - a file is named by where it is: from the project folder when it's inside it (`Edit src\main.ts`), else by its full path, with your home folder as `~` (`Edit ~\.claude\settings.json`).
