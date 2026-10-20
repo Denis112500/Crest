@@ -65,6 +65,15 @@ export class PillStateMachine {
     }
   }
 
+  /** The closed pill lets clicks through, so it gets no mouseenter; Rust reports the pointer
+      resting on it instead. The pointer is over the pill now, which the page couldn't see. */
+  handlePointerRestedOnClosedPill(): void {
+    this.isPointerCurrentlyOverPill = true;
+    window.clearTimeout(this.pendingCollapseTimer);
+    window.clearTimeout(this.attentionPeekEndTimer);
+    this.transitionTo("expanded");
+  }
+
   handlePointerClicked(): void {
     window.clearTimeout(this.pendingHoverExpandTimer);
     this.transitionTo("expanded");

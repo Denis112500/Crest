@@ -24,6 +24,9 @@ tauri-plugin-autostart = "2.7"
 
 # Same major version Tauri uses, so its HWND type is ours and only one copy compiles.
 [target.'cfg(windows)'.dependencies]
+# Already compiled as part of `windows`; listed because `#[implement]` (Core Audio's callbacks)
+# writes `::windows_core::` paths.
+windows-core = "0.62"
 windows = { version = "0.62", features = [
   "Foundation",
   "Foundation_Collections",
@@ -31,16 +34,22 @@ windows = { version = "0.62", features = [
   "Storage_Streams",
   "Win32_Foundation",
   "Win32_Graphics_Gdi",
+  "Win32_Media_Audio",
+  "Win32_Media_Audio_Endpoints",
   "Win32_Security",
   "Win32_Security_Authorization",
   "Win32_Storage_FileSystem",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
   "Win32_System_IO",
   "Win32_System_LibraryLoader",
   "Win32_System_Pipes",
   "Win32_System_Registry",
   "Win32_System_Threading",
+  "Win32_System_Variant",
   "Win32_System_WinRT",
   "Win32_UI_Accessibility",
+  "Win32_UI_Input",
   "Win32_UI_Shell",
   "Win32_UI_WindowsAndMessaging",
 ] }

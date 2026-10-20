@@ -25,7 +25,10 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 - `notes/pill-window-and-layout.md`: the pill's window, shape, morph, layout, visibility.
 - `notes/fullscreen-detection.md`: the pill hides or doesn't appear unexpectedly.
 - `notes/music-smtc.md`: the music activity, players, album art, buttons.
+- `notes/system-volume.md`: the music tile's volume button and slider, Windows Core Audio.
 - `notes/settings-window.md`: the settings window, launch at login, players, display choice.
+- `notes/design-spec.md`: the chosen look (Gauges): tokens, shapes, sizes, light rule, motion, build milestones G.1–G.6.
+- `notes/fix-phase-0.5.0.md`: the fix phase before 0.5.0 (F.1, S.1, H.1, P.1–P.3): MCP input in the alert, Spotify, media keys, click-through closed pill, opening the pill with nothing on.
 - `notes/release-and-install.md`: before a release, an installer or autostart work.
 - `notes/measurements.md`: before measuring memory or CPU.
 - `notes/app-architecture.md`: changing the core (arbiter, sources, IPC).
@@ -35,7 +38,7 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 
 ## Scope and platforms
 - Primary: Windows 11. Later: Linux (Arch, KDE Plasma, Wayland) — not built yet, but all platform-specific code (media backend, window behavior) lives behind small traits in its own folder.
-- Scope follows the roadmap (`STATE.md`; history in `notes/project-process.md`). Not planned yet: Linux support (Phase 5), notifications, volume/brightness popups. New activity sources (integrations) are added one at a time, each approved before it's built.
+- Scope follows the roadmap (`STATE.md`; history in `notes/project-process.md`). Not planned yet: Linux support (Phase 5), notifications, replacing Windows' volume/brightness popups. Planned (decided 2026-10-14): a system-volume control in the music tile (speaker button + slider), through Windows Core Audio, event-driven. Planned (decided 2026-10-18): opening the pill with nothing on by resting the pointer at the screen's top edge (an event-driven pointer watch, no polling), showing time, date and the volume slider. New activity sources (integrations) are added one at a time, each approved before it's built.
 - Local by default: no network calls unless the user has switched on an integration that needs them, and then only to that integration's own service. Every integration is off by default.
 - Free APIs only, never paid ones (no paid plans, no free tiers that require a payment method). Say before building whether a free API still needs a key or token.
 - Keys and tokens are stored only in Windows Credential Manager (behind a small trait, like the other platform code), never in files, settings.json, logs, the repo or the page. The page may hand a token to Rust once to store it, but never reads it back.

@@ -1,6 +1,6 @@
 // The views shown when no activity has anything (rarely seen: the pill hides then).
 
-import { NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT } from "../frontendConstants";
+import { NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT, PILL_DASHBOARD_TILE_LOGICAL_WIDTH } from "../frontendConstants";
 import type { ActivityViewSet } from "./activityViewSet";
 
 const NOTHING_TO_SHOW_TEXT = "Nothing to show";
@@ -18,6 +18,7 @@ export function createNothingToShowViewSet(): ActivityViewSet {
     companionViewElement: createNothingToShowElement(),
     expandedViewElement: createNothingToShowElement(),
     showActivityPayload: () => {},
+    expandedViewLogicalWidth: () => PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
     expandedViewLogicalHeight: () => NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT,
     setExpandedViewVisible: () => {},
     setCompactPlaceOnScreen: () => {},

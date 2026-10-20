@@ -1,8 +1,9 @@
 export interface PillShellElements {
-  /** The whole notch: the capsule plus the two shoulders joining it to the screen edge.
-      It slides up out of view when the pill hides. */
+  /** The whole notch: the black Visor with its shoulders, the light along its lower edge and
+      the underglow below it. It slides up out of view when the pill hides. */
   pillNotchElement: HTMLElement;
-  /** The black capsule; its size and corner radius animate between compact and expanded. */
+  /** The black Visor; its size animates between compact and expanded, and its outline
+      (pillShell.css) follows that size. */
   pillShellElement: HTMLElement;
   compactLayerElement: HTMLElement;
   /** Inside the compact layer: the main activity's small view. */
@@ -14,12 +15,22 @@ export interface PillShellElements {
 }
 
 // Both layers always exist and cross-fade, so the content never has to be rebuilt when
-// the pill changes size. Their shapes and transitions come from pillShell.css. The
-// shoulders are drawn by the notch element, because the capsule clips everything outside
-// itself (it has to, to hide the expanded layer while it's small).
+// the pill changes size. Their shapes and transitions come from pillShell.css. The light and
+// the underglow are the notch's own children behind the Visor, because the Visor clips
+// everything outside its outline (it has to, to hide the expanded layer while it's small);
+// they take the notch's size, so they follow the Visor while it morphs.
 export function createPillShellElements(): PillShellElements {
   const pillNotchElement = document.createElement("div");
   pillNotchElement.className = "pill-notch";
+  // The blur sits on the outer element and the outline on the inner one: CSS applies a filter
+  // before clipping, so a blurred element that clips itself would cut its own glow off.
+  const underglowElement = document.createElement("div");
+  underglowElement.className = "pill-underglow";
+  const underglowShapeElement = document.createElement("div");
+  underglowShapeElement.className = "pill-underglow-shape";
+  underglowElement.append(underglowShapeElement);
+  const lightRingElement = document.createElement("div");
+  lightRingElement.className = "pill-light-ring";
   const pillShellElement = document.createElement("div");
   pillShellElement.className = "pill-shell";
   const compactLayerElement = document.createElement("div");
@@ -35,7 +46,7 @@ export function createPillShellElements(): PillShellElements {
   const expandedLayerElement = document.createElement("div");
   expandedLayerElement.className = "pill-expanded-layer";
   pillShellElement.append(compactLayerElement, expandedLayerElement);
-  pillNotchElement.append(pillShellElement);
+  pillNotchElement.append(underglowElement, lightRingElement, pillShellElement);
   return {
     pillNotchElement,
     pillShellElement,

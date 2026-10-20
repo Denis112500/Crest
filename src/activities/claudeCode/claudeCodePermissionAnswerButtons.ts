@@ -13,8 +13,8 @@ const TOO_LONG_TO_SHOW_NOTE_TEXT = "Answer in Claude Code";
 
 export interface ClaudeCodePermissionAnswerButtons {
   buttonRowElement: HTMLElement;
-  /** A new request: nothing answered yet. A cut command gets a note instead of Allow. */
-  prepareForRequest(requestId: number, isCommandCut: boolean): void;
+  /** A new request: nothing answered yet. A cut command or tool call gets a note instead of Allow. */
+  prepareForRequest(requestId: number, isRequestTooLongToShow: boolean): void;
   /** Disables both buttons for a moment (the alert became visible, or a new request). */
   armAfterDelay(): void;
   /** The request was scrolled to the end: Allow may become clickable. */
@@ -23,14 +23,14 @@ export interface ClaudeCodePermissionAnswerButtons {
 
 // Deny and Allow for the shown request. Clicks count only after a short pause, only once per
 // request (a second click could reach the next one), and Allow only once the whole request has
-// been seen; a command too long to send can only be denied here.
+// been seen; a request too long to send can only be denied here.
 export function createClaudeCodePermissionAnswerButtons(
   hasWholeRequestBeenSeen: () => boolean,
 ): ClaudeCodePermissionAnswerButtons {
   const buttonRowElement = document.createElement("div");
   buttonRowElement.className = "claude-code-permission-buttons";
   let shownRequestId: number | null = null;
-  let isCommandCut = false;
+  let isShownRequestTooLongToShow = false;
   let areButtonsArmed = false;
   let wasAnswerSent = false;
   let buttonArmingTimer: number | undefined;
@@ -42,8 +42,8 @@ export function createClaudeCodePermissionAnswerButtons(
     allowButton.disabled = !canAnswerNow || !isWholeRequestSeen;
     allowButton.textContent = isWholeRequestSeen ? ALLOW_BUTTON_TEXT : READ_TO_THE_END_BUTTON_TEXT;
     allowButton.classList.toggle("is-allow", isWholeRequestSeen);
-    allowButton.hidden = isCommandCut;
-    tooLongNoteElement.hidden = !isCommandCut;
+    allowButton.hidden = isShownRequestTooLongToShow;
+    tooLongNoteElement.hidden = !isShownRequestTooLongToShow;
   };
 
   const createAnswerButton = (buttonText: string, actionPrefix: string): HTMLButtonElement => {
@@ -75,9 +75,9 @@ export function createClaudeCodePermissionAnswerButtons(
   return {
     buttonRowElement,
     refreshButtons,
-    prepareForRequest(requestId, isCommandCutNow) {
+    prepareForRequest(requestId, isRequestTooLongToShow) {
       shownRequestId = requestId;
-      isCommandCut = isCommandCutNow;
+      isShownRequestTooLongToShow = isRequestTooLongToShow;
       wasAnswerSent = false;
     },
     armAfterDelay() {

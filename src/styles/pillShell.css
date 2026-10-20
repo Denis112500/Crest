@@ -10,6 +10,7 @@ body {
 
 body {
   font-family: var(--pill-font-family);
+  font-weight: var(--pill-font-weight);
   cursor: default;
   user-select: none;
 }
@@ -23,41 +24,16 @@ body {
   align-items: flex-start;
 }
 
-/* Shrink-wraps the capsule, so the shoulders follow its width while it morphs. */
+/* Shrink-wraps the Visor, so the light and the underglow behind it (pillVisorOutline.css)
+   follow its size while it morphs. */
 .pill-notch {
   position: relative;
   flex: none;
-  transition: transform var(--pill-conceal-duration) var(--pill-spring-easing);
-}
-
-/* The shoulders: a black square with a quarter circle cut out of its lower outer corner,
-   so the capsule's sides curve outward into the screen edge like a real notch. The colour
-   stop is softened by one pixel so the curve isn't jagged. */
-.pill-notch::before,
-.pill-notch::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  width: var(--pill-notch-shoulder-radius);
-  height: var(--pill-notch-shoulder-radius);
-}
-
-.pill-notch::before {
-  right: 100%;
-  background: radial-gradient(
-    circle at 0 100%,
-    transparent calc(var(--pill-notch-shoulder-radius) - 1px),
-    var(--pill-background-color) var(--pill-notch-shoulder-radius)
-  );
-}
-
-.pill-notch::after {
-  left: 100%;
-  background: radial-gradient(
-    circle at 100% 100%,
-    transparent calc(var(--pill-notch-shoulder-radius) - 1px),
-    var(--pill-background-color) var(--pill-notch-shoulder-radius)
-  );
+  transition:
+    transform var(--pill-conceal-duration) var(--pill-glide-easing),
+    --pill-visor-slope var(--pill-morph-duration) var(--pill-glide-easing),
+    --pill-visor-corner-width var(--pill-morph-duration) var(--pill-glide-easing),
+    --pill-visor-corner-height var(--pill-morph-duration) var(--pill-glide-easing);
 }
 
 /* Hidden: slid up past the screen edge (the window's top clips it); the native window is
@@ -71,20 +47,21 @@ body {
   transition: none;
 }
 
-/* Flat top against the screen edge, rounded only at the bottom. */
+/* The black Visor. Its padding is where the shoulders are drawn (the outline in
+   pillVisorOutline.css starts at the box's outer edges), so the content keeps the pill's width
+   in between. The outline clips everything outside it. */
 .pill-shell {
   position: relative;
   width: var(--pill-compact-width);
   height: var(--pill-compact-height);
-  border-radius: 0 0 calc(var(--pill-compact-height) / 2) calc(var(--pill-compact-height) / 2);
+  padding: 0 var(--pill-notch-shoulder-width);
   background: var(--pill-background-color);
   color: var(--pill-text-color);
   font-size: var(--pill-font-size);
   overflow: hidden;
   transition:
-    width var(--pill-morph-duration) var(--pill-spring-easing),
-    height var(--pill-morph-duration) var(--pill-spring-easing),
-    border-radius var(--pill-morph-duration) var(--pill-spring-easing);
+    width var(--pill-morph-duration) var(--pill-glide-easing),
+    height var(--pill-morph-duration) var(--pill-glide-easing);
 }
 
 /* A companion sits next to the main activity: the compact pill widens by its mark. Before
@@ -98,7 +75,6 @@ body {
 .pill-shell.is-expanded {
   width: var(--pill-expanded-width);
   height: var(--pill-expanded-height);
-  border-radius: 0 0 var(--pill-expanded-corner-radius) var(--pill-expanded-corner-radius);
 }
 
 /* Both layers stay centered while the capsule grows around them, so the expanded content
@@ -116,6 +92,7 @@ body {
    then the incoming one fades in. Overlapping fades showed two songs on top of each other. */
 .pill-compact-layer {
   display: flex;
+  letter-spacing: var(--pill-compact-letter-spacing);
   height: var(--pill-compact-height);
   transition-delay: var(--pill-content-fade-duration);
 }
@@ -141,9 +118,14 @@ body {
   display: block;
 }
 
+/* The open pill is wider than its tiles by the Visor's slope on each side
+   (pillDashboardLayout.ts); the padding keeps the tiles clear of the sloped sides. */
 .pill-expanded-layer {
+  box-sizing: border-box;
   width: var(--pill-expanded-width);
   height: var(--pill-expanded-height);
+  padding: 0 var(--pill-visor-expanded-slope);
+  letter-spacing: var(--pill-expanded-letter-spacing);
   opacity: 0;
   pointer-events: none;
 }

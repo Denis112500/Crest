@@ -4,36 +4,79 @@
 :root {
   /* Pill */
   --pill-background-color: #000000;
-  --pill-text-color: #f5f5f7;
-  --pill-secondary-text-opacity: 0.6;
-  --pill-font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --pill-text-color: #ffffff;
+  --pill-secondary-text-opacity: 0.58;
+  /* Bahnschrift Semilight with air between the letters (design phase round 3, changed in
+     round 6): Windows' own DIN-style variable font, so nothing has to be bundled. Segoe UI
+     Variable Display Light (300) was too thin on an OLED screen. */
+  --pill-font-family: "Bahnschrift", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --pill-font-size: 13px;
-  --pill-title-font-weight: 600;
-  --pill-expanded-corner-radius: 30px;
+  --pill-font-weight: 350;
+  --pill-title-font-weight: 350;
+  --pill-compact-letter-spacing: 0.06em;
+  --pill-expanded-letter-spacing: 0.04em;
+  --pill-title-letter-spacing: 0.05em;
   --pill-content-fade-duration: 180ms;
-  /* A damped spring (damping ratio 0.75, about 3% overshoot), sampled into CSS linear(). */
-  --pill-spring-easing: linear(0, 0.036, 0.123, 0.239, 0.365, 0.489, 0.604, 0.705, 0.79, 0.86, 0.914, 0.955, 0.985, 1.005, 1.018, 1.025, 1.028, 1.028, 1.026, 1.023, 1.02, 1.016, 1.013, 1.01, 1.007, 1.005, 1.003, 1.002, 1.001, 1, 1, 0.999, 1);
+  /* The glide (design phase, round 5): ease-in-out without overshoot. */
+  --pill-glide-easing: cubic-bezier(0.65, 0, 0.35, 1);
 
-  /* Companion mark (at the end of the compact pill). The slot is as wide as the cover, the
+  /* The Visor (design phase, round 2): the sides slope inward below a straight bit under each
+     shoulder, and the bottom corners are soft. Slope (from frontendConstants.ts, it affects the
+     layout) and corners grow while the pill opens. */
+  --pill-visor-shoulder-drop: 10px;
+  --pill-visor-compact-corner-width: 14px;
+  --pill-visor-compact-corner-height: 8px;
+  --pill-visor-expanded-corner-width: 28px;
+  --pill-visor-expanded-corner-height: 16px;
+
+  /* The light along the Visor's lower edge and the underglow on the screen below it, left to
+     right (pillLightController.ts picks a set by the light rule). Music has a colour of its own
+     that no Claude Code status uses: a cover's colours could look like "done" or "needs your
+     OK" (decided 2026-10-14). Offset plus twice the blur must stay inside PILL_UNDERGLOW_LOGICAL_MARGIN
+     (12 px), or the window region cuts the glow off. */
+  --pill-light-starlight-start-color: #cfe3ff;
+  --pill-light-starlight-middle-color: #ffffff;
+  --pill-light-starlight-end-color: #cfe3ff;
+  --pill-light-gold-start-color: #ffd98a;
+  --pill-light-gold-middle-color: #fff1c9;
+  --pill-light-gold-end-color: #ffd98a;
+  --pill-light-done-start-color: #7ee2a8;
+  --pill-light-done-middle-color: #c9f7dc;
+  --pill-light-done-end-color: #7ee2a8;
+  --pill-light-music-start-color: #8b7cf6;
+  --pill-light-music-middle-color: #c4b5fd;
+  --pill-light-music-end-color: #7c9cf6;
+  --pill-light-full-strength: 1;
+  --pill-light-paused-strength: 0.4;
+  --pill-light-waiting-strength: 0.38;
+  /* The sweep: a bright front this wide leads the new colours from just off one end to just
+     past the other. */
+  --pill-light-sweep-front-color: #ffffff;
+  --pill-light-sweep-front-width: 12%;
+  --pill-light-sweep-start-position: -15%;
+  --pill-light-sweep-end-position: 115%;
+  --pill-light-fade-length: 2%;
+  --pill-light-full-from: 18%;
+  --pill-light-full-until: 82%;
+  --pill-light-ring-thickness: 2px;
+  --pill-underglow-offset: 3px;
+  --pill-underglow-blur: 4px;
+  --pill-underglow-opacity: 0.72;
+
+  /* Companion mark (at the end of the compact pill). The slot is as wide as the cover gauge, the
      larger of the two marks; the hover disc matches the control buttons' hover. */
   --pill-companion-hover-background: rgba(255, 255, 255, 0.12);
-  --companion-mark-slot-size: 18px;
+  --companion-mark-slot-size: 24px;
   --companion-mark-hover-size: 28px;
-  --album-art-companion-size: 18px;
-  --album-art-companion-radius: 5px;
   --companion-claude-code-icon-size: 16px;
 
   /* Dashboard (the open pill's tiles; restyled in the look pass) */
-  --pill-dashboard-divider-color: rgba(255, 255, 255, 0.14);
+  --pill-dashboard-divider-color: rgba(230, 240, 255, 0.1);
   --pill-dashboard-divider-inset: 16px;
 
   /* Album art */
   --album-art-placeholder-background: #2c2c2e;
   --album-art-placeholder-icon-opacity: 0.55;
-  --album-art-compact-size: 22px;
-  --album-art-compact-radius: 6px;
-  --album-art-expanded-size: 64px;
-  --album-art-expanded-radius: 14px;
   --album-art-spinner-size: 50%;
   --album-art-spinner-stroke-width: 2px;
   --album-art-spinner-color: #f5f5f7;
@@ -41,66 +84,96 @@
   --album-art-spinner-rotation-duration: 800ms;
 
   /* Compact music view */
-  --compact-music-padding-start: 7px;
+  /* Clear of the Visor's sloped side, which is about 8 px in where the cover ends. */
+  --compact-music-padding-start: 12px;
   --compact-music-padding-end: 14px;
   --compact-music-gap: 10px;
 
+  /* Cover gauge (sizes from frontendConstants.ts): a faint track, the progress ring with a soft
+     glow, and a quieter look while paused. */
+  --cover-gauge-track-color: rgba(255, 255, 255, 0.14);
+  --cover-gauge-ring-glow-size: 2px;
+  --cover-gauge-ring-glow-color: rgba(255, 255, 255, 0.3);
+  --cover-gauge-paused-ring-opacity: 0.4;
+  --cover-gauge-paused-cover-saturation: 0.5;
+  --cover-gauge-paused-cover-brightness: 0.75;
+
   /* Expanded music view */
-  --expanded-music-padding: 16px;
-  --expanded-music-section-gap: 10px;
-  --expanded-music-header-gap: 14px;
+  --expanded-music-padding: 16px 20px;
+  --expanded-music-column-gap: 18px;
+  --expanded-music-row-gap: 10px;
   --expanded-music-title-font-size: 15px;
   --expanded-music-artist-font-size: 13px;
+  --expanded-music-time-font-size: 11px;
+  --expanded-music-buttons-alignment-offset: -6px;
+  /* The control row gives way to the volume slider (layout C): the playback buttons and the time
+     shrink from these widths (a bit more than they need) to nothing. */
+  --expanded-music-transport-max-width: 120px;
+  --expanded-music-time-max-width: 96px;
 
-  /* Claude Code views. The accent is a calm terminal green, not Anthropic's brand color. */
-  --claude-code-accent-color: #7ee2a8;
+  /* System-volume slider: the cover ring's line (faint track, Starlight fill with the ring's glow,
+     round ends), a small knob, the level as a number after it. Muted dims it like a paused ring. */
+  --system-volume-slide-duration: 240ms;
+  --system-volume-slider-gap: 10px;
+  --system-volume-slider-hit-height: 20px;
+  --system-volume-slider-line-thickness: 3px;
+  --system-volume-slider-thumb-size: 10px;
+  --system-volume-readout-width: 26px;
+
+  /* Claude Code views. Working is Starlight white and needing an OK is gold (design phase,
+     round 4); neither is Anthropic's brand color. */
+  --claude-code-accent-color: #e6f0ff;
   --claude-code-terminal-icon-size: 18px;
   --compact-claude-code-padding-start: 12px;
   --compact-claude-code-padding-end: 14px;
   --compact-claude-code-gap: 8px;
   --expanded-claude-code-header-gap: 12px;
-  --expanded-claude-code-title-font-size: 15px;
+  --expanded-claude-code-title-font-size: 14px;
   /* Session rows (their heights and gaps come from frontendConstants.ts). */
   --claude-code-session-row-inner-gap: 8px;
-  --claude-code-session-status-dot-size: 8px;
+  --claude-code-session-status-dot-size: 9px;
   --claude-code-session-project-max-width: 45%;
-  --claude-code-needs-permission-color: #ffc861;
-  --claude-code-idle-session-color: rgba(245, 245, 247, 0.45);
-  /* Permission alert (its heights come from frontendConstants.ts). Allow is green, Deny grey,
-     so the two can't be mixed up at a glance. */
+  --claude-code-needs-permission-color: #ffd98a;
+  --claude-code-idle-session-color: rgba(230, 240, 255, 0.38);
+  /* A finished session the user hasn't seen yet (design phase, L.2 answers). */
+  --claude-code-done-color: #7ee2a8;
+  --claude-code-done-ring-glow-color: rgba(126, 226, 168, 0.6);
+  /* Session status shown as a small ring, not a filled dot; a ring that matters glows. */
+  --claude-code-session-status-ring-width: 1.5px;
+  --claude-code-session-status-ring-glow-size: 6px;
+  --claude-code-working-ring-glow-color: rgba(230, 240, 255, 0.7);
+  --claude-code-needs-permission-ring-glow-color: rgba(255, 217, 138, 0.7);
+  /* Permission alert (its heights come from frontendConstants.ts). Allow is filled bright
+     white, Deny only outlined, so the two can't be mixed up at a glance. */
   --claude-code-permission-header-gap: 8px;
-  --claude-code-permission-description-radius: 10px;
-  --claude-code-permission-description-background: rgba(255, 255, 255, 0.08);
+  --claude-code-permission-description-radius: 3px;
+  /* Strong enough to read as gold on an OLED panel (0.06 looked black there). */
+  --claude-code-permission-description-background: rgba(255, 217, 138, 0.11);
+  --claude-code-permission-description-rule-width: 2px;
   --claude-code-command-font-family: "Cascadia Mono", Consolas, monospace;
   --claude-code-command-font-size: 12px;
   --claude-code-permission-button-gap: 10px;
-  --claude-code-permission-deny-background: rgba(255, 255, 255, 0.14);
+  --claude-code-permission-button-min-width: 112px;
+  --claude-code-permission-button-padding-inline: 16px;
+  --claude-code-permission-button-font-weight: 400;
+  --claude-code-permission-button-letter-spacing: 0.08em;
+  --claude-code-permission-allow-background: #f4f8ff;
+  --claude-code-permission-allow-glow: 0 0 14px rgba(255, 241, 201, 0.35);
+  --claude-code-permission-deny-outline-width: 1px;
+  --claude-code-permission-deny-outline-color: rgba(230, 240, 255, 0.28);
   --claude-code-permission-button-hover-brightness: 1.15;
   --claude-code-command-scrollbar-color: rgba(255, 255, 255, 0.3);
   /* A request that moves up in the queue flashes once, so it can't pass for the one just answered. */
-  --claude-code-permission-new-request-highlight: rgba(255, 200, 97, 0.35);
+  --claude-code-permission-new-request-highlight: rgba(255, 217, 138, 0.35);
   --claude-code-permission-new-request-highlight-duration: 700ms;
   --claude-code-permission-note-font-size: 12px;
 
-  /* Playing bars */
-  --playback-bar-color: #f5f5f7;
-  --playback-bar-width: 3px;
-  --playback-bar-gap: 2px;
-  --playback-bars-height: 14px;
-
-  /* Progress bar */
-  --progress-track-color: rgba(255, 255, 255, 0.22);
-  --progress-fill-color: #f5f5f7;
-  --progress-track-height: 4px;
-  --progress-label-font-size: 11px;
-  --progress-label-width: 38px;
-
-  /* Control buttons */
-  --control-button-size: 36px;
-  --control-button-icon-size: 22px;
-  --control-play-pause-button-size: 44px;
-  --control-play-pause-icon-size: 30px;
-  --control-button-gap: 26px;
+  /* Control buttons (smaller in the shallow Gauges tile) */
+  --control-button-size: 30px;
+  --control-button-icon-size: 18px;
+  --control-play-pause-button-size: 36px;
+  --control-play-pause-icon-size: 24px;
+  --control-button-gap: 8px;
   --control-button-hover-background: rgba(255, 255, 255, 0.12);
   /* Dim enough to read as "not now", still visible so the row keeps its shape. */
   --control-button-disabled-opacity: 0.3;

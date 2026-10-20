@@ -11,6 +11,8 @@ const CREST_COMMAND_NAMES: &[&str] = &[
     "focus_activity",
     "get_current_pill_visibility",
     "perform_activity_action",
+    "get_current_system_volume",
+    "set_system_volume_level",
     "read_crest_build_description",
     "read_launch_at_login_setting",
     "change_launch_at_login_setting",

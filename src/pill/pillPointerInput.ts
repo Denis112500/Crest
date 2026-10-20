@@ -3,8 +3,10 @@
 import type { PillShellElements } from "./pillShellElements";
 import type { PillStateMachine } from "./pillStateMachine";
 
-// The window's interactive area matches the pill, so ordinary DOM mouse events are
-// enough: no cursor polling is needed. A click on the companion's mark first runs
+// The window's interactive area matches the open pill, so ordinary DOM mouse events are
+// enough there. The closed pill lets clicks through and gets none of these events: Rust reports
+// the pointer resting on it instead (listenForPointerRestOnClosedPill.ts). A click on the
+// companion's mark (while the pill closes, its area still takes clicks) first runs
 // `onCompanionClicked` (which picks what the pill opens on), then bubbles to the pill's own
 // click, which opens it.
 export function connectPillPointerInput(

@@ -1,6 +1,7 @@
 import { createActivityViewSetForKind } from "../activities/activityViewRegistry";
 import type { ActivityViewSet } from "../activities/activityViewSet";
 import { findLeadingActivity } from "../activities/findLeadingActivity";
+import { orderActivitiesByTilePosition } from "../activities/orderActivitiesByTilePosition";
 import { createNothingToShowViewSet } from "../activities/nothingToShowViewSet";
 import type { PillActivity, PillArrangement } from "../activities/pillArrangementTypes";
 import { PILL_DASHBOARD_MAX_TILE_COUNT } from "../frontendConstants";
@@ -11,7 +12,8 @@ import type { PillShellElements } from "./pillShellElements";
 // Puts activities' views into the pill: the leading activity (the alert, else the main one)
 // in the compact main slot, the companion's mark at the end of the pill. The open pill shows the
 // alert alone while there is one; else, after a peek, only the tile with news until it closes;
-// else the dashboard: main, companion, then the dashboard-only activities. Each activity keeps
+// else the dashboard: the most important activities (main, companion, then the dashboard-only
+// ones), each in its fixed tile position (orderActivitiesByTilePosition.ts). Each activity keeps
 // one view set, built when it gets a place and updated in place after, so running animations
 // (bars, progress) don't restart on updates.
 export class PillContentPresenter {
@@ -35,13 +37,11 @@ export class PillContentPresenter {
   }
 
   showPillArrangement(pillArrangement: PillArrangement): void {
-    const dashboardActivities = [
-      pillArrangement.mainActivity,
-      pillArrangement.companionActivity,
-      ...pillArrangement.dashboardOnlyActivities,
-    ]
-      .filter(isPlaced)
-      .slice(0, PILL_DASHBOARD_MAX_TILE_COUNT);
+    const dashboardActivities = orderActivitiesByTilePosition(
+      [pillArrangement.mainActivity, pillArrangement.companionActivity, ...pillArrangement.dashboardOnlyActivities]
+        .filter(isPlaced)
+        .slice(0, PILL_DASHBOARD_MAX_TILE_COUNT),
+    );
     const placedActivities = [pillArrangement.alertActivity, ...dashboardActivities].filter(isPlaced);
     for (const placedActivity of placedActivities) {
       let activityViewSet = this.viewSetByActivityKind.get(placedActivity.activityKind);
@@ -120,10 +120,12 @@ export class PillContentPresenter {
     replaceSlotContentIfDifferent(this.pillShellElements.compactMainSlotElement, leadingViewSet.compactViewElement);
     replaceSlotContentIfDifferent(this.pillShellElements.companionMarkElement, companionViewSet?.companionViewElement ?? null);
     const dashboardSize = this.pillDashboardLayout.showTiles(openPillViewSets);
+    // While open, the small views are faded out behind the open ones: nothing small is seen.
+    const isCompactLayerSeen = this.isPillOnScreen && !this.isExpandedContentVisible;
     for (const activityViewSet of [...this.viewSetByActivityKind.values(), this.nothingToShowViewSet]) {
       const compactPlace =
         activityViewSet === leadingViewSet ? "main" : activityViewSet === companionViewSet ? "companion" : null;
-      activityViewSet.setCompactPlaceOnScreen(this.isPillOnScreen ? compactPlace : null);
+      activityViewSet.setCompactPlaceOnScreen(isCompactLayerSeen ? compactPlace : null);
       activityViewSet.setExpandedViewVisible(this.isExpandedContentVisible && openPillViewSets.includes(activityViewSet));
     }
     this.onContentLayoutChange({

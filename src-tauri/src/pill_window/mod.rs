@@ -6,6 +6,7 @@
 pub mod pill_window_commands;
 
 mod connected_display_reader;
+mod pill_display_change_follower;
 mod pill_display_choice;
 mod pill_interactive_area;
 mod pill_window_placement;
@@ -15,6 +16,7 @@ mod pill_window_platform;
 mod windows_native;
 
 pub use connected_display_reader::read_connected_displays;
+pub use pill_display_change_follower::follow_display_changes;
 pub use pill_display_choice::{describe_pill_display_options, PillDisplayOption};
 pub use pill_window_platform::PillWindowPlatform;
 

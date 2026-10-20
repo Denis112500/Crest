@@ -1,0 +1,153 @@
+/* The speaker button in the music tile's control row and the slider it slides out (layout C,
+   decided 2026-10-17). Open: the playback buttons and the time shrink away, the speaker slides to
+   the row's start and the slider grows into the room. The button is a music control button. */
+
+/* The button holds all three icons; the one matching its level shows. */
+.system-volume-speaker-button {
+  flex: none;
+  margin-left: var(--control-button-gap);
+  transition: margin-left var(--system-volume-slide-duration) var(--pill-glide-easing);
+}
+
+.system-volume-speaker-button .svg-icon {
+  display: none;
+}
+
+.system-volume-speaker-button[data-speaker-icon-level="muted"] .speaker-icon-muted,
+.system-volume-speaker-button[data-speaker-icon-level="low"] .speaker-icon-low,
+.system-volume-speaker-button[data-speaker-icon-level="high"] .speaker-icon-high {
+  display: block;
+}
+
+/* No output device. */
+.system-volume-speaker-button:disabled {
+  opacity: var(--control-button-disabled-opacity);
+}
+
+.system-volume-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--system-volume-slider-gap);
+  flex: 0 1 0;
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  /* A layer of its own: the cover ring next to it is redrawn once a second, and drawn on
+     the same layer the slider's blurred glow was drawn again each time (open: 1.7 % of a core,
+     closed: 0.6 %, measured 2026-10-17; cause unverified until measured again). */
+  will-change: transform;
+  transition:
+    flex-grow var(--system-volume-slide-duration) var(--pill-glide-easing),
+    max-width var(--system-volume-slide-duration) var(--pill-glide-easing),
+    margin-left var(--system-volume-slide-duration) var(--pill-glide-easing),
+    opacity var(--system-volume-slide-duration) var(--pill-glide-easing);
+}
+
+.is-system-volume-open > .music-control-buttons,
+.is-system-volume-open > .expanded-music-time {
+  max-width: 0;
+  opacity: 0;
+}
+
+.is-system-volume-open > .system-volume-speaker-button {
+  margin-left: 0;
+}
+
+.is-system-volume-open > .system-volume-slider {
+  flex-grow: 1;
+  max-width: 100%;
+  margin-left: var(--system-volume-slider-gap);
+  opacity: 1;
+}
+
+/* The line: a faint full-length track, the filled part up to the knob's centre, and the real
+   range input on top with an invisible track of its own (it only draws the knob). */
+.system-volume-slider-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: var(--system-volume-slider-hit-height);
+}
+
+.system-volume-slider-track::before,
+.system-volume-slider-fill {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: var(--system-volume-slider-line-thickness);
+  border-radius: var(--system-volume-slider-line-thickness);
+  transform: translateY(-50%);
+}
+
+.system-volume-slider-track::before {
+  right: 0;
+  background: var(--cover-gauge-track-color);
+}
+
+/* The knob's centre travels from half a knob in to half a knob before the end, so the fill does too. */
+.system-volume-slider-fill {
+  width: calc(
+    var(--system-volume-slider-thumb-size) / 2 + (100% - var(--system-volume-slider-thumb-size)) *
+      var(--system-volume-level, 0)
+  );
+  background: linear-gradient(
+    90deg,
+    var(--pill-light-starlight-start-color),
+    var(--pill-light-starlight-middle-color)
+  );
+  filter: drop-shadow(0 0 var(--cover-gauge-ring-glow-size) var(--cover-gauge-ring-glow-color));
+}
+
+.system-volume-slider-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: default;
+}
+
+.system-volume-slider-input::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+
+.system-volume-slider-input::-webkit-slider-thumb {
+  appearance: none;
+  width: var(--system-volume-slider-thumb-size);
+  height: var(--system-volume-slider-thumb-size);
+  margin-top: calc((var(--system-volume-slider-hit-height) - var(--system-volume-slider-thumb-size)) / 2);
+  border-radius: 50%;
+  background: var(--pill-text-color);
+  box-shadow: 0 0 var(--cover-gauge-ring-glow-size) var(--cover-gauge-ring-glow-color);
+}
+
+/* Just opened: clicks pass through to the track (nothing happens) instead of setting a level. */
+.is-system-volume-arming .system-volume-slider-input {
+  pointer-events: none;
+}
+
+.system-volume-slider-input:focus-visible {
+  outline: none;
+}
+
+.system-volume-readout {
+  flex: none;
+  width: var(--system-volume-readout-width);
+  text-align: right;
+  font-size: var(--expanded-music-time-font-size);
+  opacity: var(--pill-secondary-text-opacity);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Muted keeps its level (it comes back on unmute), shown quieter, like a paused ring. */
+.is-system-volume-muted .system-volume-slider-fill,
+.is-system-volume-muted .system-volume-slider-input::-webkit-slider-thumb {
+  opacity: var(--cover-gauge-paused-ring-opacity);
+  filter: none;
+  box-shadow: none;
+}

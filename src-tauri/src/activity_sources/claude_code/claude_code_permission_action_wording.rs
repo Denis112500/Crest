@@ -9,7 +9,7 @@ use crate::activity_sources::claude_code::claude_code_permission_file_path::{
     show_requested_file_path, PermissionRequestFolders,
 };
 
-const MCP_TOOL_NAME_PREFIX: &str = "mcp__";
+pub const MCP_TOOL_NAME_PREFIX: &str = "mcp__";
 const MCP_TOOL_NAME_SEPARATOR: &str = "__";
 
 pub fn word_permission_action(

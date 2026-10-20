@@ -11,7 +11,9 @@ mod ipc_channel_names;
 mod launch_at_login;
 mod media;
 mod pill_window;
+mod pointer_watching;
 mod settings_window;
+mod system_volume;
 mod system_tray;
 mod text_file_atomic_replacement;
 mod user_settings_store;
@@ -28,9 +30,11 @@ use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppRec
 use ipc_channel_names::{PILL_ARRANGEMENT_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
 use launch_at_login::repair_launch_at_login_after_update;
 use media::{CurrentPlatformMediaSource, MediaSource};
-use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
+use pill_window::{follow_display_changes, CurrentPlatformPillWindow, PillWindowPlatform};
+use pointer_watching::start_watching_pointer_rest;
 use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
+use system_volume::start_watching_system_volume;
 use user_settings_store::CrestUserSettingsStore;
 
 pub use activity_sources::claude_code::remove_crest_hooks_from_claude_code_settings;
@@ -59,7 +63,10 @@ pub fn run_crest_app() {
                 .get_webview_window(PILL_WINDOW_LABEL)
                 .ok_or("the pill window from tauri.conf.json was not created")?;
             CurrentPlatformPillWindow::prepare_pill_window_as_overlay(&pill_window)?;
+            follow_display_changes(crest_app, &pill_window);
             create_crest_tray_icon(crest_app)?;
+            start_watching_system_volume(crest_app);
+            start_watching_pointer_rest(crest_app);
 
             let visibility_app_handle = crest_app.handle().clone();
             let pill_visibility_controller = PillVisibilityController::new(Box::new(move |pill_visibility| {
@@ -132,6 +139,8 @@ pub fn run_crest_app() {
             activity_core::focus_activity_command::focus_activity,
             activity_core::pill_visibility_command::get_current_pill_visibility,
             activity_core::activity_action_command::perform_activity_action,
+            system_volume::system_volume_commands::get_current_system_volume,
+            system_volume::system_volume_commands::set_system_volume_level,
             settings_window::settings_window_commands::read_crest_build_description,
             settings_window::settings_window_commands::read_launch_at_login_setting,
             settings_window::settings_window_commands::change_launch_at_login_setting,

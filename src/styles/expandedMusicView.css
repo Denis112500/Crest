@@ -1,21 +1,25 @@
+/* The open music tile (Gauges): the cover gauge on the left across both rows; title and artist
+   on top; the control row (playback buttons, speaker, time) below them. */
 .expanded-music-view {
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: var(--expanded-music-section-gap);
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: var(--expanded-music-column-gap);
+  row-gap: var(--expanded-music-row-gap);
   width: 100%;
   height: 100%;
   padding: var(--expanded-music-padding);
 }
 
-.expanded-music-header {
-  display: flex;
-  align-items: center;
-  gap: var(--expanded-music-header-gap);
+.expanded-music-view > .cover-progress-gauge {
+  grid-row: 1 / 3;
 }
 
 .expanded-music-text {
-  flex: 1;
+  grid-column: 2 / 4;
+  align-self: end;
   min-width: 0;
 }
 
@@ -29,9 +33,53 @@
 .expanded-music-title {
   font-size: var(--expanded-music-title-font-size);
   font-weight: var(--pill-title-font-weight);
+  letter-spacing: var(--pill-title-letter-spacing);
 }
 
 .expanded-music-artist {
   font-size: var(--expanded-music-artist-font-size);
   opacity: var(--pill-secondary-text-opacity);
+}
+
+/* Playback buttons, speaker, time; the volume slider takes the row while open
+   (systemVolumeControl.css). It keeps the play button's height, so the title doesn't move when
+   the buttons give way. The buttons' own padding would push them right of the text; pulled back
+   to line up. */
+.expanded-music-control-row {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: var(--control-play-pause-button-size);
+  margin-left: var(--expanded-music-buttons-alignment-offset);
+}
+
+.expanded-music-control-row > .music-control-buttons {
+  flex: none;
+  justify-content: flex-start;
+  max-width: var(--expanded-music-transport-max-width);
+  overflow: hidden;
+  transition:
+    max-width var(--system-volume-slide-duration) var(--pill-glide-easing),
+    opacity var(--system-volume-slide-duration) var(--pill-glide-easing);
+}
+
+.expanded-music-time {
+  flex: none;
+  margin-left: auto;
+  max-width: var(--expanded-music-time-max-width);
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--expanded-music-time-font-size);
+  transition:
+    max-width var(--system-volume-slide-duration) var(--pill-glide-easing),
+    opacity var(--system-volume-slide-duration) var(--pill-glide-easing);
+  opacity: var(--pill-secondary-text-opacity);
+  /* Equal-width digits, so the time doesn't jiggle as it counts. */
+  font-variant-numeric: tabular-nums;
+}
+
+.expanded-music-time.is-without-timeline {
+  visibility: hidden;
 }

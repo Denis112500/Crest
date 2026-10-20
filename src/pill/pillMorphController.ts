@@ -134,6 +134,7 @@ export class PillMorphController {
       interactiveArea.logicalTop,
       interactiveArea.logicalWidth,
       interactiveArea.logicalHeight,
+      interactiveArea.isClickThrough,
     );
   }
 
