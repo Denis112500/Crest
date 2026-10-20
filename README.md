@@ -1,7 +1,7 @@
 # Crest
 
 <p align="center">
-  <img src="docs/crest-demo.gif" width="520" alt="Crest: a black notch with sloped sides hangs from the top of the screen, its lower edge lit violet; it shows the song with its cover in a progress ring, glides open into the player when the pointer arrives, skips to the next track, and closes again">
+  <img src="docs/crest-demo.gif" width="520" alt="Crest: a black notch with sloped sides hangs from the top of the screen, its lower edge lit violet; it shows the song with its cover in a progress ring, glides open into the player when the pointer rests on it, skips to the next track, and closes again">
 </p>
 
 > **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave, the Spotify app); shared as-is, no support guaranteed.
@@ -19,7 +19,7 @@ Crest's tray icon (notification area, possibly behind the ^ arrow) has **Setting
 ## What it looks like
 
 <p align="center">
-  <img src="docs/crest-expanded.png" width="520" alt="The open pill: the cover inside a ring showing the song's progress, title and artist, previous, pause and next buttons, and the time">
+  <img src="docs/crest-expanded.png" width="520" alt="The open pill: the cover inside a ring showing the song's progress, title and artist, previous, pause and next buttons, the speaker button for the system volume, and the time">
 </p>
 
 <p align="center">
