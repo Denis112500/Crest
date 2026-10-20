@@ -16,6 +16,9 @@ export interface PillInteractiveArea {
   logicalTop: number;
   logicalWidth: number;
   logicalHeight: number;
+  /** The closed pill is drawn but lets every click through; it opens when the pointer rests on
+      it (fix phase P.1/P.2, decided 2026-10-18), so a browser tab under it can still be clicked. */
+  isClickThrough: boolean;
 }
 
 // The window is sized for the widest and tallest open pill, so only the part the pill covers
@@ -35,5 +38,6 @@ export function calculatePillInteractiveArea(pillShape: PillShape): PillInteract
     logicalTop: 0,
     logicalWidth: areaLogicalWidth,
     logicalHeight: pillLogicalHeight + PILL_UNDERGLOW_LOGICAL_MARGIN,
+    isClickThrough: pillShape.expansionState === "compact",
   };
 }

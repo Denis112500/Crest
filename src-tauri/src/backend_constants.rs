@@ -35,6 +35,14 @@ pub const MUSIC_ACTIVITY_DISPLAY_PRIORITY: u8 = 50;
 /// A paused activity (music on pause) keeps the pill on screen this long, then it hides.
 pub const PILL_HIDE_DELAY_AFTER_ACTIVITY_PAUSES: Duration = Duration::from_secs(30);
 
+/// The closed pill lets clicks through (fix phase P.2): it opens when the pointer rests on it
+/// this long, no button pressed. Longer than the old 150 ms hover delay, so aiming at a browser
+/// tab under the pill and clicking it doesn't open the pill first (unverified, tuned by testing).
+pub const POINTER_REST_TO_OPEN_PILL_DELAY: Duration = Duration::from_millis(300);
+/// A resting hand still makes a sensitive mouse report a pixel or two; up to this far from where
+/// it stopped, the pointer still counts as resting.
+pub const POINTER_REST_MOVEMENT_TOLERANCE_PHYSICAL_PIXELS: i32 = 4;
+
 /// When no activity is left (the player closed), the pill hides after this long.
 pub const PILL_HIDE_DELAY_AFTER_ACTIVITY_ENDS: Duration = Duration::from_secs(3);
 

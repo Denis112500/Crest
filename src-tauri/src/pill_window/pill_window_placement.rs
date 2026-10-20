@@ -4,21 +4,22 @@ use crate::pill_window::connected_display_reader::read_connected_displays;
 use crate::pill_window::pill_display_choice::{find_display_for_pill, ConnectedDisplay};
 
 #[derive(Debug, PartialEq)]
-struct PillWindowPhysicalBounds {
-    top_left_position: PhysicalPosition<i32>,
-    size: PhysicalSize<u32>,
+pub struct PillWindowPhysicalBounds {
+    pub top_left_position: PhysicalPosition<i32>,
+    pub size: PhysicalSize<u32>,
 }
 
 /// Sizes the pill window and centers it on the top edge of the chosen monitor (the main one
 /// if none is chosen or it's unplugged), with no gap: the pill is drawn as a notch hanging
 /// from the edge. The frontend passes logical pixels (CSS pixels); Windows positions windows
 /// in physical pixels, so everything is converted with that monitor's scale factor.
+/// Returns where the window went.
 pub fn apply_top_center_placement_to_pill_window(
     pill_window: &WebviewWindow,
     pill_logical_width: f64,
     pill_logical_height: f64,
     chosen_display_name: Option<&str>,
-) -> Result<(), String> {
+) -> Result<PillWindowPhysicalBounds, String> {
     let connected_displays = read_connected_displays(pill_window)?;
     let pill_display = find_display_for_pill(&connected_displays, chosen_display_name)
         .ok_or("Windows reported no monitor to put the pill on")?;
@@ -29,7 +30,8 @@ pub fn apply_top_center_placement_to_pill_window(
         // Moving onto a monitor with a different scale factor makes Windows rescale the
         // window, so the size is applied once more at its final position.
         .and_then(|()| pill_window.set_size(pill_bounds.size))
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+    Ok(pill_bounds)
 }
 
 fn calculate_top_center_bounds(

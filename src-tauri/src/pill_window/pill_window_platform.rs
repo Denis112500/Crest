@@ -1,5 +1,5 @@
 //! The trait each OS implements for the overlay window: no taskbar button, show without
-//! taking focus, hide, and the clickable area.
+//! taking focus, hide, the clickable area, and letting clicks through.
 
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
 
@@ -20,10 +20,12 @@ pub trait PillWindowPlatform {
     /// Limits the part of the window that exists for the mouse (and is drawn) to one
     /// rectangle, in physical pixels relative to the window's top-left corner. Outside it,
     /// clicks go to whatever is below, so the window can stay at its largest size while
-    /// the pill is small, and never has to be resized mid-animation.
+    /// the pill is small, and never has to be resized mid-animation. With `is_click_through`,
+    /// the rectangle is still drawn but every click goes to whatever is below it too.
     fn set_pill_window_interactive_area(
         pill_window: &WebviewWindow,
         area_top_left: PhysicalPosition<i32>,
         area_size: PhysicalSize<u32>,
+        is_click_through: bool,
     ) -> Result<(), String>;
 }

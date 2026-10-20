@@ -27,6 +27,7 @@ import { PillLightController } from "./pill/pillLightController";
 import { applyPillDimensionCssVariables } from "./pill/pillDimensionCssVariables";
 import { PillMorphController } from "./pill/pillMorphController";
 import { connectPillPointerInput } from "./pill/pillPointerInput";
+import { listenForPointerRestOnClosedPill } from "./pill/listenForPointerRestOnClosedPill";
 import { createPillShellElements } from "./pill/pillShellElements";
 import { PillStateMachine } from "./pill/pillStateMachine";
 import { PillVisibilityController } from "./pill/pillVisibilityController";
@@ -60,17 +61,17 @@ async function startPill(): Promise<void> {
       pillLightController.markSeenByUser();
     }
   });
-  // Before the visibility controller: its "pointer left" handler relies on the state
-  // machine having seen the same event first.
-  connectPillPointerInput(pillShellElements, pillStateMachine, () => {
-    // The pill's own click handler opens the dashboard right after; this asks Rust to make the
-    // clicked activity the main one (its tile keeps its place) or, for news on a paused one, to
-    // mark it seen.
+  // The pill opens right after; this asks Rust to make the companion the main activity (its tile
+  // keeps its place) or, for news on a paused one, to mark it seen.
+  const bringCompanionForward = (): void => {
     const companionActivityKind = pillContentPresenter.currentCompanionActivityKind;
     if (companionActivityKind !== null) {
       requestActivityFocus(companionActivityKind).catch(reportCompanionFocusFailure);
     }
-  });
+  };
+  // Before the visibility controller: its "pointer left" handler relies on the state
+  // machine having seen the same event first.
+  connectPillPointerInput(pillShellElements, pillStateMachine, bringCompanionForward);
   pillShellElements.pillShellElement.addEventListener("mouseenter", () => {
     if (isPillExpanded) {
       pillLightController.markSeenByUser();
@@ -100,6 +101,10 @@ async function startPill(): Promise<void> {
   await getCurrentWindow().onScaleChanged(() => {
     placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
   });
+
+  await listenForPointerRestOnClosedPill(pillShellElements, pillStateMachine, bringCompanionForward).catch(
+    reportStartupStepFailure("hear the pointer resting on the closed pill"),
+  );
 
   const pillAttentionDetector = new PillAttentionDetector();
   let wasAlertLeading = false;

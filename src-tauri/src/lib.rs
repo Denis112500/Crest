@@ -11,6 +11,7 @@ mod ipc_channel_names;
 mod launch_at_login;
 mod media;
 mod pill_window;
+mod pointer_watching;
 mod settings_window;
 mod system_volume;
 mod system_tray;
@@ -30,6 +31,7 @@ use ipc_channel_names::{PILL_ARRANGEMENT_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_
 use launch_at_login::repair_launch_at_login_after_update;
 use media::{CurrentPlatformMediaSource, MediaSource};
 use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
+use pointer_watching::start_watching_pointer_rest;
 use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
 use system_volume::start_watching_system_volume;
@@ -63,6 +65,7 @@ pub fn run_crest_app() {
             CurrentPlatformPillWindow::prepare_pill_window_as_overlay(&pill_window)?;
             create_crest_tray_icon(crest_app)?;
             start_watching_system_volume(crest_app);
+            start_watching_pointer_rest(crest_app);
 
             let visibility_app_handle = crest_app.handle().clone();
             let pill_visibility_controller = PillVisibilityController::new(Box::new(move |pill_visibility| {
