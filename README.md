@@ -4,9 +4,9 @@
   <img src="docs/crest-demo.gif" width="520" alt="Crest: a black notch with sloped sides hangs from the top of the screen, its lower edge lit violet; it shows the song with its cover in a progress ring, glides open into the player when the pointer arrives, skips to the next track, and closes again">
 </p>
 
-> **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave); shared as-is, no support guaranteed.
+> **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave, the Spotify app); shared as-is, no support guaranteed.
 
-A small black notch hanging from the top center of the screen. It shows what's playing in any player that appears in Windows' own media controls (built and tested with YouTube Music and Brave), grows when you hover or click it, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
+A small black notch hanging from the top center of the screen. It shows what's playing in any player that appears in Windows' own media controls (built with YouTube Music in Brave, also tested with the Spotify desktop app), grows when you rest the pointer on it, lets your clicks through to whatever is under it while closed, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration that needs them (none does yet: the Claude Code integration stays on your PC).
 
@@ -26,7 +26,7 @@ Crest's tray icon (notification area, possibly behind the ^ arrow) has **Setting
   <img src="docs/crest-dashboard.png" width="760" alt="The open dashboard: the music on the left, Claude Code's sessions on the right, the lower edge lit white because Claude Code is working">
 </p>
 
-Closed, it's a small black notch with sloped sides (a "visor") showing the cover in its progress ring and the title. Hovered or clicked (or when a new song starts), it glides open; with music and Claude Code at once, it opens into a dashboard with one tile each, music always on the left. It slides up into the screen edge when there's nothing to show.
+Closed, it's a small black notch with sloped sides (a "visor") showing the cover in its progress ring and the title; a click on it goes to whatever is under it (a browser tab, say). Rest the pointer on it for a moment (or wait for a new song) and it glides open; with music and Claude Code at once, it opens into a dashboard with one tile each, music always on the left. It slides up into the screen edge when there's nothing to show.
 
 In the open music tile, a speaker button after next-track slides out a thin slider for the **system volume** (all sound, like the speaker icon in the taskbar). The playback buttons step aside while it's open; it follows the volume keys, the mouse wheel moves it 2 % per notch, and it slides back by itself a few seconds after you leave it. Moving it while muted turns the sound back on, as Windows' own slider does. It isn't a replacement for Windows' volume popup.
 
@@ -101,9 +101,9 @@ Measured: with the pill hidden, Crest used no measurable CPU over a minute with 
 
 ### The window and the animation
 
-The open pill is as wide and tall as what it shows (one tile, the dashboard, the wider permission alert), and the native window is always as big as the largest open pill (plus the notch's shoulders and its 12-pixel underglow), sits at the very top of the chosen monitor, and only moves when you choose another monitor. What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. Windows also draws only inside that rectangle, which is why the underglow stays small: the rectangle includes it. Growing (opening, or taller content while open): the area grows first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
+The open pill is as wide and tall as what it shows (one tile, the dashboard, the wider permission alert), and the native window is always as big as the largest open pill (plus the notch's shoulders and its 12-pixel underglow), sits at the very top of the chosen monitor, and only moves when you choose another monitor or the monitors change (a resolution switch, one plugged in or unplugged: Windows tells every window with `WM_DISPLAYCHANGE`). What changes is its **interactive area**: only the rectangle where the pill currently is takes the mouse; everywhere else, clicks go to the app below. The closed pill takes no clicks at all: the window is "layered" and, while closed, `WS_EX_TRANSPARENT`, so Windows passes every click through it. To still open it, Rust watches the mouse with raw input (`pointer_watching/`: a copy of every mouse report goes to a sleeping thread, which never sits in the mouse's path) and tells the page when the pointer has rested on the closed pill for 0.3 s without a click. Windows also draws only inside that rectangle, which is why the underglow stays small: the rectangle includes it. Growing (opening, or taller content while open): the area grows first, then CSS animates the capsule. Shrinking: the capsule animates first, then the area shrinks. Resizing the real window during the animation would make the pill jump for a frame, because the web content re-lays itself out slightly after Windows resizes the window.
 
-On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (hover, leave, click, a new track), and `pillMorphController.ts` carries it out. The notch's outline is one CSS `clip-path: shape()` written in percentages, so it follows the size while CSS animates it (an ease-in-out glide, no overshoot); the light is two gradient layers behind it, and a blurred copy below is the underglow. The progress ring is redrawn on each whole second of the song, together with the time, rather than at the monitor's refresh rate: on a 240 Hz screen, the old CSS-animated playing bars once cost about 35% of a CPU core. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
+On the frontend, `pillStateMachine.ts` decides *when* the pill is compact or expanded (a rest on the closed pill, leaving, a new track), and `pillMorphController.ts` carries it out. The notch's outline is one CSS `clip-path: shape()` written in percentages, so it follows the size while CSS animates it (an ease-in-out glide, no overshoot); the light is two gradient layers behind it, and a blurred copy below is the underglow. The progress ring is redrawn on each whole second of the song, together with the time, rather than at the monitor's refresh rate: on a 240 Hz screen, the old CSS-animated playing bars once cost about 35% of a CPU core. Each activity kind provides a *view set* (a compact and an expanded view) through `activityViewRegistry.ts`, the frontend's plugin point.
 
 ### The settings window
 
@@ -149,11 +149,12 @@ Crest/
 │  ├─ pill/
 │  │  ├─ pillShellElements.ts          the notch: underglow, light, and the Visor with its compact layer (main slot + the companion's mark at the end) and expanded layer
 │  │  ├─ pillDimensionCssVariables.ts  hands the sizes from frontendConstants.ts to CSS
-│  │  ├─ pillStateMachine.ts           when to be compact or expanded (hover, click, peek, held open by an alert)
-│  │  ├─ pillPointerInput.ts           mouse events → state machine; a click on the companion's mark
+│  │  ├─ pillStateMachine.ts           when to be compact or expanded (a rest, leaving, peek, held open by an alert)
+│  │  ├─ pillPointerInput.ts           mouse events on the open pill → state machine; a click on the companion's mark
+│  │  ├─ listenForPointerRestOnClosedPill.ts  Rust's "the pointer rests on the closed pill" → open it (on the companion if on its mark)
 │  │  ├─ pillMorphController.ts        animates a state or height change and keeps the interactive area in step
 │  │  ├─ pillMorphSettleDetector.ts    says when a size animation has ended (its event, or a timer if it never comes)
-│  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse (and the only part Windows draws): pill, shoulders, underglow
+│  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse (and the only part Windows draws): pill, shoulders, underglow; closed = lets clicks through
 │  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window
 │  │  ├─ pillVisibilityTypes.ts        the visibility Rust sends (visible? fullscreen app in front?)
 │  │  ├─ waitUntilNextFrameIsPainted.ts  resolves once the current content is on screen
@@ -337,7 +338,7 @@ Crest/
       │     ├─ appbar_fullscreen_app_watcher.rs   own thread + hidden appbar window that Windows notifies
       │     ├─ appbar_watcher_window_procedure.rs reacts to the fullscreen notification, a short settle timer, Explorer restarts, "check again"
       │     ├─ appbar_watcher_thread_state.rs     what the window procedure needs, per thread
-      │     ├─ front_window_change_hook.rs        while a game is reported: re-checks on every front-window change
+      │     ├─ front_window_change_hook.rs        re-checks on every front-window change (one on another monitor keeps the answer)
       │     └─ front_window_fullscreen_check.rs   does the front window cover the pill's monitor?
       ├─ system_volume/
       │  ├─ mod.rs              declares the module; picks this OS's implementation
@@ -361,14 +362,27 @@ Crest/
       │  ├─ pill_window_platform.rs    trait: the OS-specific overlay behavior
       │  ├─ pill_window_placement.rs   top-center math in physical pixels on the chosen monitor (unit-tested)
       │  ├─ pill_display_choice.rs     chosen monitor or the main one; labels for the settings list (unit-tested)
+      │  ├─ pill_display_change_follower.rs  a monitor change → the page places the pill again
       │  ├─ connected_display_reader.rs  the monitors Windows reports right now
       │  ├─ pill_interactive_area.rs   CSS pixels → physical pixels for the interactive area (unit-tested)
       │  ├─ pill_window_commands.rs    the commands the pill page calls
       │  └─ windows_native/
       │     ├─ mod.rs
       │     ├─ classic_frame_painting_blocker.rs  Win32 subclass: stops the classic title bar being painted (white bar)
+      │     ├─ display_change_forwarder.rs        Win32 subclass: passes WM_DISPLAYCHANGE on
       │     ├─ webview_memory_usage_target.rs     asks WebView2 to keep little in RAM while the pill is hidden
-      │     └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus, hide, window region
+      │     └─ windows_pill_window_platform.rs  Win32: tool-window style, show without focus, hide, window region, click-through
+      ├─ pointer_watching/
+      │  ├─ mod.rs              declares the module; picks this OS's implementation
+      │  ├─ pointer_watch.rs              trait: report the pointer anywhere without taking it; one timer
+      │  ├─ pointer_rest_detector.rs      when the pointer rests on the closed pill: still, no click, once per visit (unit-tested)
+      │  ├─ pointer_rest_zone.rs          a screen rectangle (unit-tested)
+      │  ├─ shared_pill_pointer_zones.rs  where the closed pill is on screen, kept up to date by the window commands (unit-tested)
+      │  ├─ pointer_rest_startup.rs       starts the watch; a rest goes to the page as an event
+      │  └─ windows_raw_input/
+      │     ├─ mod.rs
+      │     ├─ raw_input_pointer_watch.rs        own thread, message-only window, raw input + the rest timer
+      │     └─ raw_input_mouse_report_reader.rs  one report: a button down? where is the pointer?
       └─ settings_window/
          ├─ mod.rs
          ├─ settings_window_opener.rs    opens the window or brings it to the front (tray, second launch)
@@ -397,7 +411,7 @@ npm run tauri build   # installer in src-tauri\target\release\bundle\nsis\
 Open them from the tray icon (**Settings…**) or by starting Crest again while it runs:
 
 - **Start with Windows**: Crest starts in the background when you sign in. Off by default. Crest remembers your choice: Windows' installer removes the start-up entry when an update uninstalls the old version first, and Crest puts it back the next time it starts.
-- **Show the pill on**: the main display, or a specific monitor. If that monitor is unplugged, the pill goes to the main display.
+- **Show the pill on**: the main display, or a specific monitor. If that monitor is unplugged, the pill goes to the main display at once.
 - **Claude Code**: shows what your Claude Code sessions are doing (see [Claude Code](#claude-code)). Off by default.
 - **Answer permission requests in the pill**: Allow / Deny right in the pill while Claude Code is on. On by default; off, the pill only shows the status.
 - **Allowed players**: which players the pill shows. A new install shows **every player**; switch that off to show only the list (it starts with YouTube Music), and add any player while it's open (a video in a normal browser tab counts as one player per browser, e.g. "Brave tabs"). With an empty list and the switch off, the pill shows no music.
@@ -421,7 +435,7 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 ## Claude Code
 
-Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch (hover it for the status, click it to bring Claude Code forward), and the notch's lit edge tells you its state: white while working, gold when it needs you, green when a session has just finished (until you've looked). Opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
+Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs), done, waiting for you, or that it needs your OK. Next to playing music it shows only its `>_` mark at the end of the notch (rest the pointer on it to open the notch on Claude Code), and the notch's lit edge tells you its state: white while working, gold when it needs you, green when a session has just finished (until you've looked). Opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
 
 **Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as a wide alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …; for a connected MCP tool its name and every input field, like `github: create issue` then `title: …`) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 
