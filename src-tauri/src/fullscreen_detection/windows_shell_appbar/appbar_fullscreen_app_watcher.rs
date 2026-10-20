@@ -20,6 +20,7 @@ use crate::fullscreen_detection::fullscreen_app_watcher::{
 use crate::fullscreen_detection::windows_shell_appbar::appbar_watcher_thread_state::{
     with_appbar_watcher_thread_state, AppbarWatcherThreadState, APPBAR_WATCHER_THREAD_STATE,
 };
+use crate::fullscreen_detection::windows_shell_appbar::front_window_change_hook::FrontWindowChangeHook;
 use crate::fullscreen_detection::windows_shell_appbar::appbar_watcher_window_procedure::{
     appbar_watcher_window_procedure, register_as_appbar, FULLSCREEN_RECHECK_REQUEST_MESSAGE,
 };
@@ -111,9 +112,12 @@ fn run_appbar_watcher_thread(
             taskbar_created_message: RegisterWindowMessageW(w!("TaskbarCreated")),
             last_reported_fullscreen_state: None,
             fullscreen_app_change_listener,
-            front_window_change_hook: None,
+            is_settle_check_after_shell_closed: false,
         }));
         register_as_appbar(watcher_window)?;
+        // Lives as long as this thread's message loop, which delivers its events; `None` if
+        // Windows refused (the shell's own signals still work).
+        let _front_window_change_hook = FrontWindowChangeHook::start();
         watcher_window_handle_value.store(watcher_window.0 as isize, Ordering::Release);
         // The shell only reports changes, and a game may already be in front at startup.
         with_appbar_watcher_thread_state(AppbarWatcherThreadState::check_front_window_and_report);

@@ -1,5 +1,6 @@
-//! Checks that the front window really covers the pill's monitor, because the shell's signal
-//! doesn't say which monitor (and the desktop itself would count otherwise).
+//! Checks where the front window is: covering the pill's monitor, leaving it uncovered, or on
+//! another monitor. The shell's signal doesn't say which monitor (and the desktop itself would
+//! count otherwise).
 
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Gdi::{GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST};
@@ -12,20 +13,29 @@ const DESKTOP_WINDOW_CLASS_NAMES: [&str; 2] = ["Progman", "WorkerW"];
 /// Windows limits window class names to 256 characters.
 const WINDOW_CLASS_NAME_BUFFER_LENGTH: usize = 256;
 
-/// The shell only says that *some* fullscreen app opened, not where. This checks that the
-/// front window covers the monitor the pill is on, so a fullscreen video on another
-/// monitor leaves the pill alone.
-pub fn is_fullscreen_app_in_front_of_pill(pill_window: HWND) -> bool {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FrontWindowPlacement {
+    CoversPillMonitor,
+    /// On the pill's monitor without covering it, or no real front window (the desktop, none).
+    LeavesPillMonitorUncovered,
+    /// Says nothing about the pill's monitor: a game there may still fill it (2026-10-19).
+    OnAnotherMonitor,
+}
+
+/// The shell only says that *some* fullscreen app opened, not where. This checks whether the
+/// front window covers the monitor the pill is on, so a fullscreen video on another monitor
+/// leaves the pill alone.
+pub fn locate_front_window(pill_window: HWND) -> FrontWindowPlacement {
     // SAFETY: every call only reads properties of window and monitor handles Windows just
-    // returned; if the window closed in between, the calls fail and the answer is "no".
+    // returned; if the window closed in between, the calls fail and the answer is "uncovered".
     unsafe {
         let front_window = GetForegroundWindow();
         if front_window.is_invalid() || is_desktop_window(front_window) {
-            return false;
+            return FrontWindowPlacement::LeavesPillMonitorUncovered;
         }
         let front_window_monitor = MonitorFromWindow(front_window, MONITOR_DEFAULTTONEAREST);
         if front_window_monitor != MonitorFromWindow(pill_window, MONITOR_DEFAULTTONEAREST) {
-            return false;
+            return FrontWindowPlacement::OnAnotherMonitor;
         }
         let mut front_window_monitor_description =
             MONITORINFO { cbSize: size_of::<MONITORINFO>() as u32, ..Default::default() };
@@ -33,13 +43,18 @@ pub fn is_fullscreen_app_in_front_of_pill(pill_window: HWND) -> bool {
         if !GetMonitorInfoW(front_window_monitor, &mut front_window_monitor_description).as_bool()
             || GetWindowRect(front_window, &mut front_window_rectangle).is_err()
         {
-            return false;
+            return FrontWindowPlacement::LeavesPillMonitorUncovered;
         }
         let monitor_rectangle = front_window_monitor_description.rcMonitor;
-        front_window_rectangle.left <= monitor_rectangle.left
+        let covers_monitor = front_window_rectangle.left <= monitor_rectangle.left
             && front_window_rectangle.top <= monitor_rectangle.top
             && front_window_rectangle.right >= monitor_rectangle.right
-            && front_window_rectangle.bottom >= monitor_rectangle.bottom
+            && front_window_rectangle.bottom >= monitor_rectangle.bottom;
+        if covers_monitor {
+            FrontWindowPlacement::CoversPillMonitor
+        } else {
+            FrontWindowPlacement::LeavesPillMonitorUncovered
+        }
     }
 }
 
