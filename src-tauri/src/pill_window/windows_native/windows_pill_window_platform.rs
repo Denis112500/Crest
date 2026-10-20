@@ -18,8 +18,9 @@ use windows::Win32::UI::WindowsAndMessaging::{
     WS_EX_TRANSPARENT, WS_SYSMENU,
 };
 
-use crate::pill_window::pill_window_platform::PillWindowPlatform;
+use crate::pill_window::pill_window_platform::{DisplayChangeListener, PillWindowPlatform};
 use crate::pill_window::windows_native::classic_frame_painting_blocker::block_classic_frame_painting;
+use crate::pill_window::windows_native::display_change_forwarder::forward_display_changes;
 use crate::pill_window::windows_native::webview_memory_usage_target::adjust_pill_webview_memory_target;
 
 pub struct WindowsPillWindowPlatform;
@@ -74,6 +75,14 @@ impl PillWindowPlatform for WindowsPillWindowPlatform {
         // again; without this, a Crest started with nothing playing (e.g. at login) would keep
         // the normal target until the first song, about 78 MB instead of 20 (measured).
         adjust_pill_webview_memory_target(pill_window, true)
+    }
+
+    fn watch_display_changes(
+        pill_window: &WebviewWindow,
+        display_change_listener: DisplayChangeListener,
+    ) -> Result<(), String> {
+        let pill_window_native_handle = pill_window.hwnd().map_err(|error| error.to_string())?;
+        forward_display_changes(pill_window_native_handle, display_change_listener)
     }
 
     fn show_pill_window_without_activating(pill_window: &WebviewWindow) -> Result<(), String> {

@@ -1,7 +1,10 @@
 //! The trait each OS implements for the overlay window: no taskbar button, show without
-//! taking focus, hide, the clickable area, and letting clicks through.
+//! taking focus, hide, the clickable area, letting clicks through, and noticing monitor changes.
 
 use tauri::{PhysicalPosition, PhysicalSize, WebviewWindow};
+
+/// Called on the window's own thread when a monitor's resolution or the monitor layout changed.
+pub type DisplayChangeListener = Box<dyn Fn()>;
 
 /// The OS-specific part of making the pill behave like an overlay rather than an app window.
 /// Each operating system gets its own implementation in its own folder.
@@ -9,6 +12,13 @@ pub trait PillWindowPlatform {
     /// Called once at startup, while the window is still hidden: keep it out of the
     /// taskbar and Alt+Tab, and make sure clicking it never takes keyboard focus.
     fn prepare_pill_window_as_overlay(pill_window: &WebviewWindow) -> Result<(), String>;
+
+    /// Called once at startup: from then on, `display_change_listener` hears every change of a
+    /// monitor's resolution or of the monitor layout, so the pill can be placed again.
+    fn watch_display_changes(
+        pill_window: &WebviewWindow,
+        display_change_listener: DisplayChangeListener,
+    ) -> Result<(), String>;
 
     /// Shows the window without taking focus away from the app the user is typing in.
     fn show_pill_window_without_activating(pill_window: &WebviewWindow) -> Result<(), String>;

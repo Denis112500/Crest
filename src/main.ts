@@ -92,7 +92,8 @@ async function startPill(): Promise<void> {
   // can't stop the steps after it; above all the last one, without which the pill would
   // never appear until Crest restarts.
   await placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
-  // The user picked another monitor in the settings window.
+  // The user picked another monitor in the settings window, or the monitors changed (a
+  // resolution switch after login, one plugged in or unplugged).
   await listen(PILL_DISPLAY_CHANGED_EVENT, () => {
     placePillWindowOnChosenDisplay().catch(reportPlacementFailure);
   });

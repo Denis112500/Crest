@@ -30,7 +30,7 @@ use fullscreen_detection::{CurrentPlatformFullscreenAppWatcher, FullscreenAppRec
 use ipc_channel_names::{PILL_ARRANGEMENT_CHANGED_EVENT, PILL_VISIBILITY_CHANGED_EVENT};
 use launch_at_login::repair_launch_at_login_after_update;
 use media::{CurrentPlatformMediaSource, MediaSource};
-use pill_window::{CurrentPlatformPillWindow, PillWindowPlatform};
+use pill_window::{follow_display_changes, CurrentPlatformPillWindow, PillWindowPlatform};
 use pointer_watching::start_watching_pointer_rest;
 use settings_window::open_or_focus_settings_window;
 use system_tray::create_crest_tray_icon;
@@ -63,6 +63,7 @@ pub fn run_crest_app() {
                 .get_webview_window(PILL_WINDOW_LABEL)
                 .ok_or("the pill window from tauri.conf.json was not created")?;
             CurrentPlatformPillWindow::prepare_pill_window_as_overlay(&pill_window)?;
+            follow_display_changes(crest_app, &pill_window);
             create_crest_tray_icon(crest_app)?;
             start_watching_system_volume(crest_app);
             start_watching_pointer_rest(crest_app);

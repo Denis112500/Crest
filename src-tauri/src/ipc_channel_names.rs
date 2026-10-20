@@ -6,7 +6,8 @@ pub const PILL_ARRANGEMENT_CHANGED_EVENT: &str = "pill-arrangement-changed";
 /// Event carrying whether the pill should be on screen and whether a fullscreen app is in front.
 pub const PILL_VISIBILITY_CHANGED_EVENT: &str = "pill-visibility-changed";
 
-/// Event telling the pill window the user chose another monitor, so it places itself again.
+/// Event telling the pill window to place itself again: the user chose another monitor, or a
+/// monitor's resolution or the monitor layout changed.
 pub const PILL_DISPLAY_CHANGED_EVENT: &str = "pill-display-changed";
 
 /// Event telling the pill the pointer rests on it while it's closed (`{ logicalX, logicalY }`
