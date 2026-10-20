@@ -1,7 +1,7 @@
 # Crest
 
 <p align="center">
-  <img src="docs/crest-demo.gif" width="520" alt="Crest: a black notch with sloped sides hangs from the top of the screen, its lower edge lit violet; it shows the song with its cover in a progress ring, glides open into the player when the pointer rests on it, skips to the next track, and closes again">
+  <img src="docs/crest-demo.gif" width="476" alt="Crest: a black notch with sloped sides hangs from the top of the screen, its lower edge lit violet; it shows the song with its cover in a progress ring, glides open into the player when the pointer rests on it, skips to the next track, and closes again">
 </p>
 
 > **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave, the Spotify app); shared as-is, no support guaranteed.
@@ -18,17 +18,17 @@ Crest's tray icon (notification area, possibly behind the ^ arrow) has **Setting
 
 ## What it looks like
 
-<p align="center">
-  <img src="docs/crest-expanded.png" width="520" alt="The open pill: the cover inside a ring showing the song's progress, title and artist, previous, pause and next buttons, the speaker button for the system volume, and the time">
-</p>
-
-<p align="center">
-  <img src="docs/crest-dashboard.png" width="760" alt="The open dashboard: the music on the left, Claude Code's sessions on the right, the lower edge lit white because Claude Code is working">
-</p>
-
 Closed, it's a small black notch with sloped sides (a "visor") showing the cover in its progress ring and the title; a click on it goes to whatever is under it (a browser tab, say). Rest the pointer on it for a moment (or wait for a new song) and it glides open; with music and Claude Code at once, it opens into a dashboard with one tile each, music always on the left. It slides up into the screen edge when there's nothing to show.
 
+<p align="center">
+  <img src="docs/crest-expanded.png" width="476" alt="The open pill: the cover inside a ring showing the song's progress, title and artist, previous, pause and next buttons, the speaker button for the system volume, and the time">
+</p>
+
 In the open music tile, a speaker button after next-track slides out a thin slider for the **system volume** (all sound, like the speaker icon in the taskbar). The playback buttons step aside while it's open; it follows the volume keys, the mouse wheel moves it 2 % per notch, and it slides back by itself a few seconds after you leave it. Moving it while muted turns the sound back on, as Windows' own slider does. It isn't a replacement for Windows' volume popup.
+
+<p align="center">
+  <img src="docs/crest-dashboard.png" width="799" alt="The open dashboard: the music on the left, Claude Code's sessions on the right, the lower edge lit white because Claude Code is working">
+</p>
 
 The notch's lower edge is lit, and the light says what's going on, so you don't have to read anything:
 
@@ -40,12 +40,12 @@ The notch's lower edge is lit, and the light says what's going on, so you don't 
 
 A change of colour travels along the edge as one sweep of light, and a new track or a new status line sends one sweep too; then the light stands still. The text is Windows 11's own Bahnschrift, so nothing extra is bundled.
 
-<sub>Music in the demo: "The Apocalypse" by NIVIRO, and "Dreams pt. II" by Lost Sky (feat. Sara Skinner), NCS releases, provided by [NoCopyrightSounds](https://ncs.io).</sub>
+<sub>Music in the demo: "DÉVOTION" by IYCE MANN, and "No Rival" by Egzod, Maestro Chives and Alaina Cross, NCS releases, provided by [NoCopyrightSounds](https://ncs.io).</sub>
 
 ## What makes Crest different
 
 - **Private by default.** Crest sends no telemetry and needs no account. It reads what's playing only from Windows' own media controls (SMTC): no scraping, no unofficial APIs, no cookies. Future integrations will be off until you switch them on, use free APIs only, talk to their own service only, and keep any keys in Windows Credential Manager (never in files).
-- **Light on your PC.** Everything is event-driven, with no polling loops: nothing runs while idle, paused or hidden (measured: 0.1% of one core with the pill hidden, WebView2's own housekeeping). While music plays, the progress ring moves once a second, together with the time while open; the light only moves for a moment when something changes. While hidden, Crest asks WebView2 to keep as little in RAM as it can: about 16–40 MB in Task Manager (measured). The settings window only exists while it's open.
+- **Light on your PC.** Everything is event-driven, with no polling loops: nothing runs while idle, paused or hidden (measured: 0.1% of one core with the pill hidden, WebView2's own housekeeping). The one thing that wakes it is the mouse moving: Crest gets a copy of each mouse report so the closed pill can open when you rest on it (measured: about 0.5% of one core while the mouse moves non-stop, nothing while it's still). While music plays, the progress ring moves once a second, together with the time while open; the light only moves for a moment when something changes. While hidden, Crest asks WebView2 to keep as little in RAM as it can: about 16–40 MB in Task Manager (measured). The settings window only exists while it's open.
 - **Built for Linux too (planned).** All Windows-specific code (media and window behavior) sits behind small interfaces, so a KDE Plasma on Wayland version can plug in next to it: MPRIS for media, layer-shell for the pill window. Not built yet.
 
 ## How it's built
