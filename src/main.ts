@@ -10,7 +10,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import type { PillArrangement } from "./activities/pillArrangementTypes";
-import { PILL_WINDOW_LOGICAL_HEIGHT, PILL_WINDOW_LOGICAL_WIDTH } from "./frontendConstants";
+import { PILL_COMPACT_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT, PILL_WINDOW_LOGICAL_WIDTH } from "./frontendConstants";
 import {
   GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
   GET_CURRENT_PILL_VISIBILITY_COMMAND,
@@ -57,6 +57,9 @@ async function startPill(): Promise<void> {
   const pillStateMachine = new PillStateMachine((expansionState) => {
     isPillExpanded = expansionState === "expanded";
     pillMorphController.showExpansionState(expansionState);
+    if (!isPillExpanded) {
+      pillVisibilityController.handlePillCollapsed();
+    }
     if (isPillExpanded && pillStateMachine.isPointerOverPill) {
       pillLightController.markSeenByUser();
     }
@@ -83,7 +86,8 @@ async function startPill(): Promise<void> {
   });
 
   const placePillWindowOnChosenDisplay = async (): Promise<void> => {
-    await requestPillWindowPlacement(PILL_WINDOW_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT);
+    // The top edge opens the hidden pill where the closed pill would hang.
+    await requestPillWindowPlacement(PILL_WINDOW_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT, PILL_COMPACT_LOGICAL_WIDTH);
     await pillMorphController.applyCurrentInteractiveArea();
   };
   // Window and interactive area first: a track already playing at startup makes the

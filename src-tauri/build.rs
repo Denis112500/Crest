@@ -10,6 +10,7 @@ const CREST_COMMAND_NAMES: &[&str] = &[
     "get_current_pill_arrangement",
     "focus_activity",
     "get_current_pill_visibility",
+    "release_pill_top_edge_opening",
     "perform_activity_action",
     "get_current_system_volume",
     "set_system_volume_level",

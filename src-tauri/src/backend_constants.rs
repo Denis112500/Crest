@@ -39,6 +39,10 @@ pub const PILL_HIDE_DELAY_AFTER_ACTIVITY_PAUSES: Duration = Duration::from_secs(
 /// this long, no button pressed. Longer than the old 150 ms hover delay, so aiming at a browser
 /// tab under the pill and clicking it doesn't open the pill first (unverified, tuned by testing).
 pub const POINTER_REST_TO_OPEN_PILL_DELAY: Duration = Duration::from_millis(300);
+/// With nothing on, the pill is hidden; resting the pointer against the screen's top edge where
+/// it would hang, this long without a click, brings it down open (fix phase P.3, about 0.4 s as
+/// planned; tuned by testing).
+pub const POINTER_REST_AT_TOP_EDGE_TO_OPEN_PILL_DELAY: Duration = Duration::from_millis(400);
 /// A resting hand still makes a sensitive mouse report a pixel or two; up to this far from where
 /// it stopped, the pointer still counts as resting.
 pub const POINTER_REST_MOVEMENT_TOLERANCE_PHYSICAL_PIXELS: i32 = 4;

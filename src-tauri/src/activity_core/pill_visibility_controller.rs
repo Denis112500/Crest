@@ -1,5 +1,6 @@
-//! Carries out the visibility rules: runs the hide countdowns and adds the "a fullscreen app
-//! is in front" rule, then reports to the frontend. Kept apart from the pure rules on purpose.
+//! Carries out the visibility rules: runs the hide countdowns, adds the "a fullscreen app is in
+//! front" rule and the pill opened from the top edge with nothing on, then reports to the
+//! frontend. Kept apart from the pure rules on purpose.
 
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
@@ -17,6 +18,9 @@ use crate::activity_core::pill_visibility_policy::{decide_pill_visibility, Pendi
 pub struct PillVisibility {
     pub is_pill_visible: bool,
     pub is_fullscreen_app_in_front: bool,
+    /// On screen because the pointer rested against the top edge (P.3): the page shows it open
+    /// and releases it when it closes.
+    pub is_opened_from_top_edge: bool,
 }
 
 /// Called with every change of the pill's visibility.
@@ -26,6 +30,8 @@ struct PillVisibilityState {
     /// What the activity rules want (on while music plays, off a while after it pauses).
     is_wanted_by_activity: bool,
     is_fullscreen_app_in_front: bool,
+    /// Until the page releases it (the pill closed again), or a fullscreen app comes to the front.
+    is_held_open_from_top_edge: bool,
     last_reported_visibility: PillVisibility,
     previous_arrangement: PillArrangement,
     /// Bumped whenever the pending hide changes; a sleeping hide timer only acts if the
@@ -37,8 +43,10 @@ struct PillVisibilityState {
 impl PillVisibilityState {
     fn current_visibility(&self) -> PillVisibility {
         PillVisibility {
-            is_pill_visible: self.is_wanted_by_activity && !self.is_fullscreen_app_in_front,
+            is_pill_visible: (self.is_wanted_by_activity || self.is_held_open_from_top_edge)
+                && !self.is_fullscreen_app_in_front,
             is_fullscreen_app_in_front: self.is_fullscreen_app_in_front,
+            is_opened_from_top_edge: self.is_held_open_from_top_edge && !self.is_fullscreen_app_in_front,
         }
     }
 
@@ -66,11 +74,13 @@ pub struct PillVisibilityController {
 
 impl PillVisibilityController {
     pub fn new(pill_visibility_listener: PillVisibilityListener) -> Self {
-        let hidden_without_fullscreen_app = PillVisibility { is_pill_visible: false, is_fullscreen_app_in_front: false };
+        let hidden_without_fullscreen_app =
+            PillVisibility { is_pill_visible: false, is_fullscreen_app_in_front: false, is_opened_from_top_edge: false };
         Self {
             shared_visibility_state: Arc::new(Mutex::new(PillVisibilityState {
                 is_wanted_by_activity: false,
                 is_fullscreen_app_in_front: false,
+                is_held_open_from_top_edge: false,
                 last_reported_visibility: hidden_without_fullscreen_app,
                 previous_arrangement: PillArrangement::default(),
                 hide_generation: 0,
@@ -108,6 +118,28 @@ impl PillVisibilityController {
     pub fn handle_fullscreen_app_change(&self, is_fullscreen_app_in_front: bool) {
         let mut visibility_state = lock_visibility_state(&self.shared_visibility_state);
         visibility_state.is_fullscreen_app_in_front = is_fullscreen_app_in_front;
+        // A game in front ends the opening: the pill must not come back over the desktop later.
+        if is_fullscreen_app_in_front {
+            visibility_state.is_held_open_from_top_edge = false;
+        }
+        visibility_state.report_visibility_if_changed();
+    }
+
+    /// The pointer rested against the top edge where the hidden pill would hang. Nothing happens
+    /// over a fullscreen app, or when the pill is on screen anyway.
+    pub fn open_from_top_edge(&self) {
+        let mut visibility_state = lock_visibility_state(&self.shared_visibility_state);
+        if visibility_state.is_fullscreen_app_in_front || visibility_state.current_visibility().is_pill_visible {
+            return;
+        }
+        visibility_state.is_held_open_from_top_edge = true;
+        visibility_state.report_visibility_if_changed();
+    }
+
+    /// The page closed the pill it opened from the top edge; it stays only if something is on.
+    pub fn release_top_edge_opening(&self) {
+        let mut visibility_state = lock_visibility_state(&self.shared_visibility_state);
+        visibility_state.is_held_open_from_top_edge = false;
         visibility_state.report_visibility_if_changed();
     }
 
@@ -157,8 +189,41 @@ mod tests {
         pill_visibility_controller.handle_fullscreen_app_change(true);
         assert_eq!(
             reported_visibilities.lock().unwrap().last(),
-            Some(&PillVisibility { is_pill_visible: false, is_fullscreen_app_in_front: true })
+            Some(&PillVisibility { is_pill_visible: false, is_fullscreen_app_in_front: true, is_opened_from_top_edge: false })
         );
+    }
+
+    #[test]
+    fn the_top_edge_opens_a_hidden_pill_until_the_page_releases_it() {
+        let (pill_visibility_controller, reported_visibilities) = controller_recording_visibility_reports();
+        pill_visibility_controller.open_from_top_edge();
+        assert_eq!(
+            reported_visibilities.lock().unwrap().last(),
+            Some(&PillVisibility { is_pill_visible: true, is_fullscreen_app_in_front: false, is_opened_from_top_edge: true })
+        );
+        pill_visibility_controller.release_top_edge_opening();
+        assert!(!pill_visibility_controller.current_pill_visibility().is_pill_visible);
+    }
+
+    #[test]
+    fn the_top_edge_does_nothing_over_a_fullscreen_app_or_a_pill_already_on_screen() {
+        let (pill_visibility_controller, _reported_visibilities) = controller_recording_visibility_reports();
+        pill_visibility_controller.handle_fullscreen_app_change(true);
+        pill_visibility_controller.open_from_top_edge();
+        pill_visibility_controller.handle_fullscreen_app_change(false);
+        assert!(!pill_visibility_controller.current_pill_visibility().is_pill_visible);
+        pill_visibility_controller.handle_arrangement_change(&playing_music_arrangement());
+        pill_visibility_controller.open_from_top_edge();
+        assert!(!pill_visibility_controller.current_pill_visibility().is_opened_from_top_edge);
+    }
+
+    #[test]
+    fn a_game_coming_to_the_front_ends_the_top_edge_opening() {
+        let (pill_visibility_controller, _reported_visibilities) = controller_recording_visibility_reports();
+        pill_visibility_controller.open_from_top_edge();
+        pill_visibility_controller.handle_fullscreen_app_change(true);
+        pill_visibility_controller.handle_fullscreen_app_change(false);
+        assert!(!pill_visibility_controller.current_pill_visibility().is_pill_visible);
     }
 
     #[test]

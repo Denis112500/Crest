@@ -14,6 +14,7 @@ mod pill_visibility_policy;
 pub mod activity_action_command;
 pub mod focus_activity_command;
 pub mod pill_arrangement_command;
+pub mod pill_top_edge_opening_command;
 pub mod pill_visibility_command;
 
 pub use activity_arbiter::{ActivityArbiter, SharedActivityArbiter};

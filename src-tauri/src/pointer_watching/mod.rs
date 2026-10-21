@@ -13,7 +13,7 @@ mod windows_raw_input;
 
 pub use pointer_rest_startup::start_watching_pointer_rest;
 pub use pointer_rest_zone::PointerRestZone;
-pub use shared_pill_pointer_zones::SharedPillPointerZones;
+pub use shared_pill_pointer_zones::{PillWindowScreenPlacement, SharedPillPointerZones};
 
 #[cfg(target_os = "windows")]
 pub use windows_raw_input::RawInputPointerWatch as CurrentPlatformPointerWatch;

@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 
-use crate::pointer_watching::pointer_rest_zone::PointerRestZone;
+use crate::pointer_watching::pointer_rest_zone::{PointerRestPurpose, PointerRestTarget, PointerRestZone};
 
 /// The pointer's resting place, relative to the pill window in CSS pixels, so the page can
 /// tell what is under it (the companion's mark or the main activity).
@@ -16,11 +16,20 @@ pub struct PillPointerRestPoint {
     pub logical_y: f64,
 }
 
+/// Where the window was placed, in physical screen pixels.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PillWindowScreenPlacement {
+    pub window_left_x: i32,
+    pub window_top_y: i32,
+    pub window_width: i32,
+    pub window_scale_factor: f64,
+    /// How wide, centred on the window, the top edge opens the hidden pill: the closed pill's width.
+    pub top_edge_trigger_width: i32,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct PillPointerZones {
-    window_left_x: i32,
-    window_top_y: i32,
-    window_scale_factor: f64,
+    window_placement: PillWindowScreenPlacement,
     is_window_shown: bool,
     /// Relative to the window's top-left corner; only while the closed pill lets clicks through.
     closed_pill_area: Option<PointerRestZone>,
@@ -33,13 +42,11 @@ pub struct SharedPillPointerZones {
 }
 
 impl SharedPillPointerZones {
-    pub fn record_window_placement(&self, window_left_x: i32, window_top_y: i32, window_scale_factor: f64) {
+    pub fn record_window_placement(&self, window_placement: PillWindowScreenPlacement) {
         self.change_zones(|current_zones| {
             let previous_zones = current_zones.take();
             *current_zones = Some(PillPointerZones {
-                window_left_x,
-                window_top_y,
-                window_scale_factor,
+                window_placement,
                 is_window_shown: previous_zones.is_some_and(|zones| zones.is_window_shown),
                 closed_pill_area: previous_zones.and_then(|zones| zones.closed_pill_area),
             });
@@ -63,23 +70,40 @@ impl SharedPillPointerZones {
         });
     }
 
-    /// The closed pill's area on screen, while the window is shown; otherwise nothing.
-    pub fn read_rest_zone(&self) -> Option<PointerRestZone> {
+    /// Shown: the closed pill's area, if it's closed. Hidden: the top row of the screen where the
+    /// closed pill would hang (the visibility controller ignores it during a fullscreen app).
+    pub fn read_rest_target(&self) -> Option<PointerRestTarget> {
         let zones = self.read_zones()?;
-        let closed_pill_area = zones.closed_pill_area.filter(|_| zones.is_window_shown)?;
-        Some(PointerRestZone {
-            left_x: zones.window_left_x + closed_pill_area.left_x,
-            top_y: zones.window_top_y + closed_pill_area.top_y,
-            right_x: zones.window_left_x + closed_pill_area.right_x,
-            bottom_y: zones.window_top_y + closed_pill_area.bottom_y,
+        let placement = zones.window_placement;
+        if !zones.is_window_shown {
+            let trigger_left_x = placement.window_left_x + (placement.window_width - placement.top_edge_trigger_width) / 2;
+            return Some(PointerRestTarget {
+                rest_zone: PointerRestZone {
+                    left_x: trigger_left_x,
+                    top_y: placement.window_top_y,
+                    right_x: trigger_left_x + placement.top_edge_trigger_width,
+                    bottom_y: placement.window_top_y + 1,
+                },
+                rest_purpose: PointerRestPurpose::OpenHiddenPill,
+            });
+        }
+        let closed_pill_area = zones.closed_pill_area?;
+        Some(PointerRestTarget {
+            rest_zone: PointerRestZone {
+                left_x: placement.window_left_x + closed_pill_area.left_x,
+                top_y: placement.window_top_y + closed_pill_area.top_y,
+                right_x: placement.window_left_x + closed_pill_area.right_x,
+                bottom_y: placement.window_top_y + closed_pill_area.bottom_y,
+            },
+            rest_purpose: PointerRestPurpose::OpenClosedPill,
         })
     }
 
     pub fn convert_to_window_logical_point(&self, screen_x: i32, screen_y: i32) -> Option<PillPointerRestPoint> {
-        let zones = self.read_zones()?;
+        let placement = self.read_zones()?.window_placement;
         Some(PillPointerRestPoint {
-            logical_x: f64::from(screen_x - zones.window_left_x) / zones.window_scale_factor,
-            logical_y: f64::from(screen_y - zones.window_top_y) / zones.window_scale_factor,
+            logical_x: f64::from(screen_x - placement.window_left_x) / placement.window_scale_factor,
+            logical_y: f64::from(screen_y - placement.window_top_y) / placement.window_scale_factor,
         })
     }
 
@@ -99,39 +123,59 @@ mod tests {
     use super::*;
 
     const CLOSED_PILL_AREA: PointerRestZone = PointerRestZone { left_x: 600, top_y: 0, right_x: 1014, bottom_y: 72 };
+    const PLACEMENT_AT_150_PERCENT: PillWindowScreenPlacement = PillWindowScreenPlacement {
+        window_left_x: 1000,
+        window_top_y: 0,
+        window_width: 1614,
+        window_scale_factor: 1.5,
+        top_edge_trigger_width: 330,
+    };
 
     fn placed_and_shown_zones() -> SharedPillPointerZones {
         let shared_zones = SharedPillPointerZones::default();
-        shared_zones.record_window_placement(1000, 0, 1.5);
+        shared_zones.record_window_placement(PLACEMENT_AT_150_PERCENT);
         shared_zones.record_window_shown(true);
         shared_zones.record_closed_pill_area(Some(CLOSED_PILL_AREA));
         shared_zones
     }
 
     #[test]
-    fn the_rest_zone_is_the_closed_pill_on_screen_while_the_window_is_shown() {
-        let shared_zones = placed_and_shown_zones();
+    fn a_shown_closed_pill_is_rested_on_where_it_is() {
         assert_eq!(
-            shared_zones.read_rest_zone(),
-            Some(PointerRestZone { left_x: 1600, top_y: 0, right_x: 2014, bottom_y: 72 })
+            placed_and_shown_zones().read_rest_target(),
+            Some(PointerRestTarget {
+                rest_zone: PointerRestZone { left_x: 1600, top_y: 0, right_x: 2014, bottom_y: 72 },
+                rest_purpose: PointerRestPurpose::OpenClosedPill,
+            })
         );
-        shared_zones.record_window_shown(false);
-        assert_eq!(shared_zones.read_rest_zone(), None);
     }
 
     #[test]
-    fn an_open_pill_or_an_unplaced_window_has_no_rest_zone() {
+    fn a_hidden_pill_is_opened_from_the_top_row_where_the_closed_pill_would_hang() {
+        let shared_zones = placed_and_shown_zones();
+        shared_zones.record_window_shown(false);
+        assert_eq!(
+            shared_zones.read_rest_target(),
+            Some(PointerRestTarget {
+                rest_zone: PointerRestZone { left_x: 1642, top_y: 0, right_x: 1972, bottom_y: 1 },
+                rest_purpose: PointerRestPurpose::OpenHiddenPill,
+            })
+        );
+    }
+
+    #[test]
+    fn an_open_pill_or_an_unplaced_window_has_no_rest_target() {
         let shared_zones = placed_and_shown_zones();
         shared_zones.record_closed_pill_area(None);
-        assert_eq!(shared_zones.read_rest_zone(), None);
-        assert_eq!(SharedPillPointerZones::default().read_rest_zone(), None);
+        assert_eq!(shared_zones.read_rest_target(), None);
+        assert_eq!(SharedPillPointerZones::default().read_rest_target(), None);
     }
 
     #[test]
     fn placing_the_window_again_keeps_the_closed_area_and_moves_the_zone() {
         let shared_zones = placed_and_shown_zones();
-        shared_zones.record_window_placement(-2000, 0, 1.0);
-        assert_eq!(shared_zones.read_rest_zone().map(|rest_zone| rest_zone.left_x), Some(-1400));
+        shared_zones.record_window_placement(PillWindowScreenPlacement { window_left_x: -2000, ..PLACEMENT_AT_150_PERCENT });
+        assert_eq!(shared_zones.read_rest_target().map(|rest_target| rest_target.rest_zone.left_x), Some(-1400));
     }
 
     #[test]

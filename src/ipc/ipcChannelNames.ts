@@ -6,6 +6,7 @@ export const CONCEAL_PILL_WINDOW_COMMAND = "conceal_pill_window";
 export const SET_PILL_INTERACTIVE_AREA_COMMAND = "set_pill_interactive_area";
 export const GET_CURRENT_PILL_ARRANGEMENT_COMMAND = "get_current_pill_arrangement";
 export const GET_CURRENT_PILL_VISIBILITY_COMMAND = "get_current_pill_visibility";
+export const RELEASE_PILL_TOP_EDGE_OPENING_COMMAND = "release_pill_top_edge_opening";
 export const PERFORM_ACTIVITY_ACTION_COMMAND = "perform_activity_action";
 export const FOCUS_ACTIVITY_COMMAND = "focus_activity";
 export const GET_CURRENT_SYSTEM_VOLUME_COMMAND = "get_current_system_volume";

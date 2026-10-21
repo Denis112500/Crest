@@ -66,7 +66,6 @@ pub fn run_crest_app() {
             follow_display_changes(crest_app, &pill_window);
             create_crest_tray_icon(crest_app)?;
             start_watching_system_volume(crest_app);
-            start_watching_pointer_rest(crest_app);
 
             let visibility_app_handle = crest_app.handle().clone();
             let pill_visibility_controller = PillVisibilityController::new(Box::new(move |pill_visibility| {
@@ -77,6 +76,7 @@ pub fn run_crest_app() {
                 }
             }));
             crest_app.manage(pill_visibility_controller.clone());
+            start_watching_pointer_rest(crest_app, &pill_visibility_controller);
 
             let fullscreen_visibility_controller = pill_visibility_controller.clone();
             // Not fatal: without it the pill only stays on top of games, as before.
@@ -138,6 +138,7 @@ pub fn run_crest_app() {
             activity_core::pill_arrangement_command::get_current_pill_arrangement,
             activity_core::focus_activity_command::focus_activity,
             activity_core::pill_visibility_command::get_current_pill_visibility,
+            activity_core::pill_top_edge_opening_command::release_pill_top_edge_opening,
             activity_core::activity_action_command::perform_activity_action,
             system_volume::system_volume_commands::get_current_system_volume,
             system_volume::system_volume_commands::set_system_volume_level,

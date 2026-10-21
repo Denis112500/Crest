@@ -1,4 +1,5 @@
 import { PILL_CONCEAL_DURATION_MILLISECONDS, PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS } from "../frontendConstants";
+import { requestPillTopEdgeOpeningRelease } from "../ipc/requestPillTopEdgeOpeningRelease";
 import { requestPillWindowConceal } from "../ipc/requestPillWindowConceal";
 import { requestPillWindowReveal } from "../ipc/requestPillWindowReveal";
 import type { PillShellElements } from "./pillShellElements";
@@ -12,10 +13,12 @@ const INSTANTLY_CONCEALED_NOTCH_CLASS = "is-concealed-instantly";
 // Carries out Rust's show/hide decisions with an animation. Showing: show the window
 // first, then let the notch slide down from the screen edge. Hiding: let it slide up out
 // of view first, then hide the window. A hide never happens under the user's pointer; it waits until they leave.
-// The exception is a fullscreen app in front: then the pill vanishes at once.
+// The exception is a fullscreen app in front: then the pill vanishes at once. Brought down from
+// the top edge (P.3), it comes already open, and closing it hands it back to Rust.
 export class PillVisibilityController {
   private isNativeWindowShown = false;
   private latestRequestedVisibility = false;
+  private isShownForTopEdgeOpening = false;
   private isHideWaitingForPointerToLeave = false;
   private concealFinishFallbackTimer: number | undefined;
 
@@ -45,6 +48,11 @@ export class PillVisibilityController {
 
   showPillVisibility(pillVisibility: PillVisibility): void {
     this.latestRequestedVisibility = pillVisibility.isPillVisible;
+    this.isShownForTopEdgeOpening = pillVisibility.isOpenedFromTopEdge;
+    if (pillVisibility.isOpenedFromTopEdge) {
+      // Open before it slides down, with the pointer counted as on it (it is, at the top edge).
+      this.pillStateMachine.handlePointerRestedOnPill();
+    }
     if (pillVisibility.isPillVisible) {
       this.revealPill().catch(reportVisibilityFailure);
     } else if (pillVisibility.isFullscreenAppInFront) {
@@ -52,6 +60,16 @@ export class PillVisibilityController {
     } else {
       this.concealPill();
     }
+  }
+
+  /** The pill closed (the pointer left it). One brought down from the top edge goes back to
+      Rust, which hides it again unless something came on meanwhile. */
+  handlePillCollapsed(): void {
+    if (!this.isShownForTopEdgeOpening) {
+      return;
+    }
+    this.isShownForTopEdgeOpening = false;
+    requestPillTopEdgeOpeningRelease().catch(reportVisibilityFailure);
   }
 
   private async revealPill(): Promise<void> {

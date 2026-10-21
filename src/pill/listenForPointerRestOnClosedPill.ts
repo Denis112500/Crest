@@ -25,6 +25,6 @@ export async function listenForPointerRestOnClosedPill(
     if (restedOnElement !== null && pillShellElements.companionMarkElement.contains(restedOnElement)) {
       onCompanionRestedOn();
     }
-    pillStateMachine.handlePointerRestedOnClosedPill();
+    pillStateMachine.handlePointerRestedOnPill();
   });
 }

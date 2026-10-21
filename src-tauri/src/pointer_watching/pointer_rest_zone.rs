@@ -1,4 +1,4 @@
-//! The screen rectangle where resting the pointer opens the pill, in physical screen pixels.
+//! Where resting the pointer opens the pill, in physical screen pixels, and what the rest means.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PointerRestZone {
@@ -14,6 +14,21 @@ impl PointerRestZone {
     pub fn contains_screen_point(&self, screen_x: i32, screen_y: i32) -> bool {
         (self.left_x..self.right_x).contains(&screen_x) && (self.top_y..self.bottom_y).contains(&screen_y)
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PointerRestPurpose {
+    /// The closed pill lets clicks through (P.2): a rest on it opens it.
+    OpenClosedPill,
+    /// Nothing is on and the pill is hidden (P.3): a rest against the screen's top edge, where the
+    /// pill would hang, brings it down open.
+    OpenHiddenPill,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PointerRestTarget {
+    pub rest_zone: PointerRestZone,
+    pub rest_purpose: PointerRestPurpose,
 }
 
 #[cfg(test)]

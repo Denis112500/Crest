@@ -8,14 +8,15 @@ use crate::pill_window::pill_interactive_area::convert_logical_area_to_physical;
 use crate::pill_window::pill_window_placement::apply_top_center_placement_to_pill_window;
 use crate::pill_window::pill_window_platform::PillWindowPlatform;
 use crate::pill_window::CurrentPlatformPillWindow;
-use crate::pointer_watching::{PointerRestZone, SharedPillPointerZones};
+use crate::pointer_watching::{PillWindowScreenPlacement, PointerRestZone, SharedPillPointerZones};
 use crate::user_settings_store::CrestUserSettingsStore;
 
 /// The frontend owns the pill's dimensions, so it tells Rust how big the window must be;
 /// Rust knows which monitor the user chose. Called at startup and after the choice changes.
 /// Afterwards the fullscreen watcher looks again: a game may cover the new monitor, or no
 /// longer cover the pill's monitor now that it moved away from it. The pointer watcher learns
-/// where the window now is.
+/// where the window now is, and how wide its top edge opens the hidden pill (the closed pill's
+/// width, which the page owns).
 #[tauri::command]
 pub fn place_pill_window_at_top_center(
     pill_window: WebviewWindow,
@@ -24,16 +25,19 @@ pub fn place_pill_window_at_top_center(
     shared_pill_pointer_zones: State<'_, SharedPillPointerZones>,
     logical_width: f64,
     logical_height: f64,
+    top_edge_trigger_logical_width: f64,
 ) -> Result<(), String> {
     let chosen_display_name = settings_store.read_current_settings().pill_display_name;
     let pill_bounds =
         apply_top_center_placement_to_pill_window(&pill_window, logical_width, logical_height, chosen_display_name.as_deref())?;
     let window_scale_factor = pill_window.scale_factor().map_err(|error| error.to_string())?;
-    shared_pill_pointer_zones.record_window_placement(
-        pill_bounds.top_left_position.x,
-        pill_bounds.top_left_position.y,
+    shared_pill_pointer_zones.record_window_placement(PillWindowScreenPlacement {
+        window_left_x: pill_bounds.top_left_position.x,
+        window_top_y: pill_bounds.top_left_position.y,
+        window_width: pill_bounds.size.width as i32,
         window_scale_factor,
-    );
+        top_edge_trigger_width: (top_edge_trigger_logical_width * window_scale_factor).round() as i32,
+    });
     fullscreen_app_recheck_trigger.request_fullscreen_recheck();
     Ok(())
 }
