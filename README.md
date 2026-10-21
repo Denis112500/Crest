@@ -6,7 +6,7 @@
 
 > **A personal hobby project**: something I wanted on my own desktop, so I built it. Works on my setup (Windows 11, YouTube Music in Brave, the Spotify app); shared as-is, no support guaranteed.
 
-A small black notch hanging from the top center of the screen. It shows what's playing in any player that appears in Windows' own media controls (built with YouTube Music in Brave, also tested with the Spotify desktop app), grows when you rest the pointer on it, lets your clicks through to whatever is under it while closed, and hides when there's nothing to show. Windows 11 first; Linux (KDE Plasma on Wayland) later.
+A small black notch hanging from the top center of the screen. It shows what's playing in any player that appears in Windows' own media controls (built with YouTube Music in Brave, also tested with the Spotify desktop app), grows when you rest the pointer on it, lets your clicks through to whatever is under it while closed, and hides when there's nothing to show; resting the pointer against the top edge of the screen then brings it down with the time, the date and a volume slider. Windows 11 first; Linux (KDE Plasma on Wayland) later.
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration that needs them (none does yet: the Claude Code integration stays on your PC).
 
@@ -18,7 +18,7 @@ Crest's tray icon (notification area, possibly behind the ^ arrow) has **Setting
 
 ## What it looks like
 
-Closed, it's a small black notch with sloped sides (a "visor") showing the cover in its progress ring and the title; a click on it goes to whatever is under it (a browser tab, say). Rest the pointer on it for a moment (or wait for a new song) and it glides open; with music and Claude Code at once, it opens into a dashboard with one tile each, music always on the left. It slides up into the screen edge when there's nothing to show.
+Closed, it's a small black notch with sloped sides (a "visor") showing the cover in its progress ring and the title; a click on it goes to whatever is under it (a browser tab, say). Rest the pointer on it for a moment (or wait for a new song) and it glides open; with music and Claude Code at once, it opens into a dashboard with one tile each, music always on the left. It slides up into the screen edge when there's nothing to show; push the pointer against the top edge where it hangs and hold still for a moment, and it comes down open with the time, the date and the volume slider, until you move away.
 
 <p align="center">
   <img src="docs/crest-expanded.png" width="476" alt="The open pill: the cover inside a ring showing the song's progress, title and artist, previous, pause and next buttons, the speaker button for the system volume, and the time">
@@ -76,6 +76,7 @@ The core also decides visibility, with rules in one small pure function (`pill_v
 - something **ongoing** (music playing) → visible, and it stays visible;
 - something **lingering** (music paused) → hidden after 30 seconds; a new track shows it again first;
 - **nothing** (the player closed) → hidden after 3 seconds;
+- the pointer **rests against the top edge** where the hidden pill hangs (0.4 s, no click) → shown open until the pointer leaves it, then hidden again unless something came on meanwhile (never over a fullscreen app);
 - a **fullscreen app** covers the pill's monitor → hidden at once, without an animation, and back when it leaves. Crest learns this from the Windows shell, the same signal that hides the taskbar (`fullscreen_detection/`).
 
 `pill_visibility_controller.rs` runs those countdowns and tells the frontend, which plays a short fade/shrink animation and then asks Rust to hide the native window (or shows the window first, then animates the pill in). A hide never happens while the mouse is over the pill.
@@ -139,6 +140,7 @@ Crest/
 │  │  ├─ ipcChannelNames.ts     command, event and activity-kind names shared with Rust
 │  │  ├─ listenForRustStateChanges.ts   receives Rust-owned state (listens, then asks once)
 │  │  ├─ requestPillWindowPlacement.ts  asks Rust to size the window and put it at the top of its monitor
+│  │  ├─ requestPillTopEdgeOpeningRelease.ts  the pill opened from the top edge closed: Rust may hide it again
 │  │  ├─ requestPillInteractiveArea.ts  asks Rust which rectangle takes the mouse
 │  │  ├─ requestPillWindowReveal.ts     asks Rust to show the window without taking focus
 │  │  ├─ requestPillWindowConceal.ts    asks Rust to hide the window
@@ -155,7 +157,7 @@ Crest/
 │  │  ├─ pillMorphController.ts        animates a state or height change and keeps the interactive area in step
 │  │  ├─ pillMorphSettleDetector.ts    says when a size animation has ended (its event, or a timer if it never comes)
 │  │  ├─ calculatePillInteractiveArea.ts  the rectangle that takes the mouse (and the only part Windows draws): pill, shoulders, underglow; closed = lets clicks through
-│  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window
+│  │  ├─ pillVisibilityController.ts   slides the notch in/out and shows/hides the native window; opens it from the top edge
 │  │  ├─ pillVisibilityTypes.ts        the visibility Rust sends (visible? fullscreen app in front?)
 │  │  ├─ waitUntilNextFrameIsPainted.ts  resolves once the current content is on screen
 │  │  ├─ pillAttentionDetector.ts      whose news opens the pill: the leading activity's, else the companion's
@@ -172,7 +174,10 @@ Crest/
 │  │  ├─ orderActivitiesByTilePosition.ts  every activity keeps its place in the dashboard (music left)
 │  │  ├─ activityViewSet.ts          what an activity's views must provide
 │  │  ├─ activityViewRegistry.ts     activity kind → its view set (plugin point)
-│  │  ├─ nothingToShowViewSet.ts     shown when no activity has anything
+│  │  ├─ nothingToShowViewSet.ts     shown for an activity kind the page doesn't know
+│  │  ├─ idle/
+│  │  │  ├─ idleViewSet.ts           nothing on: the time, the date and the volume slider (always out)
+│  │  │  └─ idleClockTicker.ts       redraws the time once a minute, only while seen
 │  │  ├─ createSvgIconElement.ts     builds an inline SVG icon
 │  │  ├─ claudeCode/
 │  │  │  ├─ claudeCodeStatusTypes.ts     the Claude Code payload's shape
@@ -196,7 +201,7 @@ Crest/
 │  │     ├─ compactMusicView.ts      the cover in its progress ring, the title
 │  │     ├─ companionMusicView.ts    next to another activity: only the cover in its small ring
 │  │     ├─ expandedMusicView.ts     the cover in its ring, title, artist, buttons, the speaker, the time
-│  │     ├─ systemVolumeControl.ts   the speaker button and the slider it slides out; closes by itself
+│  │     ├─ systemVolumeControl.ts   the speaker button and the slider it slides out; closes by itself (or always out, in the idle tile)
 │  │     ├─ systemVolumeSlider.ts    the volume line (a real range input), the level as a number, the wheel
 │  │     ├─ systemVolumeSpeakerIcons.ts  speaker icons: muted, one wave, two waves
 │  │     ├─ systemVolumeTypes.ts     the system volume's shape
@@ -221,7 +226,7 @@ Crest/
 │     ├─ pillLight.css          the lit edge, the underglow, the sweep, and the marks following the light
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
 │     └─ albumArtImage.css, coverProgressGauge.css, compactMusicView.css, expandedMusicView.css,
-│        musicControlButtons.css, systemVolumeControl.css,
+│        musicControlButtons.css, systemVolumeControl.css, idleView.css,
 │        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionMarkViews.css,
 │        claudeCodePermissionAlertView.css, pillDashboardLayout.css
 └─ src-tauri/
@@ -259,8 +264,9 @@ Crest/
       │  ├─ pill_arrangement_command.rs   lets the frontend ask for the current layout
       │  ├─ focus_activity_command.rs     command: the companion was clicked (ongoing → main; news → seen)
       │  ├─ pill_visibility_policy.rs     the show/hide rules as a pure function (unit-tested)
-      │  ├─ pill_visibility_controller.rs runs the hide countdowns, adds the fullscreen rule, reports changes
-      │  └─ pill_visibility_command.rs    lets the frontend ask whether the pill is visible
+      │  ├─ pill_visibility_controller.rs runs the hide countdowns, adds the fullscreen rule and the top-edge opening, reports changes
+      │  ├─ pill_visibility_command.rs    lets the frontend ask whether the pill is visible
+      │  └─ pill_top_edge_opening_command.rs  the pill opened from the top edge closed: hide it again unless something is on
       ├─ activity_sources/
       │  ├─ mod.rs
       │  ├─ claude_code/
@@ -375,9 +381,9 @@ Crest/
       ├─ pointer_watching/
       │  ├─ mod.rs              declares the module; picks this OS's implementation
       │  ├─ pointer_watch.rs              trait: report the pointer anywhere without taking it; one timer
-      │  ├─ pointer_rest_detector.rs      when the pointer rests on the closed pill: still, no click, once per visit (unit-tested)
-      │  ├─ pointer_rest_zone.rs          a screen rectangle (unit-tested)
-      │  ├─ shared_pill_pointer_zones.rs  where the closed pill is on screen, kept up to date by the window commands (unit-tested)
+      │  ├─ pointer_rest_detector.rs      when the pointer rests on the closed pill or the top edge: still, no click, once per visit (unit-tested)
+      │  ├─ pointer_rest_zone.rs          a screen rectangle and what a rest there does (unit-tested)
+      │  ├─ shared_pill_pointer_zones.rs  where the closed pill is, or the top edge while hidden; kept up to date by the window commands (unit-tested)
       │  ├─ pointer_rest_startup.rs       starts the watch; a rest goes to the page as an event
       │  └─ windows_raw_input/
       │     ├─ mod.rs
