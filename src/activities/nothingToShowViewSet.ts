@@ -1,11 +1,11 @@
-// The views shown when no activity has anything (rarely seen: the pill hides then).
+// The views of an activity kind this page doesn't know (Rust is newer than the page). With nothing
+// on at all, the idle tile shows instead (idle/idleViewSet.ts).
 
 import { NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT, PILL_DASHBOARD_TILE_LOGICAL_WIDTH } from "../frontendConstants";
 import type { ActivityViewSet } from "./activityViewSet";
 
 const NOTHING_TO_SHOW_TEXT = "Nothing to show";
 
-// Shown when no source has anything (or the frontend doesn't know the activity's kind).
 export function createNothingToShowViewSet(): ActivityViewSet {
   const createNothingToShowElement = (): HTMLElement => {
     const nothingToShowElement = document.createElement("div");

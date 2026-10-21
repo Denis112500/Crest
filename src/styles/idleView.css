@@ -1,0 +1,46 @@
+/* The pill with nothing on (P.3b, variant B): the time and date on the left, the system-volume
+   slider on the right, always out (systemVolumeControl.css draws it). */
+.expanded-idle-view {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--idle-column-gap);
+  width: 100%;
+  height: 100%;
+  padding: var(--idle-padding);
+}
+
+.idle-clock-time {
+  font-size: var(--idle-clock-font-size);
+  font-weight: var(--pill-title-font-weight);
+  line-height: 1;
+  letter-spacing: var(--pill-title-letter-spacing);
+  /* Equal-width digits, so the time doesn't shift when it changes. */
+  font-variant-numeric: tabular-nums;
+}
+
+.idle-clock-date {
+  margin-top: var(--idle-date-gap);
+  font-size: var(--idle-date-font-size);
+  white-space: nowrap;
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+/* A fixed width: the open slider grows to fill its row, so the row must not shrink to its
+   content. */
+.idle-volume-row {
+  display: flex;
+  align-items: center;
+  flex: none;
+  width: var(--idle-volume-row-width);
+  margin-left: auto;
+}
+
+.compact-idle-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-variant-numeric: tabular-nums;
+}

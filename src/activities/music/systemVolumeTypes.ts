@@ -5,3 +5,7 @@ export interface SystemVolume {
   level: number;
   isMuted: boolean;
 }
+
+// The music tile's speaker slides the slider out on a click (layout C); the idle tile (P.3b) shows
+// it all the time, and its speaker is only an icon.
+export type SystemVolumeSliderMode = "slidesOutOnClick" | "alwaysOpen";

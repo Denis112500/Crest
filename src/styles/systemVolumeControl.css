@@ -19,6 +19,11 @@
   display: block;
 }
 
+/* The idle tile's speaker only shows the level; it takes no clicks, so no hover disc either. */
+.system-volume-speaker-button.is-speaker-indicator {
+  pointer-events: none;
+}
+
 /* No output device. */
 .system-volume-speaker-button:disabled {
   opacity: var(--control-button-disabled-opacity);

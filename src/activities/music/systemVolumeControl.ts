@@ -1,3 +1,5 @@
+// Its speaker is a `music-control-button`, also in the idle tile, where no music view loads it.
+import "../../styles/musicControlButtons.css";
 import "../../styles/systemVolumeControl.css";
 
 import {
@@ -12,10 +14,11 @@ import { requestSystemVolumeLevel } from "../../ipc/requestSystemVolumeLevel";
 import { createLatestValueThrottle } from "./createLatestValueThrottle";
 import { createSystemVolumeSlider } from "./systemVolumeSlider";
 import { createSystemVolumeSpeakerIcons, type SpeakerIconLevel } from "./systemVolumeSpeakerIcons";
-import type { SystemVolume } from "./systemVolumeTypes";
+import type { SystemVolume, SystemVolumeSliderMode } from "./systemVolumeTypes";
 
 const SLIDER_OPEN_CLASS = "is-system-volume-open";
 const SLIDER_ARMING_CLASS = "is-system-volume-arming";
+const SPEAKER_INDICATOR_CLASS = "is-speaker-indicator";
 
 export interface SystemVolumeControl {
   speakerButtonElement: HTMLButtonElement;
@@ -27,17 +30,26 @@ export interface SystemVolumeControl {
 // The speaker button in the music tile's control row and the slider it slides out (layout C,
 // decided 2026-10-17): open, the row's other controls give way to the slider. It closes on a
 // second click, or by itself a few seconds after it was last touched (never while the pointer
-// is on it). Nothing runs while it's closed and nobody sees the tile.
+// is on it). Nothing runs while it's closed and nobody sees the tile. "alwaysOpen" (the idle tile)
+// keeps the slider out whenever there is an output device, and the speaker only shows the level.
 export function createSystemVolumeControl(
   controlRowElement: HTMLElement,
   elementsGivingWayToSlider: HTMLElement[],
   onSliderOpenChanged: (isSliderOpen: boolean) => void,
+  sliderMode: SystemVolumeSliderMode,
 ): SystemVolumeControl {
+  const isSliderAlwaysOpen = sliderMode === "alwaysOpen";
   const speakerButtonElement = document.createElement("button");
   speakerButtonElement.type = "button";
   speakerButtonElement.className = "music-control-button system-volume-speaker-button";
   speakerButtonElement.setAttribute("aria-label", "Volume");
   speakerButtonElement.append(...createSystemVolumeSpeakerIcons());
+  if (isSliderAlwaysOpen) {
+    // Nothing to click: the slider next to it is the control.
+    speakerButtonElement.classList.add(SPEAKER_INDICATOR_CLASS);
+    speakerButtonElement.tabIndex = -1;
+    speakerButtonElement.setAttribute("aria-hidden", "true");
+  }
 
   // `null` = no output device (also until Rust first answers): the speaker is greyed out.
   let shownSystemVolume: SystemVolume | null = null;
@@ -78,12 +90,15 @@ export function createSystemVolumeControl(
       setSliderOpen(false);
     } else {
       systemVolumeSlider.showLevel(systemVolume.level, systemVolume.isMuted);
+      if (isSliderAlwaysOpen && !isSliderOpen) {
+        setSliderOpen(true);
+      }
     }
   };
   const restartAutoClose = (): void => {
     window.clearTimeout(autoCloseTimer);
     autoCloseTimer = undefined;
-    if (isSliderOpen && !isPointerOnSlider && !systemVolumeSlider.isBeingDragged()) {
+    if (!isSliderAlwaysOpen && isSliderOpen && !isPointerOnSlider && !systemVolumeSlider.isBeingDragged()) {
       autoCloseTimer = window.setTimeout(() => setSliderOpen(false), SYSTEM_VOLUME_SLIDER_AUTO_CLOSE_MILLISECONDS);
     }
   };
@@ -113,7 +128,9 @@ export function createSystemVolumeControl(
     }
   };
 
-  speakerButtonElement.addEventListener("click", () => setSliderOpen(!isSliderOpen));
+  if (!isSliderAlwaysOpen) {
+    speakerButtonElement.addEventListener("click", () => setSliderOpen(!isSliderOpen));
+  }
   sliderElement.addEventListener("pointerenter", () => {
     isPointerOnSlider = true;
     restartAutoClose();
@@ -138,7 +155,7 @@ export function createSystemVolumeControl(
     setSeen(isSeen) {
       // Reported again with every arrangement; the follower ignores repeats.
       systemVolumeFollower.setFollowing(isSeen);
-      if (!isSeen && isSliderOpen) {
+      if (!isSeen && isSliderOpen && !isSliderAlwaysOpen) {
         setSliderOpen(false);
       }
     },

@@ -52,6 +52,7 @@ export function createExpandedMusicView(): ExpandedMusicView {
         positionTicker.redrawNow();
       }
     },
+    "slidesOutOnClick",
   );
   controlRowElement.append(
     musicControlButtons.controlButtonsElement,

@@ -31,6 +31,8 @@ export const PILL_EXPANDED_MAX_CONTENT_LOGICAL_WIDTH = Math.max(
 export const PILL_EXPANDED_MAX_LOGICAL_HEIGHT = 200;
 export const MUSIC_EXPANDED_LOGICAL_HEIGHT = 128;
 export const NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT = 96;
+// The idle tile (nothing on, opened from the top edge): the same height as the mockup (P.3b).
+export const IDLE_EXPANDED_LOGICAL_HEIGHT = 96;
 
 // The open Claude Code view: a header, one row per listed session (at most 3, decided in Rust's
 // CLAUDE_CODE_LISTED_SESSION_MAX_COUNT), then "+N more". Its height is calculated from these
@@ -114,6 +116,9 @@ export const PILL_LIGHT_STATUS_SWEEP_MIN_GAP_MILLISECONDS = 8000;
 // moves it about 1.4 px a step; the closed ring is 75 px around (about 0.4 px). The timer wakes
 // this long after the second begins, so the clock already reads the new second.
 export const PLAYBACK_POSITION_REDRAW_AFTER_WHOLE_SECOND_MILLISECONDS = 5;
+// The idle tile's clock is redrawn once a minute while seen (idleClockTicker.ts), this long after
+// the minute begins, so the clock already reads the new minute.
+export const IDLE_CLOCK_REDRAW_AFTER_WHOLE_MINUTE_MILLISECONDS = 50;
 
 // The cover gauge: the cover in a ring that shows the song's progress (design spec, Gauges).
 // Box, cover and ring radius in logical pixels; the ring's stroke width too.

@@ -120,6 +120,14 @@
   --system-volume-slider-thumb-size: 10px;
   --system-volume-readout-width: 26px;
 
+  /* Idle tile (nothing on, opened from the top edge; variant B of the P.3 mockups): the time
+     large, the date small under it, the volume slider on the right. */
+  --idle-padding: 16px 22px;
+  --idle-column-gap: 18px;
+  --idle-clock-font-size: 26px;
+  --idle-date-font-size: 12px;
+  --idle-date-gap: 6px;
+  --idle-volume-row-width: 200px;
   /* Claude Code views. Working is Starlight white and needing an OK is gold (design phase,
      round 4); neither is Anthropic's brand color. */
   --claude-code-accent-color: #e6f0ff;

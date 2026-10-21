@@ -1,8 +1,9 @@
 import { createActivityViewSetForKind } from "../activities/activityViewRegistry";
 import type { ActivityViewSet } from "../activities/activityViewSet";
 import { findLeadingActivity } from "../activities/findLeadingActivity";
-import { orderActivitiesByTilePosition } from "../activities/orderActivitiesByTilePosition";
+import { createIdleViewSet } from "../activities/idle/idleViewSet";
 import { createNothingToShowViewSet } from "../activities/nothingToShowViewSet";
+import { orderActivitiesByTilePosition } from "../activities/orderActivitiesByTilePosition";
 import type { PillActivity, PillArrangement } from "../activities/pillArrangementTypes";
 import { PILL_DASHBOARD_MAX_TILE_COUNT } from "../frontendConstants";
 import { PillDashboardLayout } from "./pillDashboardLayout";
@@ -15,10 +16,10 @@ import type { PillShellElements } from "./pillShellElements";
 // else the dashboard: the most important activities (main, companion, then the dashboard-only
 // ones), each in its fixed tile position (orderActivitiesByTilePosition.ts). Each activity keeps
 // one view set, built when it gets a place and updated in place after, so running animations
-// (bars, progress) don't restart on updates.
+// (bars, progress) don't restart on updates. With nothing on, the idle tile takes the place.
 export class PillContentPresenter {
   private readonly viewSetByActivityKind = new Map<string, ActivityViewSet>();
-  private readonly nothingToShowViewSet = createNothingToShowViewSet();
+  private readonly idleViewSet = createIdleViewSet();
   private readonly pillDashboardLayout: PillDashboardLayout;
   private leadingActivityKind: string | null = null;
   private companionActivityKind: string | null = null;
@@ -106,7 +107,7 @@ export class PillContentPresenter {
       return [this.findViewSet(this.newsTileActivityKind)];
     }
     if (this.dashboardActivityKinds.length === 0) {
-      return [this.nothingToShowViewSet];
+      return [this.idleViewSet];
     }
     return this.dashboardActivityKinds.map((activityKind) => this.findViewSet(activityKind));
   }
@@ -122,7 +123,7 @@ export class PillContentPresenter {
     const dashboardSize = this.pillDashboardLayout.showTiles(openPillViewSets);
     // While open, the small views are faded out behind the open ones: nothing small is seen.
     const isCompactLayerSeen = this.isPillOnScreen && !this.isExpandedContentVisible;
-    for (const activityViewSet of [...this.viewSetByActivityKind.values(), this.nothingToShowViewSet]) {
+    for (const activityViewSet of [...this.viewSetByActivityKind.values(), this.idleViewSet]) {
       const compactPlace =
         activityViewSet === leadingViewSet ? "main" : activityViewSet === companionViewSet ? "companion" : null;
       activityViewSet.setCompactPlaceOnScreen(isCompactLayerSeen ? compactPlace : null);
@@ -136,7 +137,7 @@ export class PillContentPresenter {
   }
 
   private findViewSet(activityKind: string | null): ActivityViewSet {
-    return (activityKind !== null && this.viewSetByActivityKind.get(activityKind)) || this.nothingToShowViewSet;
+    return (activityKind !== null && this.viewSetByActivityKind.get(activityKind)) || this.idleViewSet;
   }
 }
 
