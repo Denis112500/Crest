@@ -2,7 +2,7 @@ import type { ClaudeCodeSessionRow } from "./claudeCodeStatusTypes";
 import { formatUsageLimitResetTime } from "./formatUsageLimitResetTime";
 
 // The line both Claude Code views show for a session: what it is doing right now, and the
-// subagents it runs that the line doesn't already count ("Done · 1 subagent").
+// subagents it runs that the line doesn't already count ("Editing main.rs · 1 subagent").
 export function describeClaudeCodeSessionStatus(claudeCodeSession: ClaudeCodeSessionRow): string {
   const statusLine = describeStatusLine(claudeCodeSession);
   const subagentCount = claudeCodeSession.unmentionedSubagentCount;

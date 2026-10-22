@@ -34,7 +34,7 @@ pub struct ClaudeCodeSessionRow {
     /// Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents".
     pub tool_summary: Option<String>,
     pub project_folder_name: String,
-    /// Running subagents the line doesn't already mention ("Done · 1 subagent"); 0 while the
+    /// Running subagents the line doesn't already mention ("Editing main.rs · 1 subagent"); 0 while the
     /// line is "Running 2 subagents".
     pub unmentioned_subagent_count: usize,
     /// When a reached usage limit resets (Unix seconds), if the transcript said.

@@ -395,13 +395,28 @@ mod tests {
         assert_eq!(top_line_and_subagent_count(&tracker), ("Running 2 subagents".into(), 0.into()));
         tracker.record_hook_event(&subagent_event("a", SUBAGENT_STOP_HOOK_EVENT, "explore-1"), event_time);
         assert_eq!(top_line_and_subagent_count(&tracker), ("Running a subagent".into(), 0.into()));
-        // The main turn goes on, then ends, while a subagent still runs in the background.
+        // The main turn goes on while a subagent still runs in the background.
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
         assert_eq!(top_line_and_subagent_count(&tracker), ("Running cargo test".into(), 1.into()));
+    }
+
+    #[test]
+    fn a_turn_that_ends_with_background_subagents_running_is_done_when_the_last_one_stops() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        launch_two_subagents(&mut tracker, event_time);
+        let working_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
         tracker.record_hook_event(&hook_event("a", STOP_HOOK_EVENT, None), event_time);
-        tracker.record_hook_event(&subagent_event("a", PRE_TOOL_USE_HOOK_EVENT, "explore-2"), event_time);
+        let waiting_on_subagents = tracker.describe_activity(None, &[]).unwrap();
+        assert_eq!(top_session(&tracker)["sessionStatus"], "working");
+        assert_eq!(top_line_and_subagent_count(&tracker), ("Running 2 subagents".into(), 0.into()));
+        assert_eq!((waiting_on_subagents.activity_presence, waiting_on_subagents.attention_key), (ActivityPresence::Ongoing, working_key.clone()));
+        tracker.record_hook_event(&subagent_event("a", SUBAGENT_STOP_HOOK_EVENT, "explore-1"), event_time);
+        assert_eq!(tracker.describe_activity(None, &[]).unwrap().attention_key, working_key);
+        tracker.record_hook_event(&subagent_event("a", SUBAGENT_STOP_HOOK_EVENT, "explore-2"), event_time);
+        let done = tracker.describe_activity(None, &[]).unwrap();
         assert_eq!(top_session(&tracker)["sessionStatus"], "done");
-        assert_eq!(top_line_and_subagent_count(&tracker), (serde_json::Value::Null, 1.into()));
+        assert_eq!((done.activity_presence, top_line_and_subagent_count(&tracker)), (ActivityPresence::Lingering, (serde_json::Value::Null, 0.into())));
+        assert_ne!(done.attention_key, working_key);
     }
 
     #[test]
