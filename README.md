@@ -460,7 +460,6 @@ Claude Code's own deny and ask rules still apply after an Allow from the pill. C
 - A terminal closed hard (without ending Claude Code) stays in the session list for up to 10 minutes.
 - A single tool that runs longer than 10 minutes (a long build or test run) sends no events meanwhile, so its session leaves the pill until the tool finishes.
 - While a fullscreen app covers the pill's monitor, the pill (and a permission alert) is hidden: answer in Claude Code.
-- Plugging in or unplugging a monitor needs a restart of Crest to place the pill again.
 
 ## License
 
