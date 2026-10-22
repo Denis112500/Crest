@@ -56,6 +56,17 @@ impl ClaudeCodeSessionTracker {
         tracked_session.show_interrupt(event_time, event_order);
     }
 
+    /// The user stopped the session's background subagents (seen only in its transcript). A turn
+    /// that was only waiting for them is done, without a peek: the user did it themselves.
+    pub fn record_subagents_stopped(&mut self, session_id: &str, event_time: Instant) {
+        let event_order = self.next_event_order;
+        let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
+            return;
+        };
+        self.next_event_order += 1;
+        tracked_session.show_subagents_stopped(event_time, event_order);
+    }
+
     /// The pill answered the session's permission request. No peek either way: the user just did it.
     pub fn record_permission_answer(&mut self, session_id: &str, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant) {
         let event_order = self.next_event_order;
@@ -66,8 +77,9 @@ impl ClaudeCodeSessionTracker {
         tracked_session.show_permission_answer(permission_answer, event_time, event_order);
     }
 
-    /// The busy sessions (working, or waiting for an OK) whose transcript is known: the ones to
-    /// watch for an interrupt or a denied permission.
+    /// The busy sessions (working, on their turn or their subagents, or waiting for an OK) whose
+    /// transcript is known: the ones to watch for an interrupt, a denied permission or stopped
+    /// background subagents.
     pub fn busy_session_transcripts(&self) -> Vec<(String, PathBuf)> {
         self.transcripts_of_sessions_where(TrackedSession::is_busy)
     }
@@ -430,6 +442,20 @@ mod tests {
         tracker.record_hook_event(&subagent_event("a", POST_TOOL_USE_HOOK_EVENT, "explore-1"), event_time);
         assert_eq!(top_session(&tracker)["sessionStatus"], "working");
         assert_eq!(top_line_and_subagent_count(&tracker), ("Running 2 subagents".into(), 0.into()));
+    }
+
+    #[test]
+    fn stopping_the_background_subagents_ends_the_wait_without_a_peek() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        launch_two_subagents(&mut tracker, event_time);
+        tracker.record_hook_event(&hook_event("a", STOP_HOOK_EVENT, None), event_time);
+        assert_eq!(tracker.busy_session_transcripts().len(), 1);
+        let waiting_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
+        tracker.record_subagents_stopped("a", event_time);
+        let stopped = tracker.describe_activity(None, &[]).unwrap();
+        assert_eq!(top_session(&tracker)["sessionStatus"], "done");
+        assert_eq!((stopped.activity_presence, stopped.attention_key), (ActivityPresence::Lingering, waiting_key));
+        assert!(tracker.busy_session_transcripts().is_empty());
     }
 
     #[test]

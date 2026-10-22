@@ -166,6 +166,11 @@ impl TrackedSession {
         self.note_event(event_time, event_order);
     }
 
+    pub fn show_subagents_stopped(&mut self, event_time: Instant, event_order: u64) {
+        self.running_subagents.forget_all();
+        self.note_event(event_time, event_order);
+    }
+
     /// An allow lets the tool run; a deny ends the turn (no `Stop` follows an interrupted one).
     pub fn show_permission_answer(&mut self, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant, event_order: u64) {
         self.show_status_without_tool(match permission_answer {
