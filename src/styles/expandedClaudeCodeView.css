@@ -80,6 +80,10 @@
     0 0 var(--claude-code-session-status-ring-glow-size) var(--claude-code-needs-permission-ring-glow-color);
 }
 
+.claude-code-session-row[data-session-status="usageLimited"] .claude-code-session-status-dot {
+  box-shadow: inset 0 0 0 var(--claude-code-session-status-ring-width) var(--claude-code-usage-limit-color);
+}
+
 /* Long folder names and tool lines end in "…". min-width: 0 lets a flex child shrink below
    its text width. */
 .claude-code-session-project,

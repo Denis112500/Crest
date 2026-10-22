@@ -6,12 +6,11 @@
 //! is Claude Code's internal format: if it changes, nothing matches and the silence timeout
 //! still cleans up.
 
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
+use crate::activity_sources::claude_code::transcript_end_text::read_transcript_end;
 use crate::backend_constants::CLAUDE_CODE_TRANSCRIPT_CONTINUATION_SEARCH_BYTES;
 
 const CONTINUED_IN_ENTRY_TYPE: &str = "continued-in";
@@ -30,7 +29,9 @@ pub fn find_sessions_continued_in(
             session_id != successor_session_id && transcript_path.parent() == successor_transcript_path.parent()
         })
         .filter(|(_, transcript_path)| {
-            read_transcript_end(transcript_path).lines().any(|line| is_continued_in_line(line, successor_session_id))
+            read_transcript_end(transcript_path, CLAUDE_CODE_TRANSCRIPT_CONTINUATION_SEARCH_BYTES)
+                .lines()
+                .any(|line| is_continued_in_line(line, successor_session_id))
         })
         .map(|(session_id, _)| session_id)
         .collect()
@@ -42,20 +43,6 @@ fn is_continued_in_line(transcript_line: &str, successor_session_id: &str) -> bo
     };
     transcript_entry.get("type").and_then(Value::as_str) == Some(CONTINUED_IN_ENTRY_TYPE)
         && transcript_entry.get("continuedInSessionId").and_then(Value::as_str) == Some(successor_session_id)
-}
-
-/// The file's last bytes as text; the first line may be cut, which only makes it unreadable JSON.
-fn read_transcript_end(transcript_path: &Path) -> String {
-    let Ok(mut transcript_file) = File::open(transcript_path) else {
-        return String::new();
-    };
-    let file_length = transcript_file.metadata().map(|metadata| metadata.len()).unwrap_or(0);
-    let read_start = file_length.saturating_sub(CLAUDE_CODE_TRANSCRIPT_CONTINUATION_SEARCH_BYTES);
-    let mut end_bytes = Vec::new();
-    if transcript_file.seek(SeekFrom::Start(read_start)).is_err() || transcript_file.read_to_end(&mut end_bytes).is_err() {
-        return String::new();
-    }
-    String::from_utf8_lossy(&end_bytes).into_owned()
 }
 
 #[cfg(test)]

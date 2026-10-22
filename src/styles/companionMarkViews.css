@@ -43,3 +43,7 @@
 .companion-claude-code-view[data-session-status="needsPermission"] .companion-claude-code-icon {
   color: var(--claude-code-needs-permission-color);
 }
+
+.companion-claude-code-view[data-session-status="usageLimited"] .companion-claude-code-icon {
+  color: var(--claude-code-usage-limit-color);
+}

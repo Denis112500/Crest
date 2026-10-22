@@ -111,11 +111,26 @@
   opacity: 0;
 }
 
-/* The marks follow the light: gold when Claude Code needs an OK, green for a finish not seen
-   yet (more specific than the views' own status colours, which they replace here). */
+/* The marks follow the light: gold when Claude Code needs an OK, red for a usage limit and
+   green for a finish not seen yet (more specific than the views' own status colours, which
+   they replace here). */
 .pill-notch[data-pill-light="needsPermission"] .compact-claude-code-view .claude-code-terminal-icon,
 .pill-notch[data-pill-light="needsPermission"] .companion-claude-code-view .companion-claude-code-icon {
   color: var(--claude-code-needs-permission-color);
+}
+
+.pill-notch[data-pill-light="freshUsageLimit"] .compact-claude-code-view .claude-code-terminal-icon,
+.pill-notch[data-pill-light="freshUsageLimit"] .companion-claude-code-view .companion-claude-code-icon,
+.pill-notch[data-pill-light="freshUsageLimit"] .expanded-claude-code-view .claude-code-terminal-icon {
+  color: var(--claude-code-usage-limit-color);
+}
+
+.pill-notch[data-pill-light="freshUsageLimit"]
+  .claude-code-session-row[data-session-status="usageLimited"]
+  .claude-code-session-status-dot {
+  box-shadow:
+    inset 0 0 0 var(--claude-code-session-status-ring-width) var(--claude-code-usage-limit-color),
+    0 0 var(--claude-code-session-status-ring-glow-size) var(--claude-code-usage-limit-ring-glow-color);
 }
 
 .pill-notch[data-pill-light="freshDone"] .compact-claude-code-view .claude-code-terminal-icon,

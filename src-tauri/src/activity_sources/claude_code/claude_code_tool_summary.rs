@@ -8,6 +8,17 @@ use crate::backend_constants::CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS;
 
 const ELLIPSIS: char = '…';
 
+/// The tools that start a subagent (`Task` in older Claude Code versions, `Agent` now).
+pub const SUBAGENT_LAUNCH_TOOL_NAMES: [&str; 2] = ["Task", "Agent"];
+
+/// The line while the session waits for the subagents it started.
+pub fn summarize_running_subagents(running_subagent_count: usize) -> String {
+    match running_subagent_count {
+        0 | 1 => "Running a subagent".to_string(),
+        several => format!("Running {several} subagents"),
+    }
+}
+
 pub fn summarize_tool_use(tool_name: &str, tool_input: Option<&Value>) -> String {
     let read_input_text = |field_name: &str| tool_input.and_then(|input| input.get(field_name)).and_then(Value::as_str);
     let tool_summary = match tool_name {
@@ -21,7 +32,7 @@ pub fn summarize_tool_use(tool_name: &str, tool_input: Option<&Value>) -> String
         "Grep" | "Glob" => "Searching the code".to_string(),
         "WebSearch" => "Searching the web".to_string(),
         "WebFetch" => "Reading a web page".to_string(),
-        "Task" | "Agent" => "Running a subagent".to_string(),
+        subagent_tool_name if SUBAGENT_LAUNCH_TOOL_NAMES.contains(&subagent_tool_name) => summarize_running_subagents(1),
         "TodoWrite" => "Updating its to-do list".to_string(),
         other_tool_name if other_tool_name.starts_with("mcp__") => "Using a connected tool".to_string(),
         other_tool_name => format!("Using {other_tool_name}"),
@@ -78,5 +89,11 @@ mod tests {
         assert_eq!(summarize_tool_use("Grep", None), "Searching the code");
         assert_eq!(summarize_tool_use("mcp__github__create_issue", None), "Using a connected tool");
         assert_eq!(summarize_tool_use("SomethingNew", None), "Using SomethingNew");
+    }
+
+    #[test]
+    fn subagent_launches_say_how_many_run() {
+        assert_eq!(summarize_tool_use("Agent", None), "Running a subagent");
+        assert_eq!(summarize_running_subagents(3), "Running 3 subagents");
     }
 }

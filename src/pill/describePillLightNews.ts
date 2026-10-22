@@ -29,7 +29,13 @@ export function describePillLightNews(pillArrangement: PillArrangement): PillLig
   return {
     musicTrackKey: musicActivity?.attentionKey ?? null,
     claudeCodeStatusKey: claudeCodeActivity
-      ? [claudeCodeActivity.attentionKey, topSessionRow?.sessionStatus, topSessionRow?.toolSummary].join("|")
+      ? [
+          claudeCodeActivity.attentionKey,
+          topSessionRow?.sessionStatus,
+          topSessionRow?.toolSummary,
+          topSessionRow?.unmentionedSubagentCount,
+          topSessionRow?.usageLimitResetsAt,
+        ].join("|")
       : null,
   };
 }

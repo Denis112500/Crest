@@ -132,6 +132,14 @@ pub const CLAUDE_CODE_PERMISSION_FILE_PATH_MAX_CHARACTERS: usize = 40;
 /// conversation under a new session id: that line comes last, after a cost summary (681 bytes
 /// measured; the line started 176 bytes before the end).
 pub const CLAUDE_CODE_TRANSCRIPT_CONTINUATION_SEARCH_BYTES: u64 = 16 * 1024;
+/// How much of a transcript's end is searched for the usage-limit entry when a turn stops on a
+/// limit: the entry is about 1.5 KB and comes last, or nearly (seen 2026-10-06).
+pub const CLAUDE_CODE_TRANSCRIPT_USAGE_LIMIT_SEARCH_BYTES: u64 = 16 * 1024;
+
+/// A session stopped by a usage limit stays listed until the reset (then the silence timeout
+/// as usual), but never longer than this: Claude Code itself only waits for resets within
+/// 24 hours (code.claude.com/docs/en/interactive-mode), and a weekly limit can be days away.
+pub const CLAUDE_CODE_USAGE_LIMIT_MAX_LISTED_WAIT: Duration = Duration::from_secs(24 * 60 * 60);
 
 /// The tool line in the pill ("Running cargo test --release …") is cut to this many characters.
 pub const CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS: usize = 40;

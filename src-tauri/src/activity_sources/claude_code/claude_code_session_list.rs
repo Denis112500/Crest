@@ -15,6 +15,8 @@ pub enum ClaudeCodeSessionStatus {
     Done,
     WaitingForInput,
     NeedsPermission,
+    /// The turn stopped on a reached usage or rate limit.
+    UsageLimited,
 }
 
 impl ClaudeCodeSessionStatus {
@@ -29,9 +31,14 @@ impl ClaudeCodeSessionStatus {
 #[serde(rename_all = "camelCase")]
 pub struct ClaudeCodeSessionRow {
     pub session_status: ClaudeCodeSessionStatus,
-    /// Only while working on a tool, e.g. "Editing notes.md".
+    /// Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents".
     pub tool_summary: Option<String>,
     pub project_folder_name: String,
+    /// Running subagents the line doesn't already mention ("Done · 1 subagent"); 0 while the
+    /// line is "Running 2 subagents".
+    pub unmentioned_subagent_count: usize,
+    /// When a reached usage limit resets (Unix seconds), if the transcript said.
+    pub usage_limit_resets_at: Option<u64>,
 }
 
 /// What the pill's Claude Code views receive (mirrored in `claudeCodeStatusTypes.ts`).
@@ -55,8 +62,8 @@ pub struct ListableClaudeCodeSession {
     pub last_event_order: u64,
 }
 
-/// Needs your OK first (it's blocked on the user), then working, then waiting for you or done;
-/// within each group the newest first. Only as many rows as the open pill has room for.
+/// Needs your OK first (it's blocked on the user), then working, then stopped by a usage limit,
+/// then waiting for you or done; within each group the newest first. Only as many rows as the open pill has room for.
 pub fn list_claude_code_sessions(mut listable_sessions: Vec<ListableClaudeCodeSession>) -> ClaudeCodeStatusPayload {
     listable_sessions.sort_by_key(|listable_session| {
         (urgency_rank(listable_session.session_row.session_status), Reverse(listable_session.last_event_order))
@@ -79,7 +86,8 @@ fn urgency_rank(session_status: ClaudeCodeSessionStatus) -> u8 {
     match session_status {
         ClaudeCodeSessionStatus::NeedsPermission => 0,
         ClaudeCodeSessionStatus::Working => 1,
-        ClaudeCodeSessionStatus::WaitingForInput | ClaudeCodeSessionStatus::Done => 2,
+        ClaudeCodeSessionStatus::UsageLimited => 2,
+        ClaudeCodeSessionStatus::WaitingForInput | ClaudeCodeSessionStatus::Done => 3,
     }
 }
 
@@ -93,6 +101,8 @@ mod tests {
                 session_status,
                 tool_summary: None,
                 project_folder_name: project_folder_name.to_string(),
+                unmentioned_subagent_count: 0,
+                usage_limit_resets_at: None,
             },
             last_event_order,
         }
@@ -109,9 +119,10 @@ mod tests {
             listable("working", ClaudeCodeSessionStatus::Working, 2),
             listable("needs ok", ClaudeCodeSessionStatus::NeedsPermission, 0),
             listable("new waiting", ClaudeCodeSessionStatus::WaitingForInput, 3),
+            listable("old limited", ClaudeCodeSessionStatus::UsageLimited, 0),
         ]);
-        assert_eq!(listed_folder_names(&status_payload), vec!["needs ok", "working", "new waiting"]);
-        assert_eq!(status_payload.unlisted_session_count, 1);
+        assert_eq!(listed_folder_names(&status_payload), vec!["needs ok", "working", "old limited"]);
+        assert_eq!(status_payload.unlisted_session_count, 2);
     }
 
     #[test]
