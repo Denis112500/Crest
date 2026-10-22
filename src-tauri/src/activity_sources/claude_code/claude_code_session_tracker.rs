@@ -21,8 +21,9 @@ use crate::backend_constants::CLAUDE_CODE_ACTIVITY_DISPLAY_PRIORITY;
 pub struct ClaudeCodeSessionTracker {
     sessions_by_id: HashMap<String, TrackedSession>,
     next_event_order: u64,
-    /// Grows whenever any session has news for the user ("done", "needs your OK"). It is the
-    /// activity's attention key, so another session merely moving to the top isn't news.
+    /// Grows whenever any session has news for the user ("done", "needs your OK", a usage limit,
+    /// "cancelled", "denied"). It is the activity's attention key, so another session merely
+    /// moving to the top isn't news.
     attention_event_count: u64,
 }
 
@@ -44,8 +45,8 @@ impl ClaudeCodeSessionTracker {
     }
 
     /// The user cancelled the session's turn, or denied the permission it asked for (both are
-    /// seen only in its transcript; neither sends a hook event): `stopped_status` says which. No
-    /// peek: the user did it themselves.
+    /// seen only in its transcript; neither sends a hook event): `stopped_status` says which.
+    /// News like "done" (a peek and the red light until seen; decided 2026-10-23).
     pub fn record_interrupt(&mut self, session_id: &str, stopped_status: ClaudeCodeSessionStatus, event_time: Instant) {
         let event_order = self.next_event_order;
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
@@ -56,20 +57,24 @@ impl ClaudeCodeSessionTracker {
         }
         self.next_event_order += 1;
         tracked_session.show_interrupt(stopped_status, event_time, event_order);
+        self.attention_event_count += 1;
     }
 
     /// The user stopped the session's background subagents (seen only in its transcript). A turn
-    /// that was only waiting for them is cancelled, without a peek: the user did it themselves.
+    /// that was only waiting for them is cancelled, which is news like any other cancel.
     pub fn record_subagents_stopped(&mut self, session_id: &str, event_time: Instant) {
         let event_order = self.next_event_order;
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
             return;
         };
         self.next_event_order += 1;
-        tracked_session.show_subagents_stopped(event_time, event_order);
+        if tracked_session.show_subagents_stopped(event_time, event_order) {
+            self.attention_event_count += 1;
+        }
     }
 
-    /// The pill answered the session's permission request. No peek either way: the user just did it.
+    /// The pill answered the session's permission request. No peek either way: the user is
+    /// looking at the pill as they click.
     pub fn record_permission_answer(&mut self, session_id: &str, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant) {
         let event_order = self.next_event_order;
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
@@ -273,7 +278,7 @@ mod tests {
     }
 
     #[test]
-    fn a_cancel_turns_working_into_cancelled_without_a_peek_and_stops_the_watch() {
+    fn a_cancel_turns_working_into_cancelled_as_news_and_stops_the_watch() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
         assert_eq!(tracker.busy_session_transcripts().len(), 1);
@@ -282,7 +287,7 @@ mod tests {
         let cancelled = tracker.describe_activity(None, &[]).unwrap();
         assert_eq!(top_session(&tracker)["sessionStatus"], "cancelled");
         assert_eq!(cancelled.activity_presence, ActivityPresence::Lingering);
-        assert_eq!(cancelled.attention_key, working_key);
+        assert_ne!(cancelled.attention_key, working_key);
         // Claude Code's idle notice a minute later doesn't hide what happened.
         tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION)), event_time);
         assert_eq!(top_session(&tracker)["sessionStatus"], "cancelled");
@@ -290,7 +295,7 @@ mod tests {
     }
 
     #[test]
-    fn a_denied_permission_turns_needs_ok_into_denied_without_a_peek() {
+    fn a_denied_permission_turns_needs_ok_into_denied_as_news() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
         tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(PERMISSION_PROMPT_NOTIFICATION)), event_time);
@@ -299,7 +304,8 @@ mod tests {
         tracker.record_interrupt("a", ClaudeCodeSessionStatus::Denied, event_time);
         let denied = tracker.describe_activity(None, &[]).unwrap();
         assert_eq!(top_session(&tracker)["sessionStatus"], "denied");
-        assert_eq!((denied.activity_presence, denied.attention_key), (ActivityPresence::Lingering, needs_ok_key));
+        assert_eq!(denied.activity_presence, ActivityPresence::Lingering);
+        assert_ne!(denied.attention_key, needs_ok_key);
         assert!(tracker.busy_session_transcripts().is_empty());
     }
 
@@ -450,7 +456,7 @@ mod tests {
     }
 
     #[test]
-    fn stopping_the_background_subagents_cancels_the_wait_without_a_peek() {
+    fn stopping_the_background_subagents_cancels_the_wait_as_news() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         launch_two_subagents(&mut tracker, event_time);
         tracker.record_hook_event(&hook_event("a", STOP_HOOK_EVENT, None), event_time);
@@ -459,7 +465,8 @@ mod tests {
         tracker.record_subagents_stopped("a", event_time);
         let stopped = tracker.describe_activity(None, &[]).unwrap();
         assert_eq!(top_session(&tracker)["sessionStatus"], "cancelled");
-        assert_eq!((stopped.activity_presence, stopped.attention_key), (ActivityPresence::Lingering, waiting_key));
+        assert_eq!(stopped.activity_presence, ActivityPresence::Lingering);
+        assert_ne!(stopped.attention_key, waiting_key);
         assert!(tracker.busy_session_transcripts().is_empty());
     }
 

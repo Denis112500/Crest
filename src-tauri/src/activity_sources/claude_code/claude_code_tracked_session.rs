@@ -179,13 +179,16 @@ impl TrackedSession {
 
     /// The user stopped the background subagents. A turn that was only waiting for them was
     /// cancelled: its work didn't finish. Esc, Ctrl+C and Ctrl+X Ctrl+K all write the same line
-    /// then (seen 2026-10-23), so which key it was can't be told.
-    pub fn show_subagents_stopped(&mut self, event_time: Instant, event_order: u64) {
-        if self.is_waiting_on_subagents() {
+    /// then (seen 2026-10-23), so which key it was can't be told. Returns whether it cancelled
+    /// the turn.
+    pub fn show_subagents_stopped(&mut self, event_time: Instant, event_order: u64) -> bool {
+        let is_turn_cancelled = self.is_waiting_on_subagents();
+        if is_turn_cancelled {
             self.show_status_without_tool(ClaudeCodeSessionStatus::Cancelled);
         }
         self.running_subagents.forget_all();
         self.note_event(event_time, event_order);
+        is_turn_cancelled
     }
 
     /// An allow lets the tool run; a deny ends the turn (no `Stop` follows an interrupted one).

@@ -8,6 +8,7 @@ export type PillLightKind =
   | "needsPermission"
   | "working"
   | "freshUsageLimit"
+  | "freshCancelledOrDenied"
   | "freshDone"
   | "song"
   | "songPaused"
@@ -15,10 +16,11 @@ export type PillLightKind =
 
 // The light rule (notes/design-spec.md), first match wins: Claude Code needing an OK (gold),
 // working (Starlight white, even with music playing), a reached usage limit not seen yet (red),
-// a finish not seen yet (green), then music's own colour (never a status colour), dimmed while
-// paused, and a dim white for everything else (waiting, a finish or limit already seen, nothing
-// to show). Claude Code's attention key only grows with news (a finish, a request, a limit), so
-// "not seen yet" means: a session is in that state and that key isn't the one last seen.
+// a cancel or deny not seen yet (red too), a finish not seen yet (green), then music's own
+// colour (never a status colour), dimmed while paused, and a dim white for everything else
+// (waiting, news already seen, nothing to show). Claude Code's attention key only grows with
+// news (a finish, a request, a limit, a cancel, a deny), so "not seen yet" means: a session is
+// in that state and that key isn't the one last seen.
 export function decidePillLightKind(
   pillArrangement: PillArrangement,
   lastSeenClaudeCodeAttentionKey: string | null,
@@ -46,6 +48,9 @@ export function decidePillLightKind(
   const isClaudeCodeNewsUnseen = claudeCodeActivity?.attentionKey !== lastSeenClaudeCodeAttentionKey;
   if (sessionStatuses.includes("usageLimited") && isClaudeCodeNewsUnseen) {
     return "freshUsageLimit";
+  }
+  if ((sessionStatuses.includes("cancelled") || sessionStatuses.includes("denied")) && isClaudeCodeNewsUnseen) {
+    return "freshCancelledOrDenied";
   }
   if (sessionStatuses.includes("done") && isClaudeCodeNewsUnseen) {
     return "freshDone";

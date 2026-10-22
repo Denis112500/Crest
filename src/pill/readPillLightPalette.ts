@@ -4,7 +4,7 @@ export type PillLightColorSet = [string, string, string];
 export interface PillLightPalette {
   starlightColors: PillLightColorSet;
   goldColors: PillLightColorSet;
-  usageLimitColors: PillLightColorSet;
+  redColors: PillLightColorSet;
   doneColors: PillLightColorSet;
   musicColors: PillLightColorSet;
   fullStrength: number;
@@ -25,7 +25,7 @@ export function readPillLightPalette(): PillLightPalette {
   return {
     starlightColors: readColorSet("starlight"),
     goldColors: readColorSet("gold"),
-    usageLimitColors: readColorSet("usage-limit"),
+    redColors: readColorSet("red"),
     doneColors: readColorSet("done"),
     musicColors: readColorSet("music"),
     fullStrength: Number.parseFloat(readToken("--pill-light-full-strength")),
