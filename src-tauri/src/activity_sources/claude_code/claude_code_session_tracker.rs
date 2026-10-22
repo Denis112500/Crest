@@ -59,7 +59,7 @@ impl ClaudeCodeSessionTracker {
     }
 
     /// The user stopped the session's background subagents (seen only in its transcript). A turn
-    /// that was only waiting for them is done, without a peek: the user did it themselves.
+    /// that was only waiting for them is cancelled, without a peek: the user did it themselves.
     pub fn record_subagents_stopped(&mut self, session_id: &str, event_time: Instant) {
         let event_order = self.next_event_order;
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
@@ -450,7 +450,7 @@ mod tests {
     }
 
     #[test]
-    fn stopping_the_background_subagents_ends_the_wait_without_a_peek() {
+    fn stopping_the_background_subagents_cancels_the_wait_without_a_peek() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         launch_two_subagents(&mut tracker, event_time);
         tracker.record_hook_event(&hook_event("a", STOP_HOOK_EVENT, None), event_time);
@@ -458,7 +458,7 @@ mod tests {
         let waiting_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
         tracker.record_subagents_stopped("a", event_time);
         let stopped = tracker.describe_activity(None, &[]).unwrap();
-        assert_eq!(top_session(&tracker)["sessionStatus"], "done");
+        assert_eq!(top_session(&tracker)["sessionStatus"], "cancelled");
         assert_eq!((stopped.activity_presence, stopped.attention_key), (ActivityPresence::Lingering, waiting_key));
         assert!(tracker.busy_session_transcripts().is_empty());
     }

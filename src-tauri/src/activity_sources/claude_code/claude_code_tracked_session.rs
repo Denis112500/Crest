@@ -177,7 +177,13 @@ impl TrackedSession {
         self.note_event(event_time, event_order);
     }
 
+    /// The user stopped the background subagents. A turn that was only waiting for them was
+    /// cancelled: its work didn't finish. Esc, Ctrl+C and Ctrl+X Ctrl+K all write the same line
+    /// then (seen 2026-10-23), so which key it was can't be told.
     pub fn show_subagents_stopped(&mut self, event_time: Instant, event_order: u64) {
+        if self.is_waiting_on_subagents() {
+            self.show_status_without_tool(ClaudeCodeSessionStatus::Cancelled);
+        }
         self.running_subagents.forget_all();
         self.note_event(event_time, event_order);
     }
