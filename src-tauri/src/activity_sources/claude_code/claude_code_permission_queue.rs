@@ -203,6 +203,7 @@ mod tests {
             tool_name: Some("Bash".to_string()),
             tool_input: Some(json!({ "command": command })),
             notification_type: None,
+            ..ClaudeCodeHookEvent::default()
         }
     }
 

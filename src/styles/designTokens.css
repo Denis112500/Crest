@@ -40,6 +40,10 @@
   --pill-light-gold-start-color: #ffd98a;
   --pill-light-gold-middle-color: #fff1c9;
   --pill-light-gold-end-color: #ffd98a;
+  /* A reached usage limit: red, far from gold (act now) and from the music's violet (CC.1). */
+  --pill-light-usage-limit-start-color: #ff6b6b;
+  --pill-light-usage-limit-middle-color: #ffd4d4;
+  --pill-light-usage-limit-end-color: #ff6b6b;
   --pill-light-done-start-color: #7ee2a8;
   --pill-light-done-middle-color: #c9f7dc;
   --pill-light-done-end-color: #7ee2a8;
@@ -146,6 +150,9 @@
   /* A finished session the user hasn't seen yet (design phase, L.2 answers). */
   --claude-code-done-color: #7ee2a8;
   --claude-code-done-ring-glow-color: rgba(126, 226, 168, 0.6);
+  /* A session stopped by a usage limit: its ring stays red while it waits for the reset. */
+  --claude-code-usage-limit-color: #ff6b6b;
+  --claude-code-usage-limit-ring-glow-color: rgba(255, 107, 107, 0.6);
   /* Session status shown as a small ring, not a filled dot; a ring that matters glows. */
   --claude-code-session-status-ring-width: 1.5px;
   --claude-code-session-status-ring-glow-size: 6px;

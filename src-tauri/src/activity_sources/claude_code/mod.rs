@@ -13,6 +13,7 @@ mod claude_code_permission_description;
 mod claude_code_permission_file_path;
 mod claude_code_permission_queue;
 mod claude_code_permission_tool_call_listing;
+mod claude_code_running_subagents;
 mod claude_code_session_list;
 mod claude_code_session_tracker;
 mod claude_code_settings_file;
@@ -22,7 +23,10 @@ mod claude_code_tool_summary;
 mod claude_code_transcript_continuation;
 mod claude_code_tracked_session;
 mod claude_code_transcript_interrupt;
+mod claude_code_transcript_usage_limit;
+mod claude_code_usage_limit_wait;
 mod last_path_part;
+mod transcript_end_text;
 mod transcript_tail_reader;
 
 pub use claude_code_hook_registration::{build_crest_hook_command, build_crest_hooks};

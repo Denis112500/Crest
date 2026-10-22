@@ -92,15 +92,41 @@ impl ClaudeCodeSessionTracker {
         self.sessions_by_id.remove(session_id);
     }
 
-    /// A crashed or killed Claude Code never sends `SessionEnd`; its session goes after a silence.
-    pub fn forget_sessions_silent_for(&mut self, silence_timeout: Duration, current_time: Instant) {
-        self.sessions_by_id
-            .retain(|_, tracked_session| current_time.duration_since(tracked_session.last_event_time) < silence_timeout);
+    /// The session stopped on a usage limit that resets in `time_until_reset` (read from its
+    /// transcript): the pill says when, and the session stays listed until then.
+    pub fn record_usage_limit_reset(
+        &mut self,
+        session_id: &str,
+        resets_at_unix_seconds: u64,
+        time_until_reset: Duration,
+        current_time: Instant,
+    ) {
+        if let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) {
+            tracked_session.show_usage_limit_reset(resets_at_unix_seconds, time_until_reset, current_time);
+        }
     }
 
-    /// When the quietest session reaches the silence timeout, if there is any session.
+    /// A crashed or killed Claude Code never sends `SessionEnd`; its session goes after a silence.
+    /// A subagent that falls silent goes the same way (its stop may never be reported).
+    pub fn forget_sessions_silent_for(&mut self, silence_timeout: Duration, current_time: Instant) {
+        self.sessions_by_id.retain(|_, tracked_session| current_time < tracked_session.silence_deadline(silence_timeout));
+        for tracked_session in self.sessions_by_id.values_mut() {
+            tracked_session.forget_subagents_silent_for(silence_timeout, current_time);
+        }
+    }
+
+    /// When the quietest session or subagent reaches the silence timeout, if there is any.
     pub fn next_silence_deadline(&self, silence_timeout: Duration) -> Option<Instant> {
-        self.sessions_by_id.values().map(|tracked_session| tracked_session.last_event_time + silence_timeout).min()
+        self.sessions_by_id
+            .values()
+            .flat_map(|tracked_session| {
+                [
+                    Some(tracked_session.silence_deadline(silence_timeout)),
+                    tracked_session.next_subagent_silence_deadline(silence_timeout),
+                ]
+            })
+            .flatten()
+            .min()
     }
 
     /// Every session with something to show, as one activity: an alert while a permission request
@@ -144,6 +170,7 @@ impl ClaudeCodeSessionTracker {
 mod tests {
     use super::*;
     use crate::activity_sources::claude_code::claude_code_permission_description::ClaudeCodePermissionDescription;
+    use crate::backend_constants::CLAUDE_CODE_USAGE_LIMIT_MAX_LISTED_WAIT;
 
     fn hook_event(session_id: &str, hook_event_name: &str, notification_type: Option<&str>) -> ClaudeCodeHookEvent {
         ClaudeCodeHookEvent {
@@ -154,7 +181,16 @@ mod tests {
             tool_name: Some("Bash".to_string()),
             tool_input: Some(serde_json::json!({ "command": "cargo test" })),
             notification_type: notification_type.map(str::to_string),
+            ..ClaudeCodeHookEvent::default()
         }
+    }
+
+    fn subagent_event(session_id: &str, hook_event_name: &str, agent_id: &str) -> ClaudeCodeHookEvent {
+        ClaudeCodeHookEvent { agent_id: Some(agent_id.to_string()), ..hook_event(session_id, hook_event_name, None) }
+    }
+
+    fn stop_failure(session_id: &str, error: &str) -> ClaudeCodeHookEvent {
+        ClaudeCodeHookEvent { error: Some(error.to_string()), ..hook_event(session_id, STOP_FAILURE_HOOK_EVENT, None) }
     }
 
     /// The first row of the list: what the compact pill shows.
@@ -334,5 +370,109 @@ mod tests {
         tracker.forget_sessions_silent_for(silence_timeout, start_time + silence_timeout);
         assert!(tracker.describe_activity(None, &[]).is_none());
         assert_eq!(tracker.next_silence_deadline(silence_timeout), None);
+    }
+
+    fn launch_two_subagents(tracker: &mut ClaudeCodeSessionTracker, event_time: Instant) {
+        let agent_launch =
+            ClaudeCodeHookEvent { tool_name: Some("Agent".to_string()), ..hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None) };
+        tracker.record_hook_event(&agent_launch, event_time);
+        tracker.record_hook_event(&subagent_event("a", SUBAGENT_START_HOOK_EVENT, "explore-1"), event_time);
+        tracker.record_hook_event(&subagent_event("a", SUBAGENT_START_HOOK_EVENT, "explore-2"), event_time);
+    }
+
+    /// The top row's line and its "· N subagents" count.
+    fn top_line_and_subagent_count(tracker: &ClaudeCodeSessionTracker) -> (serde_json::Value, serde_json::Value) {
+        let top_row = top_session(tracker);
+        (top_row["toolSummary"].clone(), top_row["unmentionedSubagentCount"].clone())
+    }
+
+    #[test]
+    fn subagents_are_counted_and_their_tool_calls_leave_the_main_line_alone() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        launch_two_subagents(&mut tracker, event_time);
+        tracker.record_hook_event(&subagent_event("a", PRE_TOOL_USE_HOOK_EVENT, "explore-1"), event_time);
+        tracker.record_hook_event(&subagent_event("a", POST_TOOL_USE_HOOK_EVENT, "explore-2"), event_time);
+        assert_eq!(top_line_and_subagent_count(&tracker), ("Running 2 subagents".into(), 0.into()));
+        tracker.record_hook_event(&subagent_event("a", SUBAGENT_STOP_HOOK_EVENT, "explore-1"), event_time);
+        assert_eq!(top_line_and_subagent_count(&tracker), ("Running a subagent".into(), 0.into()));
+        // The main turn goes on, then ends, while a subagent still runs in the background.
+        tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
+        assert_eq!(top_line_and_subagent_count(&tracker), ("Running cargo test".into(), 1.into()));
+        tracker.record_hook_event(&hook_event("a", STOP_HOOK_EVENT, None), event_time);
+        tracker.record_hook_event(&subagent_event("a", PRE_TOOL_USE_HOOK_EVENT, "explore-2"), event_time);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "done");
+        assert_eq!(top_line_and_subagent_count(&tracker), (serde_json::Value::Null, 1.into()));
+    }
+
+    #[test]
+    fn a_subagent_answered_in_claude_code_brings_the_subagent_line_back() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        launch_two_subagents(&mut tracker, event_time);
+        let working_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
+        tracker.record_hook_event(&subagent_event("a", PERMISSION_REQUEST_HOOK_EVENT, "explore-1"), event_time);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "needsPermission");
+        assert_ne!(tracker.describe_activity(None, &[]).unwrap().attention_key, working_key);
+        tracker.record_hook_event(&subagent_event("a", POST_TOOL_USE_HOOK_EVENT, "explore-1"), event_time);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "working");
+        assert_eq!(top_line_and_subagent_count(&tracker), ("Running 2 subagents".into(), 0.into()));
+    }
+
+    #[test]
+    fn an_interrupt_or_the_silence_timeout_ends_the_subagent_count() {
+        let (mut tracker, start_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        let silence_timeout = Duration::from_secs(600);
+        launch_two_subagents(&mut tracker, start_time);
+        tracker.record_interrupt("a", start_time);
+        assert_eq!(top_session(&tracker)["unmentionedSubagentCount"], 0);
+        tracker.record_hook_event(&subagent_event("a", SUBAGENT_START_HOOK_EVENT, "background"), start_time);
+        // The main session keeps talking; the subagent says nothing more.
+        let later_time = start_time + Duration::from_secs(300);
+        tracker.record_hook_event(&hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None), later_time);
+        assert_eq!(tracker.next_silence_deadline(silence_timeout), Some(start_time + silence_timeout));
+        tracker.forget_sessions_silent_for(silence_timeout, start_time + silence_timeout);
+        assert_eq!(top_session(&tracker)["unmentionedSubagentCount"], 0);
+        assert_eq!(tracker.next_silence_deadline(silence_timeout), Some(later_time + silence_timeout));
+    }
+
+    #[test]
+    fn a_usage_limit_is_news_once_and_stays_listed_until_its_reset() {
+        let (mut tracker, start_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        let silence_timeout = Duration::from_secs(600);
+        tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), start_time);
+        let working_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
+        tracker.record_hook_event(&stop_failure("a", RATE_LIMIT_STOP_FAILURE_ERROR), start_time);
+        let limited = tracker.describe_activity(None, &[]).unwrap();
+        assert_eq!(limited.activity_presence, ActivityPresence::Lingering);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "usageLimited");
+        assert_ne!(limited.attention_key, working_key);
+        let three_hours = Duration::from_secs(3 * 60 * 60);
+        tracker.record_usage_limit_reset("a", 1_791_327_000, three_hours, start_time);
+        assert_eq!(top_session(&tracker)["usageLimitResetsAt"], 1_791_327_000);
+        assert_eq!(tracker.next_silence_deadline(silence_timeout), Some(start_time + three_hours + silence_timeout));
+        tracker.forget_sessions_silent_for(silence_timeout, start_time + three_hours);
+        assert!(tracker.describe_activity(None, &[]).is_some());
+        // Claude Code continues by itself at the reset.
+        let resumed = hook_event("a", NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_FIRED_NOTIFICATION));
+        tracker.record_hook_event(&resumed, start_time + three_hours);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "working");
+        assert!(top_session(&tracker)["usageLimitResetsAt"].is_null());
+    }
+
+    #[test]
+    fn a_limit_days_away_is_listed_for_a_day_at_most_and_other_errors_only_end_the_turn() {
+        let (mut tracker, start_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        let silence_timeout = Duration::from_secs(600);
+        tracker.record_hook_event(&stop_failure("a", RATE_LIMIT_STOP_FAILURE_ERROR), start_time);
+        tracker.record_usage_limit_reset("a", 1_791_900_000, Duration::from_secs(4 * 24 * 60 * 60), start_time);
+        let expected_deadline = start_time + CLAUDE_CODE_USAGE_LIMIT_MAX_LISTED_WAIT + silence_timeout;
+        assert_eq!(tracker.next_silence_deadline(silence_timeout), Some(expected_deadline));
+        let key_before = tracker.describe_activity(None, &[]).unwrap().attention_key;
+        tracker.record_hook_event(&hook_event("b", PRE_TOOL_USE_HOOK_EVENT, None), start_time);
+        tracker.record_hook_event(&stop_failure("b", "overloaded"), start_time);
+        let after_error = tracker.describe_activity(None, &[]).unwrap();
+        let listed_sessions = &after_error.activity_payload["listedSessions"];
+        assert_eq!(listed_sessions[0]["sessionStatus"], "usageLimited");
+        assert_eq!(listed_sessions[1]["sessionStatus"], "waitingForInput");
+        assert_eq!(after_error.attention_key, key_before);
     }
 }

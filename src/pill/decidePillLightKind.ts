@@ -4,14 +4,21 @@ import type { PillActivity, PillArrangement } from "../activities/pillArrangemen
 import { CLAUDE_CODE_ACTIVITY_KIND, MUSIC_ACTIVITY_KIND } from "../ipc/ipcChannelNames";
 
 /** What the pill's light shows; pillLightController.ts turns it into colours. */
-export type PillLightKind = "needsPermission" | "working" | "freshDone" | "song" | "songPaused" | "quiet";
+export type PillLightKind =
+  | "needsPermission"
+  | "working"
+  | "freshUsageLimit"
+  | "freshDone"
+  | "song"
+  | "songPaused"
+  | "quiet";
 
 // The light rule (notes/design-spec.md), first match wins: Claude Code needing an OK (gold),
-// working (Starlight white, even with music playing), a finish not seen yet (green), then
-// music's own colour (never a status colour), dimmed while paused, and a dim white for
-// everything else (waiting, a finish already seen, nothing to show). Claude Code's attention key
-// only grows with news (a finish, a request), so "not seen yet" means: a session is done and
-// that key isn't the one last seen.
+// working (Starlight white, even with music playing), a reached usage limit not seen yet (red),
+// a finish not seen yet (green), then music's own colour (never a status colour), dimmed while
+// paused, and a dim white for everything else (waiting, a finish or limit already seen, nothing
+// to show). Claude Code's attention key only grows with news (a finish, a request, a limit), so
+// "not seen yet" means: a session is in that state and that key isn't the one last seen.
 export function decidePillLightKind(
   pillArrangement: PillArrangement,
   lastSeenClaudeCodeAttentionKey: string | null,
@@ -36,7 +43,11 @@ export function decidePillLightKind(
   if (sessionStatuses.includes("working")) {
     return "working";
   }
-  if (sessionStatuses.includes("done") && claudeCodeActivity?.attentionKey !== lastSeenClaudeCodeAttentionKey) {
+  const isClaudeCodeNewsUnseen = claudeCodeActivity?.attentionKey !== lastSeenClaudeCodeAttentionKey;
+  if (sessionStatuses.includes("usageLimited") && isClaudeCodeNewsUnseen) {
+    return "freshUsageLimit";
+  }
+  if (sessionStatuses.includes("done") && isClaudeCodeNewsUnseen) {
     return "freshDone";
   }
   if (musicActivity) {

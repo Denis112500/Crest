@@ -4,7 +4,7 @@
 
 use std::path::Path;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
-use std::time::Instant;
+use std::time::{Duration, Instant, SystemTime};
 
 use crate::activity_core::ActivityPublisher;
 use crate::activity_sources::claude_code::claude_code_hook_event::{
@@ -17,6 +17,7 @@ use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCo
 use crate::activity_sources::claude_code::claude_code_session_tracker::ClaudeCodeSessionTracker;
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
 use crate::activity_sources::claude_code::claude_code_transcript_continuation::find_sessions_continued_in;
+use crate::activity_sources::claude_code::claude_code_transcript_usage_limit::find_usage_limit_reset;
 use crate::backend_constants::{CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE, CLAUDE_CODE_SESSION_SILENCE_TIMEOUT};
 use crate::claude_code_hook_channel::{PendingHookReply, NO_HOOK_DECISION};
 
@@ -109,6 +110,9 @@ fn record_hook_event(
         hook_reply.send_reply(NO_HOOK_DECISION);
     }
     session_tracker.record_hook_event(&hook_event, current_time);
+    if let (true, Some(transcript_path)) = (hook_event.is_usage_limit_stop(), &hook_event.transcript_path) {
+        record_usage_limit_reset(&hook_event.session_id, Path::new(transcript_path), session_tracker, current_time);
+    }
     // A session that continued under this id carries on here: its old id leaves. Checked on every
     // prompt too, since `SessionStart` may come before Claude Code writes the line that says so.
     let is_session_start_or_prompt =
@@ -121,5 +125,22 @@ fn record_hook_event(
             session_tracker.forget_session(&continued_session_id);
             permission_queue.release_session_requests(&continued_session_id);
         }
+    }
+}
+
+/// Read once, as the turn stops. A reset that has already passed belongs to an earlier limit
+/// (this one's entry isn't written yet): the pill then only says the limit is reached.
+fn record_usage_limit_reset(
+    session_id: &str,
+    transcript_path: &Path,
+    session_tracker: &mut ClaudeCodeSessionTracker,
+    current_time: Instant,
+) {
+    let Some(resets_at_unix_seconds) = find_usage_limit_reset(transcript_path) else {
+        return;
+    };
+    let reset_moment = SystemTime::UNIX_EPOCH + Duration::from_secs(resets_at_unix_seconds);
+    if let Ok(time_until_reset) = reset_moment.duration_since(SystemTime::now()) {
+        session_tracker.record_usage_limit_reset(session_id, resets_at_unix_seconds, time_until_reset, current_time);
     }
 }
