@@ -1,6 +1,6 @@
 # Crest — standing rules
 
-A small personal Tauri 2 desktop app: a pill at the top center of the screen (like the iPhone Dynamic Island) that shows what's playing. Owner is a CS student new to Rust, Tauri and Windows: explain what and why, give exact commands, keep steps small, and say explicitly when something is worth writing in their own notes (point to the matching notes entry).
+A small personal Tauri 2 desktop app: a pill at the top center of the screen (like the iPhone Dynamic Island) that shows what's playing and what Claude Code is doing, growing into a desktop companion (see the companion phase below). Owner is a CS student new to Rust, Tauri and Windows: explain what and why, give exact commands, keep steps small, and say explicitly when something is worth writing in their own notes (point to the matching notes entry).
 
 ## Every session
 1. Read `STATE.md` first: where the code is, what works, what's in progress, the next task. Do not read `notes/` unless the task needs it; the index below says which file covers what.
@@ -29,6 +29,7 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 - `notes/settings-window.md`: the settings window, launch at login, players, display choice.
 - `notes/design-spec.md`: the chosen look (Gauges): tokens, shapes, sizes, light rule, motion, build milestones G.1–G.6.
 - `notes/fix-phase-0.5.0.md`: the fix phase before 0.5.0 (F.1, S.1, H.1, P.1–P.3): MCP input in the alert, Spotify, media keys, click-through closed pill, opening the pill with nothing on.
+- `notes/companion-phase.md`: the plan after 0.5.0 (CC.* Claude Code, AW.* app window, GH.* GitHub, CH.* chat, FD.* files, MS.* mascot): milestones, spikes, results.
 - `notes/release-and-install.md`: before a release, an installer or autostart work.
 - `notes/measurements.md`: before measuring memory or CPU.
 - `notes/app-architecture.md`: changing the core (arbiter, sources, IPC).
@@ -38,17 +39,18 @@ A small personal Tauri 2 desktop app: a pill at the top center of the screen (li
 
 ## Scope and platforms
 - Primary: Windows 11. Later: Linux (Arch, KDE Plasma, Wayland) — not built yet, but all platform-specific code (media backend, window behavior) lives behind small traits in its own folder.
-- Scope follows the roadmap (`STATE.md`; history in `notes/project-process.md`). Not planned yet: Linux support (Phase 5), notifications, replacing Windows' volume/brightness popups. Planned (decided 2026-10-14): a system-volume control in the music tile (speaker button + slider), through Windows Core Audio, event-driven. Planned (decided 2026-10-18): opening the pill with nothing on by resting the pointer at the screen's top edge (an event-driven pointer watch, no polling), showing time, date and the volume slider. New activity sources (integrations) are added one at a time, each approved before it's built.
+- Scope follows the roadmap (`STATE.md`; history in `notes/project-process.md`). Not planned yet: Linux support (Phase 5), notifications, replacing Windows' volume/brightness popups. Planned (decided 2026-10-14): a system-volume control in the music tile (speaker button + slider), through Windows Core Audio, event-driven. Planned (decided 2026-10-18): opening the pill with nothing on by resting the pointer at the screen's top edge (an event-driven pointer watch, no polling), showing time, date and the volume slider. Planned (decided 2026-10-22): the companion phase (`notes/companion-phase.md`): Coucou's features, the Mac-only ones built for Windows, in the order CC → AW → GH → CH → FD → MS, each milestone approved before it's built; the only integration for now is GitHub. Where Crest already chose differently from Coucou, Crest's choice stays (the closed pill lets clicks through and opens by resting). New activity sources (integrations) are added one at a time, each approved before it's built.
+- Files, window captures and text go to Claude only on an explicit action (a drop, a drag, a sent prompt), never in the background.
 - Local by default: no network calls unless the user has switched on an integration that needs them, and then only to that integration's own service. Every integration is off by default.
-- Free APIs only, never paid ones (no paid plans, no free tiers that require a payment method). Say before building whether a free API still needs a key or token.
+- Free APIs only, never paid ones (no paid plans, no free tiers that require a payment method). Say before building whether a free API still needs a key or token. The chat's route (a paid Anthropic API key, or the local `claude` CLI on the existing subscription) is decided in CH.0; until then this rule stands.
 - Keys and tokens are stored only in Windows Credential Manager (behind a small trait, like the other platform code), never in files, settings.json, logs, the repo or the page. The page may hand a token to Rust once to store it, but never reads it back.
 - Network calls come from Rust; the page's CSP keeps blocking the network.
 - No telemetry, analytics or remote crash reports.
 - Music data only through Windows SMTC; no unofficial YouTube Music APIs, scraping or cookies.
-- Keep idle CPU and memory low: event-driven, no polling loops. One exception: an integration that can only fetch (weather, calendar) may use a coarse timer, and only while it's switched on.
+- Keep idle CPU and memory low: event-driven, no polling loops. One exception: an integration that can only fetch (GitHub; later maybe weather, calendar) may use a coarse timer, and only while it's switched on.
 
 ## Reference project
-`../reference/coucou` (MIT code; name, Mochi character, icon, sounds and media are rights reserved) is read-only inspiration for window and event patterns. Don't copy code; if a substantial piece would be reused, stop and ask first. Never copy or imitate its name or assets. Verify its patterns against the Tauri docs.
+`../reference/coucou` (MIT code; name, Mochi character, icon, sounds and media are rights reserved) is read-only inspiration for window and event patterns, and its feature list is the companion phase's target. Don't copy code; if a substantial piece would be reused, stop and ask first. Never copy or imitate its name or assets. Verify its patterns against the Tauri docs.
 
 ## Code organization (strict)
 - One responsibility per file; name the file after what it does. No "utils"/"helpers".
