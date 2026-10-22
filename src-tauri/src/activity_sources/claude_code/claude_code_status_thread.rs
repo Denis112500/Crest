@@ -14,6 +14,7 @@ use crate::activity_sources::claude_code::claude_code_interrupt_watch::ClaudeCod
 use crate::activity_sources::claude_code::claude_code_permission_answer::build_permission_hook_reply;
 use crate::activity_sources::claude_code::claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
 use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCodePermissionQueue;
+use crate::activity_sources::claude_code::claude_code_session_list::ClaudeCodeSessionStatus;
 use crate::activity_sources::claude_code::claude_code_session_tracker::ClaudeCodeSessionTracker;
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
 use crate::activity_sources::claude_code::claude_code_transcript_continuation::find_sessions_continued_in;
@@ -57,8 +58,12 @@ pub fn publish_claude_code_status(
                 for (session_id, transcript_interrupt) in interrupt_watch.find_session_interrupts(&changed_folder) {
                     match transcript_interrupt {
                         // Also a deny or Esc in Claude Code's own dialog: its request leaves the pill.
-                        ClaudeCodeTranscriptInterrupt::Turn => {
-                            session_tracker.record_interrupt(&session_id, current_time);
+                        ClaudeCodeTranscriptInterrupt::TurnCancelled => {
+                            session_tracker.record_interrupt(&session_id, ClaudeCodeSessionStatus::Cancelled, current_time);
+                            permission_queue.release_session_requests(&session_id);
+                        }
+                        ClaudeCodeTranscriptInterrupt::PermissionDenied => {
+                            session_tracker.record_interrupt(&session_id, ClaudeCodeSessionStatus::Denied, current_time);
                             permission_queue.release_session_requests(&session_id);
                         }
                         ClaudeCodeTranscriptInterrupt::BackgroundSubagents => {

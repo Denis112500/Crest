@@ -17,6 +17,10 @@ pub enum ClaudeCodeSessionStatus {
     NeedsPermission,
     /// The turn stopped on a reached usage or rate limit.
     UsageLimited,
+    /// The user stopped the turn (Esc or Ctrl+C).
+    Cancelled,
+    /// The user denied a permission (in Claude Code or from the pill), which ends the turn.
+    Denied,
 }
 
 impl ClaudeCodeSessionStatus {
@@ -63,7 +67,7 @@ pub struct ListableClaudeCodeSession {
 }
 
 /// Needs your OK first (it's blocked on the user), then working, then stopped by a usage limit,
-/// then waiting for you or done; within each group the newest first. Only as many rows as the open pill has room for.
+/// then waiting for you, done, cancelled or denied; within each group the newest first. Only as many rows as the open pill has room for.
 pub fn list_claude_code_sessions(mut listable_sessions: Vec<ListableClaudeCodeSession>) -> ClaudeCodeStatusPayload {
     listable_sessions.sort_by_key(|listable_session| {
         (urgency_rank(listable_session.session_row.session_status), Reverse(listable_session.last_event_order))
@@ -87,7 +91,10 @@ fn urgency_rank(session_status: ClaudeCodeSessionStatus) -> u8 {
         ClaudeCodeSessionStatus::NeedsPermission => 0,
         ClaudeCodeSessionStatus::Working => 1,
         ClaudeCodeSessionStatus::UsageLimited => 2,
-        ClaudeCodeSessionStatus::WaitingForInput | ClaudeCodeSessionStatus::Done => 3,
+        ClaudeCodeSessionStatus::WaitingForInput
+        | ClaudeCodeSessionStatus::Done
+        | ClaudeCodeSessionStatus::Cancelled
+        | ClaudeCodeSessionStatus::Denied => 3,
     }
 }
 

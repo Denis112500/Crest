@@ -105,11 +105,9 @@ impl TrackedSession {
                 }
                 is_news
             }
-            // Claude Code sends this about a minute after "done"; "done" says more, and a second
-            // peek a minute later would only be noise.
-            (NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION))
-                if self.session_status != Some(ClaudeCodeSessionStatus::Done) =>
-            {
+            // Claude Code sends this about a minute after a turn ends; "done", "cancelled" and the
+            // rest say more, and a second peek a minute later would only be noise.
+            (NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION)) if !self.has_turn_ending_status() => {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
                 false
             }
@@ -142,6 +140,19 @@ impl TrackedSession {
         Some(false)
     }
 
+    /// The turn ended in a way that already tells the user what happened.
+    fn has_turn_ending_status(&self) -> bool {
+        matches!(
+            self.session_status,
+            Some(
+                ClaudeCodeSessionStatus::Done
+                    | ClaudeCodeSessionStatus::Cancelled
+                    | ClaudeCodeSessionStatus::Denied
+                    | ClaudeCodeSessionStatus::UsageLimited
+            )
+        )
+    }
+
     /// The turn has ended, but subagents it started in the background still run.
     fn is_waiting_on_subagents(&self) -> bool {
         self.session_status == Some(ClaudeCodeSessionStatus::Done) && self.running_subagents.running_count() > 0
@@ -159,9 +170,9 @@ impl TrackedSession {
         self.session_status.is_some_and(ClaudeCodeSessionStatus::is_busy) || self.is_waiting_on_subagents()
     }
 
-    /// The user interrupted the turn or denied in Claude Code: it waits for input now.
-    pub fn show_interrupt(&mut self, event_time: Instant, event_order: u64) {
-        self.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
+    /// The user cancelled the turn or denied in Claude Code (`stopped_status` says which).
+    pub fn show_interrupt(&mut self, stopped_status: ClaudeCodeSessionStatus, event_time: Instant, event_order: u64) {
+        self.show_status_without_tool(stopped_status);
         self.running_subagents.forget_all();
         self.note_event(event_time, event_order);
     }
@@ -175,7 +186,7 @@ impl TrackedSession {
     pub fn show_permission_answer(&mut self, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant, event_order: u64) {
         self.show_status_without_tool(match permission_answer {
             ClaudeCodePermissionAnswer::Allow => ClaudeCodeSessionStatus::Working,
-            ClaudeCodePermissionAnswer::Deny => ClaudeCodeSessionStatus::WaitingForInput,
+            ClaudeCodePermissionAnswer::Deny => ClaudeCodeSessionStatus::Denied,
         });
         self.note_event(event_time, event_order);
     }

@@ -12,14 +12,19 @@ use serde_json::Value;
 /// Seen as `[Request interrupted by user]` (Esc) and `[Request interrupted by user for tool use]`
 /// (a denied permission); matched by its start so both count.
 const INTERRUPT_MARKER_START: &str = "[Request interrupted by user";
+/// The denied-permission form: in every local transcript (52 of 52, 2026-10-23) it came right
+/// after the tool result "The user doesn't want to proceed with this tool use".
+const DENIED_PERMISSION_MARKER_START: &str = "[Request interrupted by user for tool use";
 /// The system entry written when the user stops the background subagents.
 const BACKGROUND_SUBAGENTS_STOPPED_SUBTYPE: &str = "agents_killed";
 
 /// What a transcript line says the user stopped.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ClaudeCodeTranscriptInterrupt {
-    /// The turn (Esc), or a permission denied in Claude Code.
-    Turn,
+    /// The turn (Esc; Ctrl+C presumably writes the same line).
+    TurnCancelled,
+    /// A permission denied in Claude Code, which ends the turn too.
+    PermissionDenied,
     /// Every background subagent of the session.
     BackgroundSubagents,
 }
@@ -27,7 +32,12 @@ pub enum ClaudeCodeTranscriptInterrupt {
 pub fn find_transcript_interrupt(transcript_line: &str) -> Option<ClaudeCodeTranscriptInterrupt> {
     let transcript_entry = serde_json::from_str::<Value>(transcript_line).ok()?;
     match transcript_entry.get("type").and_then(Value::as_str)? {
-        "user" if has_interrupt_marker(&transcript_entry) => Some(ClaudeCodeTranscriptInterrupt::Turn),
+        "user" => match find_interrupt_marker(&transcript_entry)? {
+            marker_text if marker_text.starts_with(DENIED_PERMISSION_MARKER_START) => {
+                Some(ClaudeCodeTranscriptInterrupt::PermissionDenied)
+            }
+            _ => Some(ClaudeCodeTranscriptInterrupt::TurnCancelled),
+        },
         "system" if transcript_entry.get("subtype").and_then(Value::as_str) == Some(BACKGROUND_SUBAGENTS_STOPPED_SUBTYPE) => {
             Some(ClaudeCodeTranscriptInterrupt::BackgroundSubagents)
         }
@@ -35,15 +45,17 @@ pub fn find_transcript_interrupt(transcript_line: &str) -> Option<ClaudeCodeTran
     }
 }
 
-/// A user entry whose text starts with the interrupt marker, e.g.
+/// The text of a user entry that starts with the interrupt marker, e.g.
 /// `{"type":"user","message":{"content":[{"type":"text","text":"[Request interrupted by user]"}]}}`.
-fn has_interrupt_marker(user_entry: &Value) -> bool {
-    match user_entry.pointer("/message/content") {
-        Some(Value::String(message_text)) => message_text.starts_with(INTERRUPT_MARKER_START),
-        Some(Value::Array(content_items)) => content_items.iter().any(|content_item| {
-            content_item.get("text").and_then(Value::as_str).is_some_and(|text| text.starts_with(INTERRUPT_MARKER_START))
-        }),
-        _ => false,
+fn find_interrupt_marker(user_entry: &Value) -> Option<&str> {
+    let is_interrupt_marker = |text: &&str| text.starts_with(INTERRUPT_MARKER_START);
+    match user_entry.pointer("/message/content")? {
+        Value::String(message_text) => Some(message_text.as_str()).filter(is_interrupt_marker),
+        Value::Array(content_items) => content_items
+            .iter()
+            .filter_map(|content_item| content_item.get("text").and_then(Value::as_str))
+            .find(is_interrupt_marker),
+        _ => None,
     }
 }
 
@@ -54,9 +66,9 @@ mod tests {
     #[test]
     fn the_interrupt_entry_as_claude_code_writes_it_is_recognized() {
         let interrupt_line = r#"{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]},"timestamp":"2026-10-06T21:20:46Z"}"#;
-        assert_eq!(find_transcript_interrupt(interrupt_line), Some(ClaudeCodeTranscriptInterrupt::Turn));
+        assert_eq!(find_transcript_interrupt(interrupt_line), Some(ClaudeCodeTranscriptInterrupt::TurnCancelled));
         let string_content_line = r#"{"type":"user","message":{"content":"[Request interrupted by user for tool use]"}}"#;
-        assert_eq!(find_transcript_interrupt(string_content_line), Some(ClaudeCodeTranscriptInterrupt::Turn));
+        assert_eq!(find_transcript_interrupt(string_content_line), Some(ClaudeCodeTranscriptInterrupt::PermissionDenied));
     }
 
     #[test]

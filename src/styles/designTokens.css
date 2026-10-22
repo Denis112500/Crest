@@ -153,6 +153,9 @@
   /* A session stopped by a usage limit: its ring stays red while it waits for the reset. */
   --claude-code-usage-limit-color: #ff6b6b;
   --claude-code-usage-limit-ring-glow-color: rgba(255, 107, 107, 0.6);
+  /* A turn the user cancelled or a permission they denied: a soft red, quieter than the usage
+     limit's, since the user did it themselves (CC.1 fixes). */
+  --claude-code-stopped-by-user-color: rgba(255, 107, 107, 0.45);
   /* Session status shown as a small ring, not a filled dot; a ring that matters glows. */
   --claude-code-session-status-ring-width: 1.5px;
   --claude-code-session-status-ring-glow-size: 6px;

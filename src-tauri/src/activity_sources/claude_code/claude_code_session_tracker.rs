@@ -11,7 +11,9 @@ use crate::activity_core::{ActivityPresence, ActivityUpdate};
 use crate::activity_sources::claude_code::claude_code_hook_event::*;
 use crate::activity_sources::claude_code::claude_code_permission_answer::ClaudeCodePermissionAnswer;
 use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCodePermissionAlert;
-use crate::activity_sources::claude_code::claude_code_session_list::{list_claude_code_sessions, ListableClaudeCodeSession};
+use crate::activity_sources::claude_code::claude_code_session_list::{
+    list_claude_code_sessions, ClaudeCodeSessionStatus, ListableClaudeCodeSession,
+};
 use crate::activity_sources::claude_code::claude_code_tracked_session::TrackedSession;
 use crate::backend_constants::CLAUDE_CODE_ACTIVITY_DISPLAY_PRIORITY;
 
@@ -41,10 +43,10 @@ impl ClaudeCodeSessionTracker {
         }
     }
 
-    /// The user interrupted the session's turn, or denied the permission it asked for (both are
-    /// seen only in its transcript; neither sends a hook event). Claude Code then waits for input,
-    /// without a peek: the user did it themselves.
-    pub fn record_interrupt(&mut self, session_id: &str, event_time: Instant) {
+    /// The user cancelled the session's turn, or denied the permission it asked for (both are
+    /// seen only in its transcript; neither sends a hook event): `stopped_status` says which. No
+    /// peek: the user did it themselves.
+    pub fn record_interrupt(&mut self, session_id: &str, stopped_status: ClaudeCodeSessionStatus, event_time: Instant) {
         let event_order = self.next_event_order;
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
             return;
@@ -53,7 +55,7 @@ impl ClaudeCodeSessionTracker {
             return;
         }
         self.next_event_order += 1;
-        tracked_session.show_interrupt(event_time, event_order);
+        tracked_session.show_interrupt(stopped_status, event_time, event_order);
     }
 
     /// The user stopped the session's background subagents (seen only in its transcript). A turn
@@ -271,30 +273,33 @@ mod tests {
     }
 
     #[test]
-    fn an_interrupt_turns_working_into_waiting_without_a_peek_and_stops_the_watch() {
+    fn a_cancel_turns_working_into_cancelled_without_a_peek_and_stops_the_watch() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
         assert_eq!(tracker.busy_session_transcripts().len(), 1);
         let working_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
-        tracker.record_interrupt("a", event_time);
-        let waiting = tracker.describe_activity(None, &[]).unwrap();
-        assert_eq!(top_session(&tracker)["sessionStatus"], "waitingForInput");
-        assert_eq!(waiting.activity_presence, ActivityPresence::Lingering);
-        assert_eq!(waiting.attention_key, working_key);
+        tracker.record_interrupt("a", ClaudeCodeSessionStatus::Cancelled, event_time);
+        let cancelled = tracker.describe_activity(None, &[]).unwrap();
+        assert_eq!(top_session(&tracker)["sessionStatus"], "cancelled");
+        assert_eq!(cancelled.activity_presence, ActivityPresence::Lingering);
+        assert_eq!(cancelled.attention_key, working_key);
+        // Claude Code's idle notice a minute later doesn't hide what happened.
+        tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION)), event_time);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "cancelled");
         assert!(tracker.busy_session_transcripts().is_empty());
     }
 
     #[test]
-    fn a_denied_permission_turns_needs_ok_into_waiting_without_a_peek() {
+    fn a_denied_permission_turns_needs_ok_into_denied_without_a_peek() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
         tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(PERMISSION_PROMPT_NOTIFICATION)), event_time);
         assert_eq!(tracker.busy_session_transcripts().len(), 1);
         let needs_ok_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
-        tracker.record_interrupt("a", event_time);
-        let waiting = tracker.describe_activity(None, &[]).unwrap();
-        assert_eq!(top_session(&tracker)["sessionStatus"], "waitingForInput");
-        assert_eq!((waiting.activity_presence, waiting.attention_key), (ActivityPresence::Lingering, needs_ok_key));
+        tracker.record_interrupt("a", ClaudeCodeSessionStatus::Denied, event_time);
+        let denied = tracker.describe_activity(None, &[]).unwrap();
+        assert_eq!(top_session(&tracker)["sessionStatus"], "denied");
+        assert_eq!((denied.activity_presence, denied.attention_key), (ActivityPresence::Lingering, needs_ok_key));
         assert!(tracker.busy_session_transcripts().is_empty());
     }
 
@@ -338,7 +343,7 @@ mod tests {
             .iter()
             .map(|session_row| &session_row["sessionStatus"])
             .collect();
-        assert_eq!(session_statuses, ["working", "waitingForInput"]);
+        assert_eq!(session_statuses, ["working", "denied"]);
         assert_eq!(after_answers.attention_key, needs_ok_key);
         // A tool allowed in Claude Code that then failed: the session works on.
         tracker.record_hook_event(&hook_event("denied", POST_TOOL_USE_FAILURE_HOOK_EVENT, None), event_time);
@@ -463,7 +468,7 @@ mod tests {
         let (mut tracker, start_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         let silence_timeout = Duration::from_secs(600);
         launch_two_subagents(&mut tracker, start_time);
-        tracker.record_interrupt("a", start_time);
+        tracker.record_interrupt("a", ClaudeCodeSessionStatus::Cancelled, start_time);
         assert_eq!(top_session(&tracker)["unmentionedSubagentCount"], 0);
         tracker.record_hook_event(&subagent_event("a", SUBAGENT_START_HOOK_EVENT, "background"), start_time);
         // The main session keeps talking; the subagent says nothing more.

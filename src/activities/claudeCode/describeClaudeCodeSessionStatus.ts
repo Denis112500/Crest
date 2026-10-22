@@ -22,6 +22,10 @@ function describeStatusLine(claudeCodeSession: ClaudeCodeSessionRow): string {
       return "Waiting for you";
     case "needsPermission":
       return "Needs your OK";
+    case "cancelled":
+      return "Cancelled";
+    case "denied":
+      return "Denied";
     case "usageLimited":
       return claudeCodeSession.usageLimitResetsAt === null
         ? "Usage limit reached"

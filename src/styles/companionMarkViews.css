@@ -47,3 +47,8 @@
 .companion-claude-code-view[data-session-status="usageLimited"] .companion-claude-code-icon {
   color: var(--claude-code-usage-limit-color);
 }
+
+.companion-claude-code-view[data-session-status="cancelled"] .companion-claude-code-icon,
+.companion-claude-code-view[data-session-status="denied"] .companion-claude-code-icon {
+  color: var(--claude-code-stopped-by-user-color);
+}
