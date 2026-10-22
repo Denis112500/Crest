@@ -290,8 +290,8 @@ Crest/
       │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
       │  │  ├─ claude_code_integration_switch.rs  hooks and listening always switch on and off together
       │  │  ├─ claude_code_status_message.rs      what wakes the status thread (event, transcript change, answer, stop)
-      │  │  ├─ claude_code_interrupt_watch.rs     while a session is busy: watches its transcript for an interrupt or a deny
-      │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt line (Claude Code sends no hook for it; unit-tested)
+      │  │  ├─ claude_code_interrupt_watch.rs     while a session is busy: watches its transcript for an interrupt, a deny or stopped subagents
+      │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt and "agents stopped" lines (no hook for either; unit-tested)
       │  │  ├─ claude_code_transcript_continuation.rs  a session Claude Code continued under a new id leaves the list (unit-tested)
       │  │  ├─ claude_code_transcript_usage_limit.rs  when a reached usage limit resets, from the transcript (unit-tested)
       │  │  ├─ transcript_end_text.rs             reads a transcript's last few KB once
