@@ -1,8 +1,4 @@
-import {
-  PILL_ATTENTION_PEEK_DURATION_MILLISECONDS,
-  PILL_COLLAPSE_DELAY_AFTER_POINTER_LEAVES_MILLISECONDS,
-  PILL_HOVER_EXPAND_DELAY_MILLISECONDS,
-} from "../frontendConstants";
+import { PILL_COLLAPSE_DELAY_AFTER_POINTER_LEAVES_MILLISECONDS, PILL_HOVER_EXPAND_DELAY_MILLISECONDS } from "../frontendConstants";
 
 export type PillExpansionState = "compact" | "expanded";
 
@@ -26,7 +22,7 @@ export class PillStateMachine {
     this.isPointerCurrentlyOverPill = true;
     window.clearTimeout(this.pendingCollapseTimer);
     // While hovered, a running peek must not close the pill under the pointer.
-    window.clearTimeout(this.attentionPeekEndTimer);
+    this.stopAttentionPeek();
     this.startHoverExpandCountdownIfCompact();
   }
 
@@ -71,7 +67,7 @@ export class PillStateMachine {
   handlePointerRestedOnPill(): void {
     this.isPointerCurrentlyOverPill = true;
     window.clearTimeout(this.pendingCollapseTimer);
-    window.clearTimeout(this.attentionPeekEndTimer);
+    this.stopAttentionPeek();
     this.transitionTo("expanded");
   }
 
@@ -80,35 +76,39 @@ export class PillStateMachine {
     this.transitionTo("expanded");
   }
 
-  /** Something new (a track change): open for a few seconds, then close unless hovered or an
-      alert holds the pill open. */
-  handleAttentionRequested(): void {
+  /** Something new (a track change, Claude Code's news): open for `peekDurationMilliseconds`,
+      then close unless hovered or an alert holds the pill open. */
+  handleAttentionRequested(peekDurationMilliseconds: number): void {
     window.clearTimeout(this.pendingCollapseTimer);
-    window.clearTimeout(this.attentionPeekEndTimer);
+    this.stopAttentionPeek();
     this.transitionTo("expanded");
-    if (this.isHeldOpenByAlert) {
-      return;
-    }
     this.attentionPeekEndTimer = window.setTimeout(() => {
+      this.attentionPeekEndTimer = undefined;
       if (!this.isPointerCurrentlyOverPill && !this.isHeldOpenByAlert) {
         this.transitionTo("compact");
       }
-    }, PILL_ATTENTION_PEEK_DURATION_MILLISECONDS);
+    }, peekDurationMilliseconds);
+  }
+
+  private stopAttentionPeek(): void {
+    window.clearTimeout(this.attentionPeekEndTimer);
+    this.attentionPeekEndTimer = undefined;
   }
 
   /** An alert (a permission request) leads: the pill opens and stays open until it ends, so the
-      buttons can't close under the user. When it ends, the pill closes unless hovered. */
+      buttons can't close under the user. When it ends, the pill closes unless hovered, or unless
+      the answer itself was news (a Deny), whose peek was requested just before. */
   setHeldOpenByAlert(isHeldOpenByAlert: boolean): void {
     if (isHeldOpenByAlert === this.isHeldOpenByAlert) {
       return;
     }
     this.isHeldOpenByAlert = isHeldOpenByAlert;
     window.clearTimeout(this.pendingCollapseTimer);
-    window.clearTimeout(this.attentionPeekEndTimer);
     if (isHeldOpenByAlert) {
+      this.stopAttentionPeek();
       window.clearTimeout(this.pendingHoverExpandTimer);
       this.transitionTo("expanded");
-    } else if (!this.isPointerCurrentlyOverPill) {
+    } else if (!this.isPointerCurrentlyOverPill && this.attentionPeekEndTimer === undefined) {
       this.transitionTo("compact");
     }
   }
@@ -124,7 +124,7 @@ export class PillStateMachine {
   handlePillConcealed(): void {
     window.clearTimeout(this.pendingHoverExpandTimer);
     window.clearTimeout(this.pendingCollapseTimer);
-    window.clearTimeout(this.attentionPeekEndTimer);
+    this.stopAttentionPeek();
     this.isPointerCurrentlyOverPill = false;
     this.transitionTo("compact");
   }
