@@ -73,8 +73,8 @@ impl ClaudeCodeSessionTracker {
         }
     }
 
-    /// The pill answered the session's permission request. No peek either way: the user is
-    /// looking at the pill as they click.
+    /// The pill answered the session's permission request. A Deny is news like a "No" in Claude
+    /// Code (a peek and the red light until seen); an Allow just lets the session work on.
     pub fn record_permission_answer(&mut self, session_id: &str, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant) {
         let event_order = self.next_event_order;
         let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) else {
@@ -82,6 +82,9 @@ impl ClaudeCodeSessionTracker {
         };
         self.next_event_order += 1;
         tracked_session.show_permission_answer(permission_answer, event_time, event_order);
+        if permission_answer == ClaudeCodePermissionAnswer::Deny {
+            self.attention_event_count += 1;
+        }
     }
 
     /// The busy sessions (working, on their turn or their subagents, or waiting for an OK) whose
@@ -335,12 +338,13 @@ mod tests {
     }
 
     #[test]
-    fn an_answer_from_the_pill_moves_the_session_on_without_a_peek() {
+    fn an_allow_from_the_pill_is_no_news_and_a_deny_is() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("allowed", PERMISSION_REQUEST_HOOK_EVENT, None), event_time);
         tracker.record_hook_event(&hook_event("denied", PERMISSION_REQUEST_HOOK_EVENT, None), event_time);
         let needs_ok_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
         tracker.record_permission_answer("allowed", ClaudeCodePermissionAnswer::Allow, event_time);
+        assert_eq!(tracker.describe_activity(None, &[]).unwrap().attention_key, needs_ok_key);
         tracker.record_permission_answer("denied", ClaudeCodePermissionAnswer::Deny, event_time);
         let after_answers = tracker.describe_activity(None, &[]).unwrap();
         let session_statuses: Vec<&serde_json::Value> = after_answers.activity_payload["listedSessions"]
@@ -350,7 +354,7 @@ mod tests {
             .map(|session_row| &session_row["sessionStatus"])
             .collect();
         assert_eq!(session_statuses, ["working", "denied"]);
-        assert_eq!(after_answers.attention_key, needs_ok_key);
+        assert_ne!(after_answers.attention_key, needs_ok_key);
         // A tool allowed in Claude Code that then failed: the session works on.
         tracker.record_hook_event(&hook_event("denied", POST_TOOL_USE_FAILURE_HOOK_EVENT, None), event_time);
         assert_eq!(tracker.describe_activity(None, &[]).unwrap().activity_presence, ActivityPresence::Ongoing);
