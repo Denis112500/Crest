@@ -109,6 +109,15 @@ impl ClaudeCodeSessionTracker {
             .collect()
     }
 
+    /// The user dismissed a finished session with the "×" on its row. It leaves the list until
+    /// its next event (a new prompt shows it again, as working). A session that works or waits
+    /// for an OK stays: the click came from a row shown before it moved on.
+    pub fn dismiss_finished_session(&mut self, session_id: &str) {
+        if self.sessions_by_id.get(session_id).is_some_and(|tracked_session| !tracked_session.is_busy()) {
+            self.sessions_by_id.remove(session_id);
+        }
+    }
+
     /// The session continued under a new id, which carries on in its place.
     pub fn forget_session(&mut self, session_id: &str) {
         self.sessions_by_id.remove(session_id);
@@ -164,7 +173,7 @@ impl ClaudeCodeSessionTracker {
             .sessions_by_id
             .iter()
             .filter_map(|(session_id, tracked_session)| {
-                tracked_session.listable_session(sessions_waiting_for_an_answer.contains(session_id))
+                tracked_session.listable_session(session_id, sessions_waiting_for_an_answer.contains(session_id))
             })
             .collect();
         if listable_sessions.is_empty() {
@@ -372,6 +381,23 @@ mod tests {
         let top_row = &still_waiting.activity_payload["listedSessions"][0];
         assert_eq!((&top_row["sessionStatus"], &top_row["toolSummary"]), (&"needsPermission".into(), &serde_json::Value::Null));
         assert_eq!(top_session(&tracker)["sessionStatus"], "working");
+    }
+
+    #[test]
+    fn only_a_finished_session_can_be_dismissed_and_its_next_prompt_brings_it_back() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        tracker.record_hook_event(&hook_event("finished", STOP_HOOK_EVENT, None), event_time);
+        tracker.record_hook_event(&hook_event("working", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        let listed_sessions = tracker.describe_activity(None, &[]).unwrap().activity_payload["listedSessions"].clone();
+        assert_eq!((&listed_sessions[0]["sessionId"], &listed_sessions[0]["canDismiss"]), (&"working".into(), &false.into()));
+        assert_eq!((&listed_sessions[1]["sessionId"], &listed_sessions[1]["canDismiss"]), (&"finished".into(), &true.into()));
+        tracker.dismiss_finished_session("working");
+        tracker.dismiss_finished_session("finished");
+        let listed_sessions = tracker.describe_activity(None, &[]).unwrap().activity_payload["listedSessions"].clone();
+        assert_eq!(listed_sessions.as_array().unwrap().len(), 1);
+        assert_eq!(top_session(&tracker)["sessionId"], "working");
+        tracker.record_hook_event(&hook_event("finished", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        assert_eq!(tracker.describe_activity(None, &[]).unwrap().activity_payload["listedSessions"].as_array().unwrap().len(), 2);
     }
 
     #[test]

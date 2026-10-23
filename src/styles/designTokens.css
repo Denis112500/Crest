@@ -146,6 +146,11 @@
   --claude-code-session-row-inner-gap: 8px;
   --claude-code-session-status-dot-size: 9px;
   --claude-code-session-project-max-width: 45%;
+  /* The "×" that dismisses a finished session: a small round target, hidden until the row is
+     pointed at (CC.1 fixes). */
+  --claude-code-session-dismiss-button-size: 18px;
+  --claude-code-session-dismiss-font-size: 14px;
+  --claude-code-session-dismiss-hover-background: rgba(230, 240, 255, 0.12);
   --claude-code-needs-permission-color: #ffd98a;
   --claude-code-idle-session-color: rgba(230, 240, 255, 0.38);
   /* A finished session the user hasn't seen yet (design phase, L.2 answers). */

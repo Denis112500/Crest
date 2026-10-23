@@ -34,6 +34,8 @@ impl ClaudeCodeSessionStatus {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaudeCodeSessionRow {
+    /// Sent back with the "×", so a click can only dismiss the session it was shown on.
+    pub session_id: String,
     pub session_status: ClaudeCodeSessionStatus,
     /// Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents".
     pub tool_summary: Option<String>,
@@ -43,6 +45,8 @@ pub struct ClaudeCodeSessionRow {
     pub unmentioned_subagent_count: usize,
     /// When a reached usage limit resets (Unix seconds), if the transcript said.
     pub usage_limit_resets_at: Option<u64>,
+    /// Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it.
+    pub can_dismiss: bool,
 }
 
 /// What the pill's Claude Code views receive (mirrored in `claudeCodeStatusTypes.ts`).
@@ -105,11 +109,13 @@ mod tests {
     fn listable(project_folder_name: &str, session_status: ClaudeCodeSessionStatus, last_event_order: u64) -> ListableClaudeCodeSession {
         ListableClaudeCodeSession {
             session_row: ClaudeCodeSessionRow {
+                session_id: project_folder_name.to_string(),
                 session_status,
                 tool_summary: None,
                 project_folder_name: project_folder_name.to_string(),
                 unmentioned_subagent_count: 0,
                 usage_limit_resets_at: None,
+                can_dismiss: !session_status.is_busy(),
             },
             last_event_order,
         }

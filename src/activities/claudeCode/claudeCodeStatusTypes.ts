@@ -11,6 +11,8 @@ export type ClaudeCodeSessionStatus =
   | "denied";
 
 export interface ClaudeCodeSessionRow {
+  /** Sent back with the "×", so a click can only dismiss the session it was shown on. */
+  sessionId: string;
   sessionStatus: ClaudeCodeSessionStatus;
   /** Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents". */
   toolSummary: string | null;
@@ -19,6 +21,8 @@ export interface ClaudeCodeSessionRow {
   unmentionedSubagentCount: number;
   /** When a reached usage limit resets (Unix seconds), if Claude Code's transcript said. */
   usageLimitResetsAt: number | null;
+  /** Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it. */
+  canDismiss: boolean;
 }
 
 /** A command as it will run (lines separated by "\n", hidden characters shown as "�"), a

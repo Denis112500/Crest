@@ -221,7 +221,7 @@ impl TrackedSession {
     /// Its row in the pill's list, `None` while there is nothing to show yet. A session with a
     /// request still waiting shows "needs your OK" whatever it sent since; one whose turn ended
     /// while background subagents still run shows as working on them ("Running 3 subagents").
-    pub fn listable_session(&self, is_waiting_for_an_answer: bool) -> Option<ListableClaudeCodeSession> {
+    pub fn listable_session(&self, session_id: &str, is_waiting_for_an_answer: bool) -> Option<ListableClaudeCodeSession> {
         let is_waiting_on_subagents = !is_waiting_for_an_answer && self.is_waiting_on_subagents();
         let session_status = match (is_waiting_for_an_answer, is_waiting_on_subagents) {
             (true, _) => ClaudeCodeSessionStatus::NeedsPermission,
@@ -236,11 +236,13 @@ impl TrackedSession {
         };
         Some(ListableClaudeCodeSession {
             session_row: ClaudeCodeSessionRow {
+                session_id: session_id.to_string(),
                 session_status,
                 tool_summary,
                 project_folder_name: self.project_folder_name.clone(),
                 unmentioned_subagent_count,
                 usage_limit_resets_at: self.usage_limit_wait.map(|usage_limit_wait| usage_limit_wait.resets_at_unix_seconds),
+                can_dismiss: !session_status.is_busy(),
             },
             last_event_order: self.last_event_order,
         })

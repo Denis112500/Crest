@@ -10,7 +10,7 @@ use crate::activity_sources::claude_code::claude_code_permission_answering_switc
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
 use crate::activity_sources::claude_code::claude_code_status_thread::publish_claude_code_status;
 use crate::claude_code_hook_channel::{ClaudeCodeHookChannel, CurrentPlatformClaudeCodeHookChannel, RunningHookEventServer};
-use crate::ipc_channel_names::CLAUDE_CODE_ACTIVITY_KIND;
+use crate::ipc_channel_names::{CLAUDE_CODE_ACTIVITY_KIND, CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX};
 
 const CLAUDE_CODE_STATUS_THREAD_NAME: &str = "crest-claude-code-status";
 
@@ -83,14 +83,20 @@ impl ActivitySource for ClaudeCodeActivitySource {
         }
     }
 
-    /// Allow or Deny from the pill's alert; the status thread sends it to the waiting hook.
+    /// Allow or Deny from the pill's alert (the status thread sends it to the waiting hook), or the
+    /// "×" that dismisses a finished session.
     fn perform_activity_action(&self, activity_action: &str) -> Result<(), String> {
-        let (permission_answer, request_id) = parse_permission_action(activity_action)
-            .ok_or_else(|| format!("the Claude Code activity has no action \"{activity_action}\""))?;
+        let status_message = if let Some(session_id) = activity_action.strip_prefix(CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX) {
+            ClaudeCodeStatusMessage::SessionDismissed { session_id: session_id.to_string() }
+        } else {
+            let (permission_answer, request_id) = parse_permission_action(activity_action)
+                .ok_or_else(|| format!("the Claude Code activity has no action \"{activity_action}\""))?;
+            ClaudeCodeStatusMessage::PermissionAnswered { request_id, permission_answer }
+        };
         self.status_message_sender
             .as_ref()
             .ok_or("the Claude Code integration isn't running")?
-            .send(ClaudeCodeStatusMessage::PermissionAnswered { request_id, permission_answer })
+            .send(status_message)
             .map_err(|_| "the Claude Code status thread has stopped".to_string())
     }
 }

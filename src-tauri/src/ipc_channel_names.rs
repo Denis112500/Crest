@@ -33,3 +33,5 @@ pub const CLAUDE_CODE_ACTIVITY_KIND: &str = "claude-code";
 /// click can only answer the request it was shown for.
 pub const CLAUDE_CODE_ALLOW_PERMISSION_ACTION_PREFIX: &str = "allow-permission:";
 pub const CLAUDE_CODE_DENY_PERMISSION_ACTION_PREFIX: &str = "deny-permission:";
+/// The "×" on a finished session's row, followed by its session id ("dismiss-session:<id>").
+pub const CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX: &str = "dismiss-session:";

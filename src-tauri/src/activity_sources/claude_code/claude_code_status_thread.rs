@@ -82,6 +82,9 @@ pub fn publish_claude_code_status(
                 session_tracker.forget_sessions_silent_for(CLAUDE_CODE_SESSION_SILENCE_TIMEOUT, current_time);
                 permission_queue.release_requests_older_than(CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE, current_time);
             }
+            Ok(ClaudeCodeStatusMessage::SessionDismissed { session_id }) => {
+                session_tracker.dismiss_finished_session(&session_id)
+            }
             Ok(ClaudeCodeStatusMessage::PermissionAnsweringChanged) => {}
             Ok(ClaudeCodeStatusMessage::StopPublishing) | Err(RecvTimeoutError::Disconnected) => break,
         }
