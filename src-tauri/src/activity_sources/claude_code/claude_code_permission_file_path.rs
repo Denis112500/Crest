@@ -11,7 +11,7 @@ const SHORTENED_PART_MARK: &str = "…";
 
 /// The folders a requested path is shown relative to.
 pub struct PermissionRequestFolders<'a> {
-    /// The session's working folder (`cwd` of the hook event).
+    /// The folder the session started in (`ClaudeCodeHookEvent::session_project_folder`).
     pub project_folder: Option<&'a str>,
     pub home_folder: Option<&'a str>,
 }
@@ -72,6 +72,9 @@ mod tests {
         assert_eq!(show_requested_file_path(r"C:\Users\someone\project\src\main.ts", &WINDOWS_FOLDERS), r"src\main.ts");
         let linux_folders = PermissionRequestFolders { project_folder: Some("/home/someone/project/"), home_folder: None };
         assert_eq!(show_requested_file_path("/home/someone/project/notes.md", &linux_folders), "notes.md");
+        // CLAUDE_PROJECT_DIR comes with "/" on Windows (verified by testing, 2026-10-24).
+        let start_folder = PermissionRequestFolders { project_folder: Some("C:/Users/someone/project"), home_folder: None };
+        assert_eq!(show_requested_file_path(r"C:\Users\someone\project\src-tauri\main.rs", &start_folder), r"src-tauri\main.rs");
     }
 
     #[test]

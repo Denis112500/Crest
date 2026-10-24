@@ -62,8 +62,8 @@ impl TrackedSession {
         } else if let Some(transcript_path) = &hook_event.transcript_path {
             self.transcript_path = Some(PathBuf::from(transcript_path));
         }
-        if let Some(working_folder) = &hook_event.cwd {
-            self.project_folder_name = find_last_path_part(working_folder).unwrap_or_default().to_string();
+        if let Some(project_folder) = hook_event.session_project_folder() {
+            self.project_folder_name = find_last_path_part(project_folder).unwrap_or_default().to_string();
         }
         match (hook_event.hook_event_name.as_str(), hook_event.notification_type.as_deref()) {
             (USER_PROMPT_SUBMIT_HOOK_EVENT, _)

@@ -33,6 +33,7 @@ mod transcript_end_text;
 mod transcript_tail_reader;
 mod visible_text_shaping;
 
+pub use claude_code_hook_event::{add_session_project_folder, CLAUDE_CODE_PROJECT_FOLDER_VARIABLE};
 pub use claude_code_hook_registration::{build_crest_hook_command, build_crest_hooks};
 pub use claude_code_integration_switch::{
     change_claude_code_permission_answering, turn_claude_code_integration_off, turn_claude_code_integration_on,

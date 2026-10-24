@@ -291,6 +291,18 @@ mod tests {
     }
 
     #[test]
+    fn the_session_keeps_its_start_folder_s_name_after_claude_moves_with_cd() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        let moved_into_subfolder = ClaudeCodeHookEvent {
+            cwd: Some(r"C:\Projects\Dynamic Island\src-tauri".to_string()),
+            crest_session_project_folder: Some(r"C:\Projects\Dynamic Island".to_string()),
+            ..hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None)
+        };
+        tracker.record_hook_event(&moved_into_subfolder, event_time);
+        assert_eq!(top_session(&tracker)["projectFolderName"], "Dynamic Island");
+    }
+
+    #[test]
     fn a_permission_prompt_is_ongoing_news_and_session_end_withdraws() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(PERMISSION_PROMPT_NOTIFICATION)), event_time);

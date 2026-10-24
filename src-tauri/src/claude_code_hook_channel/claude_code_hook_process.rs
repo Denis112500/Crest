@@ -4,6 +4,7 @@
 
 use std::io::{Read, Write};
 
+use crate::activity_sources::claude_code::{add_session_project_folder, CLAUDE_CODE_PROJECT_FOLDER_VARIABLE};
 use crate::claude_code_hook_channel::{ClaudeCodeHookChannel, CurrentPlatformClaudeCodeHookChannel};
 
 /// Always ends normally (exit code 0): a hook that fails would show an error in Claude Code,
@@ -13,6 +14,9 @@ pub fn run_as_claude_code_hook() {
     if std::io::stdin().read_to_end(&mut hook_event_json).is_err() {
         return;
     }
+    // Only the hook's environment says where the session started; the running Crest can't ask.
+    let session_project_folder = std::env::var(CLAUDE_CODE_PROJECT_FOLDER_VARIABLE).ok();
+    let hook_event_json = add_session_project_folder(hook_event_json, session_project_folder.as_deref());
     if let Some(crest_reply) = CurrentPlatformClaudeCodeHookChannel::forward_hook_event(&hook_event_json) {
         let _ = std::io::stdout().write_all(&crest_reply);
     }

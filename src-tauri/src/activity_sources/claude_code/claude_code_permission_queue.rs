@@ -69,14 +69,14 @@ impl ClaudeCodePermissionQueue {
         self.pending_requests.push(PendingPermissionRequest {
             request_id,
             session_id: hook_event.session_id.clone(),
-            project_folder_name: hook_event.cwd.as_deref().and_then(find_last_path_part).unwrap_or_default().to_string(),
+            project_folder_name: hook_event.session_project_folder().and_then(find_last_path_part).unwrap_or_default().to_string(),
             tool_name: hook_event.tool_name.clone(),
             tool_input: hook_event.tool_input.clone(),
             request_description: describe_permission_request(
                 tool_name,
                 hook_event.tool_input.as_ref(),
                 &PermissionRequestFolders {
-                    project_folder: hook_event.cwd.as_deref(),
+                    project_folder: hook_event.session_project_folder(),
                     home_folder: self.home_folder.as_deref(),
                 },
             ),
