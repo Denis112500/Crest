@@ -27,6 +27,8 @@ mod claude_code_transcript_usage_limit;
 mod claude_code_turn_summary;
 mod claude_code_usage_limit_wait;
 mod last_path_part;
+mod markdown_inline_markup;
+mod markdown_prose_paragraphs;
 mod transcript_end_text;
 mod transcript_tail_reader;
 mod visible_text_shaping;

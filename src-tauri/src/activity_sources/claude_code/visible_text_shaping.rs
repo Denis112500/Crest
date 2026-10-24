@@ -49,3 +49,18 @@ pub fn cut_with_ellipsis(full_text: &str, max_characters: usize) -> String {
     cut_text.push(ELLIPSIS);
     cut_text
 }
+
+/// For prose: cut at the last space when one comes in the second half (a word isn't split),
+/// without a dangling comma or colon before the ellipsis.
+pub fn cut_at_word_with_ellipsis(full_text: &str, max_characters: usize) -> String {
+    if full_text.chars().count() <= max_characters {
+        return full_text.to_string();
+    }
+    let mut cut_text: String = full_text.chars().take(max_characters - 1).collect();
+    if let Some(last_space_index) = cut_text.rfind(' ').filter(|&last_space_index| last_space_index > cut_text.len() / 2) {
+        cut_text.truncate(last_space_index);
+    }
+    let mut cut_text = cut_text.trim_end_matches([' ', ',', ';', ':']).to_string();
+    cut_text.push(ELLIPSIS);
+    cut_text
+}
