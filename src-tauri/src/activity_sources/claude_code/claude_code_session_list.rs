@@ -45,6 +45,8 @@ pub struct ClaudeCodeSessionRow {
     pub unmentioned_subagent_count: usize,
     /// When a reached usage limit resets (Unix seconds), if the transcript said.
     pub usage_limit_resets_at: Option<u64>,
+    /// Only while "done": a line from Claude's final answer, shown under the row.
+    pub turn_summary: Option<String>,
     /// Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it.
     pub can_dismiss: bool,
 }
@@ -115,6 +117,7 @@ mod tests {
                 project_folder_name: project_folder_name.to_string(),
                 unmentioned_subagent_count: 0,
                 usage_limit_resets_at: None,
+                turn_summary: None,
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order,

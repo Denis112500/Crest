@@ -27,8 +27,9 @@ export const PILL_EXPANDED_MAX_CONTENT_LOGICAL_WIDTH = Math.max(
   CLAUDE_CODE_PERMISSION_ALERT_LOGICAL_WIDTH,
 );
 // The open pill is as tall as its tallest tile (each view set reports its own height), up to
-// this much; the window is sized for it.
-export const PILL_EXPANDED_MAX_LOGICAL_HEIGHT = 200;
+// this much; the window is sized for it. 220 since CC.2: three done sessions, each with its
+// summary line, plus "+N more" (200 before).
+export const PILL_EXPANDED_MAX_LOGICAL_HEIGHT = 220;
 export const MUSIC_EXPANDED_LOGICAL_HEIGHT = 128;
 export const NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT = 96;
 // The idle tile (nothing on, opened from the top edge): the same height as the mockup (P.3b).
@@ -37,11 +38,13 @@ export const IDLE_EXPANDED_LOGICAL_HEIGHT = 96;
 // The open Claude Code view: a header, one row per listed session (at most 3, decided in Rust's
 // CLAUDE_CODE_LISTED_SESSION_MAX_COUNT), then "+N more". Its height is calculated from these
 // (calculateClaudeCodeExpandedHeight.ts), so the CSS gets the same numbers; 3 rows + "+N more"
-// = 172, inside PILL_EXPANDED_MAX_LOGICAL_HEIGHT.
+// = 172, and 220 with a summary line under each, inside PILL_EXPANDED_MAX_LOGICAL_HEIGHT.
 export const CLAUDE_CODE_EXPANDED_LOGICAL_PADDING = 18;
 export const CLAUDE_CODE_EXPANDED_HEADER_LOGICAL_HEIGHT = 22;
 export const CLAUDE_CODE_EXPANDED_SECTION_LOGICAL_GAP = 12;
 export const CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT = 22;
+// The dim line from Claude's final answer under a done row (CC.2).
+export const CLAUDE_CODE_SESSION_TURN_SUMMARY_LOGICAL_HEIGHT = 16;
 export const CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP = 4;
 export const CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT = 16;
 

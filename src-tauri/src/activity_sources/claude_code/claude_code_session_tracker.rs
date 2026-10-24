@@ -253,6 +253,43 @@ mod tests {
         assert_eq!(tracker.describe_activity(None, &[]).unwrap(), done);
     }
 
+    fn stop_with_answer(session_id: &str, final_answer: &str) -> ClaudeCodeHookEvent {
+        ClaudeCodeHookEvent { last_assistant_message: Some(final_answer.to_string()), ..hook_event(session_id, STOP_HOOK_EVENT, None) }
+    }
+
+    #[test]
+    fn done_shows_the_answer_s_summary_until_the_next_prompt_or_interrupt() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        tracker.record_hook_event(&hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        assert!(top_session(&tracker)["turnSummary"].is_null());
+        tracker.record_hook_event(&stop_with_answer("a", "Tests pass.\n\nSay commit."), event_time);
+        assert_eq!(top_session(&tracker)["turnSummary"], "Tests pass.");
+        tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION)), event_time);
+        assert_eq!(top_session(&tracker)["turnSummary"], "Tests pass.");
+        tracker.record_hook_event(&hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        assert!(top_session(&tracker)["turnSummary"].is_null());
+        tracker.record_interrupt("a", ClaudeCodeSessionStatus::Cancelled, event_time);
+        assert!(top_session(&tracker)["turnSummary"].is_null());
+        tracker.record_hook_event(&hook_event("a", STOP_HOOK_EVENT, None), event_time);
+        assert!(top_session(&tracker)["turnSummary"].is_null());
+    }
+
+    #[test]
+    fn the_summary_waits_for_the_last_background_subagent_and_ignores_the_subagents_answers() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        launch_two_subagents(&mut tracker, event_time);
+        tracker.record_hook_event(&stop_with_answer("a", "Two agents started."), event_time);
+        assert!(top_session(&tracker)["turnSummary"].is_null());
+        let subagent_answer = ClaudeCodeHookEvent {
+            last_assistant_message: Some("Found 3 files.".to_string()),
+            ..subagent_event("a", SUBAGENT_STOP_HOOK_EVENT, "explore-1")
+        };
+        tracker.record_hook_event(&subagent_answer, event_time);
+        tracker.record_hook_event(&subagent_event("a", SUBAGENT_STOP_HOOK_EVENT, "explore-2"), event_time);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "done");
+        assert_eq!(top_session(&tracker)["turnSummary"], "Two agents started.");
+    }
+
     #[test]
     fn a_permission_prompt_is_ongoing_news_and_session_end_withdraws() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());

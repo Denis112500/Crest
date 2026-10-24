@@ -144,6 +144,11 @@ pub const CLAUDE_CODE_USAGE_LIMIT_MAX_LISTED_WAIT: Duration = Duration::from_sec
 /// The tool line in the pill ("Running cargo test --release …") is cut to this many characters.
 pub const CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS: usize = 40;
 
+/// The line under a finished session's row is cut to this many characters; the row cuts it
+/// again to its width. 90 % of the first sentences in local turn endings were under 122
+/// characters (2026-10-24), and the companion mark's tooltip has room for more than the row.
+pub const CLAUDE_CODE_TURN_SUMMARY_MAX_CHARACTERS: usize = 160;
+
 /// The open pill lists at most this many sessions, then "+N more"; its height budget
 /// (`PILL_EXPANDED_MAX_LOGICAL_HEIGHT` in `frontendConstants.ts`) has room for this many rows.
 pub const CLAUDE_CODE_LISTED_SESSION_MAX_COUNT: usize = 3;

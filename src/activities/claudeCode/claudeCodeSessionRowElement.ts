@@ -7,9 +7,25 @@ const UNKNOWN_PROJECT_FOLDER_TEXT = "Unknown folder";
 const DISMISS_BUTTON_TEXT = "×";
 
 // One session in the open pill: a dot coloured by its status, its project folder and what it is
-// doing, and for a finished one a "×" that removes it from the list (shown while the row is
-// pointed at). The row itself isn't clickable: hook events don't say which window a session runs in.
+// doing, and for a finished one a "×" that removes it from the list (shown while the session is
+// pointed at). A done session adds a dim line from Claude's final answer under it. The row
+// itself isn't clickable: hook events don't say which window a session runs in.
 export function createClaudeCodeSessionRowElement(claudeCodeSession: ClaudeCodeSessionRow): HTMLElement {
+  const sessionEntryElement = document.createElement("div");
+  sessionEntryElement.className = "claude-code-session-entry";
+  sessionEntryElement.append(createSessionLineElement(claudeCodeSession));
+  if (claudeCodeSession.turnSummary !== null) {
+    const turnSummaryElement = document.createElement("div");
+    turnSummaryElement.className = "claude-code-session-turn-summary";
+    // textContent, never innerHTML: Claude's answer must not be able to inject markup.
+    turnSummaryElement.textContent = claudeCodeSession.turnSummary;
+    turnSummaryElement.title = claudeCodeSession.turnSummary;
+    sessionEntryElement.append(turnSummaryElement);
+  }
+  return sessionEntryElement;
+}
+
+function createSessionLineElement(claudeCodeSession: ClaudeCodeSessionRow): HTMLElement {
   const sessionRowElement = document.createElement("div");
   sessionRowElement.className = "claude-code-session-row";
   sessionRowElement.dataset.sessionStatus = claudeCodeSession.sessionStatus;

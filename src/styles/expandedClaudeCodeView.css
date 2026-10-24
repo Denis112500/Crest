@@ -106,7 +106,7 @@
   opacity: 0;
 }
 
-.claude-code-session-row:hover .claude-code-session-dismiss-button,
+.claude-code-session-entry:hover .claude-code-session-dismiss-button,
 .claude-code-session-dismiss-button:focus-visible {
   opacity: var(--pill-secondary-text-opacity);
 }
@@ -134,6 +134,18 @@
 
 .claude-code-session-status {
   flex: 1;
+}
+
+/* Starts under the folder name, past the dot and its gap; one line, ending in "…". */
+.claude-code-session-turn-summary {
+  height: var(--claude-code-session-turn-summary-height);
+  line-height: var(--claude-code-session-turn-summary-height);
+  padding-left: calc(var(--claude-code-session-status-dot-size) + var(--claude-code-session-row-inner-gap));
+  font-size: var(--claude-code-session-turn-summary-font-size);
+  opacity: var(--pill-secondary-text-opacity);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .claude-code-unlisted-sessions {

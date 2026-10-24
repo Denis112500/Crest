@@ -26,6 +26,10 @@ pub struct ClaudeCodeHookEvent {
     /// Why a turn ended on an API error (`StopFailure` only), e.g. "rate_limit".
     #[serde(default)]
     pub error: Option<String>,
+    /// On `Stop`: Claude's final answer as raw markdown, only the turn's last message (verified
+    /// by testing, 2026-10-24). On `SubagentStop` the subagent's own, on `StopFailure` the error.
+    #[serde(default)]
+    pub last_assistant_message: Option<String>,
 }
 
 impl ClaudeCodeHookEvent {

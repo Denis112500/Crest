@@ -12,6 +12,7 @@ use crate::activity_sources::claude_code::claude_code_session_list::{
     ClaudeCodeSessionRow, ClaudeCodeSessionStatus, ListableClaudeCodeSession,
 };
 use crate::activity_sources::claude_code::claude_code_tool_summary::{summarize_tool_use, SUBAGENT_LAUNCH_TOOL_NAMES};
+use crate::activity_sources::claude_code::claude_code_turn_summary::summarize_final_answer;
 use crate::activity_sources::claude_code::claude_code_usage_limit_wait::ClaudeCodeUsageLimitWait;
 use crate::activity_sources::claude_code::last_path_part::find_last_path_part;
 
@@ -25,6 +26,8 @@ pub struct TrackedSession {
     is_tool_a_subagent_launch: bool,
     running_subagents: ClaudeCodeRunningSubagents,
     usage_limit_wait: Option<ClaudeCodeUsageLimitWait>,
+    /// From the `Stop` that ended the turn; any later status forgets it.
+    turn_summary: Option<String>,
     pub last_event_time: Instant,
     last_event_order: u64,
 }
@@ -40,6 +43,7 @@ impl TrackedSession {
             is_tool_a_subagent_launch: false,
             running_subagents: ClaudeCodeRunningSubagents::default(),
             usage_limit_wait: None,
+            turn_summary: None,
             last_event_time: event_time,
             last_event_order: event_order,
         }
@@ -80,6 +84,7 @@ impl TrackedSession {
             // doesn't ("Waiting for 3 background agents to finish"): the news waits for the last one.
             (STOP_HOOK_EVENT, _) => {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Done);
+                self.turn_summary = hook_event.last_assistant_message.as_deref().and_then(summarize_final_answer);
                 !self.is_waiting_on_subagents()
             }
             (STOP_FAILURE_HOOK_EVENT, _) if hook_event.is_usage_limit_stop() => {
@@ -242,6 +247,8 @@ impl TrackedSession {
                 project_folder_name: self.project_folder_name.clone(),
                 unmentioned_subagent_count,
                 usage_limit_resets_at: self.usage_limit_wait.map(|usage_limit_wait| usage_limit_wait.resets_at_unix_seconds),
+                // Waiting on background subagents shows as working: the summary waits for "done".
+                turn_summary: if session_status == ClaudeCodeSessionStatus::Done { self.turn_summary.clone() } else { None },
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order: self.last_event_order,
@@ -254,11 +261,13 @@ impl TrackedSession {
         self.last_event_order = event_order;
     }
 
-    /// Leaving the usage-limited state also forgets when the limit resets.
+    /// Leaving the usage-limited state also forgets when the limit resets, and any new status
+    /// forgets the last turn's summary (a `Stop` sets its own afterwards).
     fn show_status_without_tool(&mut self, session_status: ClaudeCodeSessionStatus) {
         if session_status != ClaudeCodeSessionStatus::UsageLimited {
             self.usage_limit_wait = None;
         }
+        self.turn_summary = None;
         self.session_status = Some(session_status);
         self.tool_summary = None;
         self.is_tool_a_subagent_launch = false;

@@ -21,7 +21,7 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
   const expandedSlotElement = document.createElement("div");
   expandedSlotElement.className = "claude-code-expanded-slot";
   // Replaced by the first payload, which always comes right after the views are mounted.
-  let expandedLogicalHeight = calculateClaudeCodeExpandedHeight(1, false);
+  let expandedLogicalHeight = calculateClaudeCodeExpandedHeight(1, 0, false);
   let isPermissionAlertShown = false;
   let isExpandedViewVisible = false;
   return {
@@ -47,6 +47,7 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
       showInExpandedSlot(expandedSlotElement, expandedClaudeCodeView.expandedViewElement);
       expandedLogicalHeight = calculateClaudeCodeExpandedHeight(
         claudeCodeStatus.listedSessions.length,
+        claudeCodeStatus.listedSessions.filter((claudeCodeSession) => claudeCodeSession.turnSummary !== null).length,
         claudeCodeStatus.unlistedSessionCount > 0,
       );
     },

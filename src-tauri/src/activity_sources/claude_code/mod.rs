@@ -24,10 +24,12 @@ mod claude_code_transcript_continuation;
 mod claude_code_tracked_session;
 mod claude_code_transcript_interrupt;
 mod claude_code_transcript_usage_limit;
+mod claude_code_turn_summary;
 mod claude_code_usage_limit_wait;
 mod last_path_part;
 mod transcript_end_text;
 mod transcript_tail_reader;
+mod visible_text_shaping;
 
 pub use claude_code_hook_registration::{build_crest_hook_command, build_crest_hooks};
 pub use claude_code_integration_switch::{
