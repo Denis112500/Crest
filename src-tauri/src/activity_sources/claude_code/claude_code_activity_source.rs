@@ -35,7 +35,7 @@ impl ActivitySource for ClaudeCodeActivitySource {
     /// waiting hook, to the status thread, which owns everything else and answers the hooks.
     fn start_publishing(&mut self, activity_publisher: ActivityPublisher) -> Result<(), String> {
         let (status_message_sender, status_message_receiver) = mpsc::channel::<ClaudeCodeStatusMessage>();
-        let interrupt_watch_sender = status_message_sender.clone();
+        let transcript_watch_sender = status_message_sender.clone();
         self.status_message_sender = Some(status_message_sender.clone());
         self.permission_answering_switch.connect_status_thread(status_message_sender.clone());
         let permission_answering_switch = self.permission_answering_switch.clone();
@@ -44,7 +44,7 @@ impl ActivitySource for ClaudeCodeActivitySource {
             .spawn(move || {
                 publish_claude_code_status(
                     status_message_receiver,
-                    interrupt_watch_sender,
+                    transcript_watch_sender,
                     activity_publisher,
                     permission_answering_switch,
                 )
@@ -63,7 +63,7 @@ impl ActivitySource for ClaudeCodeActivitySource {
                 Ok(())
             }
             Err(server_start_error) => {
-                // The thread's channel never closes by itself (the interrupt watch and the
+                // The thread's channel never closes by itself (the transcript watch and the
                 // answering switch hold senders too), so it must be told to end.
                 self.stop_publishing();
                 Err(server_start_error)

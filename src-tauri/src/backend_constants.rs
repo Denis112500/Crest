@@ -149,6 +149,11 @@ pub const CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS: usize = 40;
 /// characters (2026-10-24), and the companion mark's tooltip has room for more than the row.
 pub const CLAUDE_CODE_TURN_SUMMARY_MAX_CHARACTERS: usize = 160;
 
+/// A session's title after its folder in the row is cut to this many characters; the row cuts
+/// it again to its width. Made-up titles are a few words ("Tauri source directory"); chosen
+/// ones can be a whole sentence (seen 2026-10-24).
+pub const CLAUDE_CODE_SESSION_TITLE_MAX_CHARACTERS: usize = 60;
+
 /// The open pill lists at most this many sessions, then "+N more"; its height budget
 /// (`PILL_EXPANDED_MAX_LOGICAL_HEIGHT` in `frontendConstants.ts`) has room for this many rows.
 pub const CLAUDE_CODE_LISTED_SESSION_MAX_COUNT: usize = 3;

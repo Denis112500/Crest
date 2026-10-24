@@ -116,9 +116,10 @@
   background: var(--claude-code-session-dismiss-hover-background);
 }
 
-/* Long folder names and tool lines end in "…". min-width: 0 lets a flex child shrink below
-   its text width. */
+/* Long folder names, titles and tool lines end in "…". min-width: 0 lets a flex child shrink
+   below its text width. */
 .claude-code-session-project,
+.claude-code-session-title,
 .claude-code-session-status {
   min-width: 0;
   overflow: hidden;
@@ -126,14 +127,31 @@
   text-overflow: ellipsis;
 }
 
+/* The folder and the session's title share one part of the row; the title gives way first. */
+.claude-code-session-name {
+  flex: 0 1 auto;
+  display: flex;
+  gap: var(--claude-code-session-title-gap);
+  min-width: 0;
+  max-width: var(--claude-code-session-name-max-width);
+}
+
+/* Only the title shrinks; the folder is cut only when it alone is wider than the name part. */
 .claude-code-session-project {
   flex: none;
-  max-width: var(--claude-code-session-project-max-width);
+  max-width: 100%;
   font-weight: var(--pill-title-font-weight);
 }
 
+.claude-code-session-title {
+  flex: 0 1 auto;
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+/* At the right end, so the names line up whatever the sessions are doing. */
 .claude-code-session-status {
   flex: 1;
+  text-align: end;
 }
 
 /* Starts under the folder name, past the dot and its gap; one line, ending in "…". */

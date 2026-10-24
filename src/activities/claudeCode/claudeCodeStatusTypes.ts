@@ -17,6 +17,8 @@ export interface ClaudeCodeSessionRow {
   /** Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents". */
   toolSummary: string | null;
   projectFolderName: string;
+  /** Shown after the folder, so sessions of one folder can be told apart. */
+  sessionTitle: string | null;
   /** Running subagents the line doesn't already count ("Editing main.rs · 1 subagent"). */
   unmentionedSubagentCount: number;
   /** When a reached usage limit resets (Unix seconds), if Claude Code's transcript said. */

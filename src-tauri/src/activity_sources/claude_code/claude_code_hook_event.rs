@@ -23,6 +23,10 @@ pub struct ClaudeCodeHookEvent {
     /// Where the session started (`CREST_SESSION_PROJECT_FOLDER_FIELD`, added by the hook process).
     #[serde(default)]
     pub crest_session_project_folder: Option<String>,
+    /// A title the user gave the session (`--name`, `/rename`), on `SessionStart` and
+    /// `UserPromptSubmit` only (verified from docs); a made-up title is only in the transcript.
+    #[serde(default)]
+    pub session_title: Option<String>,
     /// The session's transcript (JSONL); watched for the interrupt line while the session is busy.
     #[serde(default)]
     pub transcript_path: Option<String>,

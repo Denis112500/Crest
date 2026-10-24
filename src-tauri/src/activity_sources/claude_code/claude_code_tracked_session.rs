@@ -11,6 +11,7 @@ use crate::activity_sources::claude_code::claude_code_running_subagents::ClaudeC
 use crate::activity_sources::claude_code::claude_code_session_list::{
     ClaudeCodeSessionRow, ClaudeCodeSessionStatus, ListableClaudeCodeSession,
 };
+use crate::activity_sources::claude_code::claude_code_session_title::ClaudeCodeSessionTitle;
 use crate::activity_sources::claude_code::claude_code_tool_summary::{summarize_tool_use, SUBAGENT_LAUNCH_TOOL_NAMES};
 use crate::activity_sources::claude_code::claude_code_turn_summary::summarize_final_answer;
 use crate::activity_sources::claude_code::claude_code_usage_limit_wait::ClaudeCodeUsageLimitWait;
@@ -28,6 +29,7 @@ pub struct TrackedSession {
     usage_limit_wait: Option<ClaudeCodeUsageLimitWait>,
     /// From the `Stop` that ended the turn; any later status forgets it.
     turn_summary: Option<String>,
+    session_title: Option<ClaudeCodeSessionTitle>,
     pub last_event_time: Instant,
     last_event_order: u64,
 }
@@ -44,6 +46,7 @@ impl TrackedSession {
             running_subagents: ClaudeCodeRunningSubagents::default(),
             usage_limit_wait: None,
             turn_summary: None,
+            session_title: None,
             last_event_time: event_time,
             last_event_order: event_order,
         }
@@ -54,7 +57,7 @@ impl TrackedSession {
     pub fn apply_hook_event(&mut self, hook_event: &ClaudeCodeHookEvent, event_time: Instant, event_order: u64) -> bool {
         self.note_event(event_time, event_order);
         // Whether a subagent's events name its own transcript or the session's isn't documented:
-        // only the session's own events set the transcript the interrupt watch follows.
+        // only the session's own events set the transcript the transcript watch follows.
         if let Some(agent_id) = &hook_event.agent_id {
             if let Some(is_news) = self.apply_subagent_event(agent_id, &hook_event.hook_event_name, event_time) {
                 return is_news;
@@ -64,6 +67,9 @@ impl TrackedSession {
         }
         if let Some(project_folder) = hook_event.session_project_folder() {
             self.project_folder_name = find_last_path_part(project_folder).unwrap_or_default().to_string();
+        }
+        if let Some(chosen_title) = hook_event.session_title.as_deref().and_then(|raw_title| ClaudeCodeSessionTitle::new(raw_title, true)) {
+            self.show_session_title(chosen_title);
         }
         match (hook_event.hook_event_name.as_str(), hook_event.notification_type.as_deref()) {
             (USER_PROMPT_SUBMIT_HOOK_EVENT, _)
@@ -163,6 +169,14 @@ impl TrackedSession {
         self.session_status == Some(ClaudeCodeSessionStatus::Done) && self.running_subagents.running_count() > 0
     }
 
+    /// From the hook (a chosen title) or the transcript watch; not news, and it doesn't count as
+    /// the session's latest event.
+    pub fn show_session_title(&mut self, session_title: ClaudeCodeSessionTitle) {
+        if session_title.replaces(self.session_title.as_ref()) {
+            self.session_title = Some(session_title);
+        }
+    }
+
     /// The reset time read from the transcript after the session stopped on a usage limit.
     pub fn show_usage_limit_reset(&mut self, resets_at_unix_seconds: u64, time_until_reset: Duration, current_time: Instant) {
         if self.session_status == Some(ClaudeCodeSessionStatus::UsageLimited) {
@@ -249,6 +263,7 @@ impl TrackedSession {
                 usage_limit_resets_at: self.usage_limit_wait.map(|usage_limit_wait| usage_limit_wait.resets_at_unix_seconds),
                 // Waiting on background subagents shows as working: the summary waits for "done".
                 turn_summary: if session_status == ClaudeCodeSessionStatus::Done { self.turn_summary.clone() } else { None },
+                session_title: self.session_title.as_ref().map(|session_title| session_title.title_text.clone()),
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order: self.last_event_order,

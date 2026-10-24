@@ -145,7 +145,10 @@
   /* Session rows (their heights and gaps come from frontendConstants.ts). */
   --claude-code-session-row-inner-gap: 8px;
   --claude-code-session-status-dot-size: 9px;
-  --claude-code-session-project-max-width: 45%;
+  /* The folder and the session's title together (CC.2d, look A: known to be cramped; more room
+     comes with the bigger pill in phase AW). */
+  --claude-code-session-name-max-width: 62%;
+  --claude-code-session-title-gap: 5px;
   /* The line from Claude's final answer under a done row (CC.2, look A): a step smaller than
      the row, in the secondary text opacity, so the row stays the first thing read. */
   --claude-code-session-turn-summary-font-size: 12px;

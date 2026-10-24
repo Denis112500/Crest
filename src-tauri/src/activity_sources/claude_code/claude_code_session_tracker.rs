@@ -14,6 +14,7 @@ use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCo
 use crate::activity_sources::claude_code::claude_code_session_list::{
     list_claude_code_sessions, ClaudeCodeSessionStatus, ListableClaudeCodeSession,
 };
+use crate::activity_sources::claude_code::claude_code_session_title::ClaudeCodeSessionTitle;
 use crate::activity_sources::claude_code::claude_code_tracked_session::TrackedSession;
 use crate::backend_constants::CLAUDE_CODE_ACTIVITY_DISPLAY_PRIORITY;
 
@@ -58,6 +59,13 @@ impl ClaudeCodeSessionTracker {
         self.next_event_order += 1;
         tracked_session.show_interrupt(stopped_status, event_time, event_order);
         self.attention_event_count += 1;
+    }
+
+    /// A title line in the session's transcript.
+    pub fn record_session_title(&mut self, session_id: &str, session_title: ClaudeCodeSessionTitle) {
+        if let Some(tracked_session) = self.sessions_by_id.get_mut(session_id) {
+            tracked_session.show_session_title(session_title);
+        }
     }
 
     /// The user stopped the session's background subagents (seen only in its transcript). A turn
@@ -300,6 +308,22 @@ mod tests {
         };
         tracker.record_hook_event(&moved_into_subfolder, event_time);
         assert_eq!(top_session(&tracker)["projectFolderName"], "Dynamic Island");
+    }
+
+    #[test]
+    fn a_title_names_the_session_quietly_and_a_chosen_one_stays() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        tracker.record_hook_event(&hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        let untitled = tracker.describe_activity(None, &[]).unwrap();
+        assert!(top_session(&tracker)["sessionTitle"].is_null());
+        tracker.record_session_title("a", ClaudeCodeSessionTitle::new("TCP", false).unwrap());
+        assert_eq!(top_session(&tracker)["sessionTitle"], "TCP");
+        assert_eq!(tracker.describe_activity(None, &[]).unwrap().attention_key, untitled.attention_key);
+        let named_prompt =
+            ClaudeCodeHookEvent { session_title: Some("Networking notes".to_string()), ..hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None) };
+        tracker.record_hook_event(&named_prompt, event_time);
+        tracker.record_session_title("a", ClaudeCodeSessionTitle::new("TCP again", false).unwrap());
+        assert_eq!(top_session(&tracker)["sessionTitle"], "Networking notes");
     }
 
     #[test]

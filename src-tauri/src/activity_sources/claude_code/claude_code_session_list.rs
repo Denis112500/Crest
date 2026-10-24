@@ -40,6 +40,8 @@ pub struct ClaudeCodeSessionRow {
     /// Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents".
     pub tool_summary: Option<String>,
     pub project_folder_name: String,
+    /// Shown after the folder, so sessions of one folder can be told apart.
+    pub session_title: Option<String>,
     /// Running subagents the line doesn't already mention ("Editing main.rs · 1 subagent"); 0 while the
     /// line is "Running 2 subagents".
     pub unmentioned_subagent_count: usize,
@@ -118,6 +120,7 @@ mod tests {
                 unmentioned_subagent_count: 0,
                 usage_limit_resets_at: None,
                 turn_summary: None,
+                session_title: None,
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order,
