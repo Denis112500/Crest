@@ -14,9 +14,11 @@ use crate::activity_sources::claude_code::claude_code_interrupt_watch::ClaudeCod
 use crate::activity_sources::claude_code::claude_code_permission_answer::build_permission_hook_reply;
 use crate::activity_sources::claude_code::claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
 use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCodePermissionQueue;
+use crate::activity_sources::claude_code::claude_code_session_list::ClaudeCodeSessionStatus;
 use crate::activity_sources::claude_code::claude_code_session_tracker::ClaudeCodeSessionTracker;
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
 use crate::activity_sources::claude_code::claude_code_transcript_continuation::find_sessions_continued_in;
+use crate::activity_sources::claude_code::claude_code_transcript_interrupt::ClaudeCodeTranscriptInterrupt;
 use crate::activity_sources::claude_code::claude_code_transcript_usage_limit::find_usage_limit_reset;
 use crate::backend_constants::{CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE, CLAUDE_CODE_SESSION_SILENCE_TIMEOUT};
 use crate::claude_code_hook_channel::{PendingHookReply, NO_HOOK_DECISION};
@@ -53,10 +55,21 @@ pub fn publish_claude_code_status(
                 record_hook_event(&hook_event_json, hook_reply, &mut session_tracker, &mut permission_queue, current_time)
             }
             Ok(ClaudeCodeStatusMessage::TranscriptFolderChanged(changed_folder)) => {
-                // Also a deny or Esc in Claude Code's own dialog: its request leaves the pill.
-                for interrupted_session_id in interrupt_watch.find_interrupted_sessions(&changed_folder) {
-                    session_tracker.record_interrupt(&interrupted_session_id, current_time);
-                    permission_queue.release_session_requests(&interrupted_session_id);
+                for (session_id, transcript_interrupt) in interrupt_watch.find_session_interrupts(&changed_folder) {
+                    match transcript_interrupt {
+                        // Also a deny or Esc in Claude Code's own dialog: its request leaves the pill.
+                        ClaudeCodeTranscriptInterrupt::TurnCancelled => {
+                            session_tracker.record_interrupt(&session_id, ClaudeCodeSessionStatus::Cancelled, current_time);
+                            permission_queue.release_session_requests(&session_id);
+                        }
+                        ClaudeCodeTranscriptInterrupt::PermissionDenied => {
+                            session_tracker.record_interrupt(&session_id, ClaudeCodeSessionStatus::Denied, current_time);
+                            permission_queue.release_session_requests(&session_id);
+                        }
+                        ClaudeCodeTranscriptInterrupt::BackgroundSubagents => {
+                            session_tracker.record_subagents_stopped(&session_id, current_time)
+                        }
+                    }
                 }
             }
             Ok(ClaudeCodeStatusMessage::PermissionAnswered { request_id, permission_answer }) => {
@@ -68,6 +81,9 @@ pub fn publish_claude_code_status(
             Err(RecvTimeoutError::Timeout) => {
                 session_tracker.forget_sessions_silent_for(CLAUDE_CODE_SESSION_SILENCE_TIMEOUT, current_time);
                 permission_queue.release_requests_older_than(CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE, current_time);
+            }
+            Ok(ClaudeCodeStatusMessage::SessionDismissed { session_id }) => {
+                session_tracker.dismiss_finished_session(&session_id)
             }
             Ok(ClaudeCodeStatusMessage::PermissionAnsweringChanged) => {}
             Ok(ClaudeCodeStatusMessage::StopPublishing) | Err(RecvTimeoutError::Disconnected) => break,

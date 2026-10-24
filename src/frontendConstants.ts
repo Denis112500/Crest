@@ -101,6 +101,9 @@ export const PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS = 100;
 export const PILL_HOVER_EXPAND_DELAY_MILLISECONDS = 150;
 export const PILL_COLLAPSE_DELAY_AFTER_POINTER_LEAVES_MILLISECONDS = 350;
 export const PILL_ATTENTION_PEEK_DURATION_MILLISECONDS = 4000;
+// Claude Code's news (done, cancelled, denied, a usage limit) is a line to read, not just a
+// cover: it stays open longer before the pill goes back to the music (CC.1 fixes, 2026-10-23).
+export const CLAUDE_CODE_NEWS_PEEK_DURATION_MILLISECONDS = 8000;
 
 // How long a change of the pill's light takes: the sweep carrying new colours along the edge,
 // and the fade of a strength-only change (pause). The sweep's end commits the new colours.

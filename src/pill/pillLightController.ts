@@ -32,7 +32,7 @@ export class PillLightController {
   }
 
   /** The user opened the pill, or pointed at it while it was open: Claude Code's news so far is
-      seen, so a finished session's green (or a reached usage limit's red) gives way. An automatic peek doesn't count. */
+      seen, so a finished session's green (or the red of a usage limit, a cancel or a deny) gives way. An automatic peek doesn't count. */
   markSeenByUser(): void {
     const claudeCodeActivity = this.latestPillArrangement
       ? findPlacedActivity(this.latestPillArrangement, CLAUDE_CODE_ACTIVITY_KIND)
@@ -82,7 +82,8 @@ export class PillLightController {
     const [startColor, middleColor, endColor] = {
       needsPermission: this.palette.goldColors,
       working: this.palette.starlightColors,
-      freshUsageLimit: this.palette.usageLimitColors,
+      freshUsageLimit: this.palette.redColors,
+      freshCancelledOrDenied: this.palette.redColors,
       freshDone: this.palette.doneColors,
       song: this.palette.musicColors,
       songPaused: this.palette.musicColors,

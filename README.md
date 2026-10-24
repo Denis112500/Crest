@@ -183,14 +183,14 @@ Crest/
 │  │  │  ├─ compactClaudeCodeView.ts     terminal mark, what the most urgent session is doing, "+N"
 │  │  │  ├─ companionClaudeCodeView.ts   next to the music: only the terminal mark, coloured by status
 │  │  │  ├─ expandedClaudeCodeView.ts    every session, most urgent first, "+N more"
-│  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status dot, project folder, what it's doing
+│  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status dot, project folder, what it's doing, × to dismiss a finished one
 │  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its number of rows
 │  │  │  ├─ claudeCodePermissionAlertView.ts  a permission request: session, command, MCP call or action, Allow / Deny
 │  │  │  ├─ claudeCodePermissionCommandBox.ts  the command, wrapped, 3 rows tall and scrolling; knows when all was seen
 │  │  │  ├─ claudeCodePermissionAnswerButtons.ts  Deny / Allow: a short pause, one answer, Allow only once all was seen
 │  │  │  ├─ estimateClaudeCodeCommandRowCount.ts  how many rows a command wraps into (sizes the box)
 │  │  │  ├─ calculateClaudeCodePermissionAlertHeight.ts  the alert's height for the request's rows
-│  │  │  ├─ describeClaudeCodeSessionStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Needs your OK" / "Usage limit", "· 1 subagent"
+│  │  │  ├─ describeClaudeCodeSessionStatus.ts  "Working" / the tool / "Done" / "Waiting for you" / "Cancelled" / "Denied" / "Needs your OK" / "Usage limit", "· 1 subagent"
 │  │  │  ├─ formatUsageLimitResetTime.ts  "1:50", or "Fri 9:00" for a reset on another day
 │  │  │  ├─ claudeCodeProductName.ts     the name both Claude Code headers show
 │  │  │  └─ claudeCodeTerminalIconPath.ts  a plain ">_" (not Anthropic's logo)
@@ -290,8 +290,8 @@ Crest/
       │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
       │  │  ├─ claude_code_integration_switch.rs  hooks and listening always switch on and off together
       │  │  ├─ claude_code_status_message.rs      what wakes the status thread (event, transcript change, answer, stop)
-      │  │  ├─ claude_code_interrupt_watch.rs     while a session is busy: watches its transcript for an interrupt or a deny
-      │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt line (Claude Code sends no hook for it; unit-tested)
+      │  │  ├─ claude_code_interrupt_watch.rs     while a session is busy: watches its transcript for an interrupt, a deny or stopped subagents
+      │  │  ├─ claude_code_transcript_interrupt.rs  recognizes the interrupt and "agents stopped" lines (no hook for either; unit-tested)
       │  │  ├─ claude_code_transcript_continuation.rs  a session Claude Code continued under a new id leaves the list (unit-tested)
       │  │  ├─ claude_code_transcript_usage_limit.rs  when a reached usage limit resets, from the transcript (unit-tested)
       │  │  ├─ transcript_end_text.rs             reads a transcript's last few KB once
@@ -444,7 +444,7 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 ## Claude Code
 
-Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs, or "Running 2 subagents"), done, waiting for you, that it needs your OK, or that it stopped on a usage limit (with when the limit resets, e.g. "Usage limit · resets 1:50"). Subagents still running beside another line are counted after it ("Done · 1 subagent"). Next to playing music it shows only its `>_` mark at the end of the notch (rest the pointer on it to open the notch on Claude Code), and the notch's lit edge tells you its state: white while working, gold when it needs you, red when a session has just hit a usage limit and green when one has just finished (both until you've looked). Opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first.
+Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs, or "Running 2 subagents"), done, waiting for you, cancelled (Esc or Ctrl+C), denied, that it needs your OK, or that it stopped on a usage limit (with when the limit resets, e.g. "Usage limit · resets 1:50"). Subagents still running beside another line are counted after it ("Editing main.rs · 1 subagent"), and a session whose turn has ended while background subagents still run stays "Running 3 subagents" (and on screen) until the last one finishes. Next to playing music it shows only its `>_` mark at the end of the notch (rest the pointer on it to open the notch on Claude Code), and the notch's lit edge tells you its state: white while working, gold when it needs you, red when a session has just hit a usage limit or you've just cancelled or denied, and green when one has just finished (until you've looked). Opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first; a finished session (done, cancelled, denied, waiting, usage limit) can be dismissed with the × on its row and comes back with its next prompt.
 
 **Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as a wide alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …; for a connected MCP tool its name and every input field, like `github: create issue` then `title: …`) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 

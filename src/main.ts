@@ -10,8 +10,15 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import type { PillArrangement } from "./activities/pillArrangementTypes";
-import { PILL_COMPACT_LOGICAL_WIDTH, PILL_WINDOW_LOGICAL_HEIGHT, PILL_WINDOW_LOGICAL_WIDTH } from "./frontendConstants";
 import {
+  CLAUDE_CODE_NEWS_PEEK_DURATION_MILLISECONDS,
+  PILL_ATTENTION_PEEK_DURATION_MILLISECONDS,
+  PILL_COMPACT_LOGICAL_WIDTH,
+  PILL_WINDOW_LOGICAL_HEIGHT,
+  PILL_WINDOW_LOGICAL_WIDTH,
+} from "./frontendConstants";
+import {
+  CLAUDE_CODE_ACTIVITY_KIND,
   GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
   GET_CURRENT_PILL_VISIBILITY_COMMAND,
   PILL_ARRANGEMENT_CHANGED_EVENT,
@@ -112,24 +119,24 @@ async function startPill(): Promise<void> {
   );
 
   const pillAttentionDetector = new PillAttentionDetector();
-  let wasAlertLeading = false;
   await listenForRustStateChanges<PillArrangement>(
     PILL_ARRANGEMENT_CHANGED_EVENT,
     GET_CURRENT_PILL_ARRANGEMENT_COMMAND,
     (pillArrangement) => {
       pillContentPresenter.showPillArrangement(pillArrangement);
       pillLightController.showPillArrangement(pillArrangement);
-      const alertActivity = pillArrangement.alertActivity;
-      const hasAlertJustEnded = wasAlertLeading && alertActivity === null;
-      wasAlertLeading = alertActivity !== null;
       const activityAskingForAttention = pillAttentionDetector.findActivityAskingForAttention(pillArrangement);
-      // Right after an alert, whatever leads again isn't news: the answered pill just closes.
-      if (activityAskingForAttention && !hasAlertJustEnded) {
+      if (activityAskingForAttention) {
         // Before the peek opens the pill, so it opens straight to that tile at its size.
         pillContentPresenter.showNewsTile(activityAskingForAttention.activityKind);
-        pillStateMachine.handleAttentionRequested();
+        pillStateMachine.handleAttentionRequested(
+          activityAskingForAttention.activityKind === CLAUDE_CODE_ACTIVITY_KIND
+            ? CLAUDE_CODE_NEWS_PEEK_DURATION_MILLISECONDS
+            : PILL_ATTENTION_PEEK_DURATION_MILLISECONDS,
+        );
       }
-      pillStateMachine.setHeldOpenByAlert(alertActivity !== null);
+      // After the peek: an alert ending with news (a Deny from the pill) stays open as a peek.
+      pillStateMachine.setHeldOpenByAlert(pillArrangement.alertActivity !== null);
     },
   ).catch(reportStartupStepFailure("follow the pill's layout"));
   // Rust decides whether the pill is on screen; the window stays hidden until it says so.

@@ -1,31 +1,61 @@
-//! Recognizes the transcript line Claude Code writes when the user interrupts a turn. Claude Code
-//! sends no hook event for an interrupt (measured 2026-10-07 with Claude Code 2.1.289: no Stop,
-//! no StopFailure, no PostToolUseFailure, no idle notification), so its session transcript is the
-//! only place it shows up. Denying a permission ends the turn the same way, with no hook event
-//! either (seen 2026-10-10). The transcript is Claude Code's internal format: if it ever changes,
-//! nothing matches and Crest falls back to forgetting the session after a silence.
+//! Recognizes the transcript lines Claude Code writes when the user interrupts a turn or stops
+//! its background subagents. Claude Code sends no hook event for an interrupt (measured
+//! 2026-10-07 with Claude Code 2.1.289: no Stop, no StopFailure, no PostToolUseFailure, no idle
+//! notification), nor `SubagentStop` for stopped background subagents (seen 2026-10-23 with
+//! 2.1.308), so the session transcript is the only place either shows up. Denying a permission
+//! ends the turn the same way as an interrupt, with no hook event either (seen 2026-10-10). The
+//! transcript is Claude Code's internal format: if it ever changes, nothing matches and Crest
+//! falls back to the silence timeout.
 
 use serde_json::Value;
 
 /// Seen as `[Request interrupted by user]` (Esc) and `[Request interrupted by user for tool use]`
 /// (a denied permission); matched by its start so both count.
 const INTERRUPT_MARKER_START: &str = "[Request interrupted by user";
+/// The denied-permission form: in every local transcript (52 of 52, 2026-10-23) it came right
+/// after the tool result "The user doesn't want to proceed with this tool use".
+const DENIED_PERMISSION_MARKER_START: &str = "[Request interrupted by user for tool use";
+/// The system entry written when the user stops the background subagents.
+const BACKGROUND_SUBAGENTS_STOPPED_SUBTYPE: &str = "agents_killed";
 
-/// True for a user entry whose text starts with the interrupt marker, e.g.
-/// `{"type":"user","message":{"content":[{"type":"text","text":"[Request interrupted by user]"}]}}`.
-pub fn is_interrupt_transcript_line(transcript_line: &str) -> bool {
-    let Ok(transcript_entry) = serde_json::from_str::<Value>(transcript_line) else {
-        return false;
-    };
-    if transcript_entry.get("type").and_then(Value::as_str) != Some("user") {
-        return false;
+/// What a transcript line says the user stopped.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClaudeCodeTranscriptInterrupt {
+    /// The turn (Esc; Ctrl+C presumably writes the same line).
+    TurnCancelled,
+    /// A permission denied in Claude Code, which ends the turn too.
+    PermissionDenied,
+    /// Every background subagent of the session.
+    BackgroundSubagents,
+}
+
+pub fn find_transcript_interrupt(transcript_line: &str) -> Option<ClaudeCodeTranscriptInterrupt> {
+    let transcript_entry = serde_json::from_str::<Value>(transcript_line).ok()?;
+    match transcript_entry.get("type").and_then(Value::as_str)? {
+        "user" => match find_interrupt_marker(&transcript_entry)? {
+            marker_text if marker_text.starts_with(DENIED_PERMISSION_MARKER_START) => {
+                Some(ClaudeCodeTranscriptInterrupt::PermissionDenied)
+            }
+            _ => Some(ClaudeCodeTranscriptInterrupt::TurnCancelled),
+        },
+        "system" if transcript_entry.get("subtype").and_then(Value::as_str) == Some(BACKGROUND_SUBAGENTS_STOPPED_SUBTYPE) => {
+            Some(ClaudeCodeTranscriptInterrupt::BackgroundSubagents)
+        }
+        _ => None,
     }
-    match transcript_entry.pointer("/message/content") {
-        Some(Value::String(message_text)) => message_text.starts_with(INTERRUPT_MARKER_START),
-        Some(Value::Array(content_items)) => content_items.iter().any(|content_item| {
-            content_item.get("text").and_then(Value::as_str).is_some_and(|text| text.starts_with(INTERRUPT_MARKER_START))
-        }),
-        _ => false,
+}
+
+/// The text of a user entry that starts with the interrupt marker, e.g.
+/// `{"type":"user","message":{"content":[{"type":"text","text":"[Request interrupted by user]"}]}}`.
+fn find_interrupt_marker(user_entry: &Value) -> Option<&str> {
+    let is_interrupt_marker = |text: &&str| text.starts_with(INTERRUPT_MARKER_START);
+    match user_entry.pointer("/message/content")? {
+        Value::String(message_text) => Some(message_text.as_str()).filter(is_interrupt_marker),
+        Value::Array(content_items) => content_items
+            .iter()
+            .filter_map(|content_item| content_item.get("text").and_then(Value::as_str))
+            .find(is_interrupt_marker),
+        _ => None,
     }
 }
 
@@ -36,17 +66,25 @@ mod tests {
     #[test]
     fn the_interrupt_entry_as_claude_code_writes_it_is_recognized() {
         let interrupt_line = r#"{"type":"user","message":{"role":"user","content":[{"type":"text","text":"[Request interrupted by user]"}]},"timestamp":"2026-10-06T21:20:46Z"}"#;
-        assert!(is_interrupt_transcript_line(interrupt_line));
+        assert_eq!(find_transcript_interrupt(interrupt_line), Some(ClaudeCodeTranscriptInterrupt::TurnCancelled));
         let string_content_line = r#"{"type":"user","message":{"content":"[Request interrupted by user for tool use]"}}"#;
-        assert!(is_interrupt_transcript_line(string_content_line));
+        assert_eq!(find_transcript_interrupt(string_content_line), Some(ClaudeCodeTranscriptInterrupt::PermissionDenied));
+    }
+
+    #[test]
+    fn stopped_background_subagents_are_recognized() {
+        // As Claude Code 2.1.308 wrote it (ids shortened).
+        let agents_killed_line = r#"{"parentUuid":"e64d1bb9","isSidechain":false,"type":"system","subtype":"agents_killed","timestamp":"2026-10-22T22:06:49.538Z","uuid":"38e99b7a","isMeta":false,"sessionId":"660e9d6d","version":"2.1.308"}"#;
+        assert_eq!(find_transcript_interrupt(agents_killed_line), Some(ClaudeCodeTranscriptInterrupt::BackgroundSubagents));
+        assert_eq!(find_transcript_interrupt(r#"{"type":"system","subtype":"turn_duration"}"#), None);
     }
 
     #[test]
     fn other_entries_and_broken_lines_are_not_interrupts() {
-        assert!(!is_interrupt_transcript_line(r#"{"type":"user","message":{"content":"run ping"}}"#));
+        assert_eq!(find_transcript_interrupt(r#"{"type":"user","message":{"content":"run ping"}}"#), None);
         let assistant_quoting_the_marker =
             r#"{"type":"assistant","message":{"content":[{"type":"text","text":"[Request interrupted by user]"}]}}"#;
-        assert!(!is_interrupt_transcript_line(assistant_quoting_the_marker));
-        assert!(!is_interrupt_transcript_line("{ not json"));
+        assert_eq!(find_transcript_interrupt(assistant_quoting_the_marker), None);
+        assert_eq!(find_transcript_interrupt("{ not json"), None);
     }
 }

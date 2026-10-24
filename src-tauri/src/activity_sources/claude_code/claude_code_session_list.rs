@@ -17,6 +17,10 @@ pub enum ClaudeCodeSessionStatus {
     NeedsPermission,
     /// The turn stopped on a reached usage or rate limit.
     UsageLimited,
+    /// The user stopped the turn (Esc or Ctrl+C).
+    Cancelled,
+    /// The user denied a permission (in Claude Code or from the pill), which ends the turn.
+    Denied,
 }
 
 impl ClaudeCodeSessionStatus {
@@ -30,15 +34,19 @@ impl ClaudeCodeSessionStatus {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaudeCodeSessionRow {
+    /// Sent back with the "×", so a click can only dismiss the session it was shown on.
+    pub session_id: String,
     pub session_status: ClaudeCodeSessionStatus,
     /// Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents".
     pub tool_summary: Option<String>,
     pub project_folder_name: String,
-    /// Running subagents the line doesn't already mention ("Done · 1 subagent"); 0 while the
+    /// Running subagents the line doesn't already mention ("Editing main.rs · 1 subagent"); 0 while the
     /// line is "Running 2 subagents".
     pub unmentioned_subagent_count: usize,
     /// When a reached usage limit resets (Unix seconds), if the transcript said.
     pub usage_limit_resets_at: Option<u64>,
+    /// Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it.
+    pub can_dismiss: bool,
 }
 
 /// What the pill's Claude Code views receive (mirrored in `claudeCodeStatusTypes.ts`).
@@ -63,7 +71,7 @@ pub struct ListableClaudeCodeSession {
 }
 
 /// Needs your OK first (it's blocked on the user), then working, then stopped by a usage limit,
-/// then waiting for you or done; within each group the newest first. Only as many rows as the open pill has room for.
+/// then waiting for you, done, cancelled or denied; within each group the newest first. Only as many rows as the open pill has room for.
 pub fn list_claude_code_sessions(mut listable_sessions: Vec<ListableClaudeCodeSession>) -> ClaudeCodeStatusPayload {
     listable_sessions.sort_by_key(|listable_session| {
         (urgency_rank(listable_session.session_row.session_status), Reverse(listable_session.last_event_order))
@@ -87,7 +95,10 @@ fn urgency_rank(session_status: ClaudeCodeSessionStatus) -> u8 {
         ClaudeCodeSessionStatus::NeedsPermission => 0,
         ClaudeCodeSessionStatus::Working => 1,
         ClaudeCodeSessionStatus::UsageLimited => 2,
-        ClaudeCodeSessionStatus::WaitingForInput | ClaudeCodeSessionStatus::Done => 3,
+        ClaudeCodeSessionStatus::WaitingForInput
+        | ClaudeCodeSessionStatus::Done
+        | ClaudeCodeSessionStatus::Cancelled
+        | ClaudeCodeSessionStatus::Denied => 3,
     }
 }
 
@@ -98,11 +109,13 @@ mod tests {
     fn listable(project_folder_name: &str, session_status: ClaudeCodeSessionStatus, last_event_order: u64) -> ListableClaudeCodeSession {
         ListableClaudeCodeSession {
             session_row: ClaudeCodeSessionRow {
+                session_id: project_folder_name.to_string(),
                 session_status,
                 tool_summary: None,
                 project_folder_name: project_folder_name.to_string(),
                 unmentioned_subagent_count: 0,
                 usage_limit_resets_at: None,
+                can_dismiss: !session_status.is_busy(),
             },
             last_event_order,
         }

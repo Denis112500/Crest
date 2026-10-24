@@ -24,6 +24,7 @@ export class PillContentPresenter {
   private leadingActivityKind: string | null = null;
   private companionActivityKind: string | null = null;
   private alertActivityKind: string | null = null;
+  private hasAlertJustEnded = false;
   private dashboardActivityKinds: string[] = [];
   /** The activity a peek opened the pill for; `null` = the whole dashboard. */
   private newsTileActivityKind: string | null = null;
@@ -54,7 +55,9 @@ export class PillContentPresenter {
     }
     this.leadingActivityKind = findLeadingActivity(pillArrangement)?.activityKind ?? null;
     this.companionActivityKind = pillArrangement.companionActivity?.activityKind ?? null;
+    const wasAlertShown = this.alertActivityKind !== null;
     this.alertActivityKind = pillArrangement.alertActivity?.activityKind ?? null;
+    this.hasAlertJustEnded = wasAlertShown && this.alertActivityKind === null;
     this.dashboardActivityKinds = dashboardActivities.map((dashboardActivity) => dashboardActivity.activityKind);
     this.dropViewSetsNoLongerPlaced(new Set(placedActivities.map((placedActivity) => placedActivity.activityKind)));
     this.mountViews();
@@ -65,9 +68,10 @@ export class PillContentPresenter {
   }
 
   /** News: the peek opens the pill on this activity's tile alone, until it closes. While the
-      whole dashboard is open, its tile is already there: the pill doesn't shrink under the user. */
+      whole dashboard is open, its tile is already there: the pill doesn't shrink under the user.
+      An answered alert (a Deny) is no dashboard the user opened: its news tile takes its place. */
   showNewsTile(activityKind: string): void {
-    if (this.isExpandedContentVisible && this.newsTileActivityKind === null) {
+    if (this.isExpandedContentVisible && this.newsTileActivityKind === null && !this.hasAlertJustEnded) {
       return;
     }
     this.newsTileActivityKind = activityKind;

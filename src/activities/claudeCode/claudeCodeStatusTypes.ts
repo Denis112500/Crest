@@ -1,17 +1,28 @@
 // Mirrors `ClaudeCodeStatusPayload` and `ClaudeCodeSessionRow` in
 // src-tauri/src/activity_sources/claude_code/claude_code_session_list.rs, and the permission
 // alert in claude_code_permission_queue.rs and claude_code_permission_description.rs.
-export type ClaudeCodeSessionStatus = "working" | "done" | "waitingForInput" | "needsPermission" | "usageLimited";
+export type ClaudeCodeSessionStatus =
+  | "working"
+  | "done"
+  | "waitingForInput"
+  | "needsPermission"
+  | "usageLimited"
+  | "cancelled"
+  | "denied";
 
 export interface ClaudeCodeSessionRow {
+  /** Sent back with the "×", so a click can only dismiss the session it was shown on. */
+  sessionId: string;
   sessionStatus: ClaudeCodeSessionStatus;
   /** Only while working on a tool, e.g. "Editing notes.md", or "Running 2 subagents". */
   toolSummary: string | null;
   projectFolderName: string;
-  /** Running subagents the line doesn't already count ("Done · 1 subagent"). */
+  /** Running subagents the line doesn't already count ("Editing main.rs · 1 subagent"). */
   unmentionedSubagentCount: number;
   /** When a reached usage limit resets (Unix seconds), if Claude Code's transcript said. */
   usageLimitResetsAt: number | null;
+  /** Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it. */
+  canDismiss: boolean;
 }
 
 /** A command as it will run (lines separated by "\n", hidden characters shown as "�"), a

@@ -52,8 +52,8 @@ impl TrackedSession {
         // Whether a subagent's events name its own transcript or the session's isn't documented:
         // only the session's own events set the transcript the interrupt watch follows.
         if let Some(agent_id) = &hook_event.agent_id {
-            if self.apply_subagent_event(agent_id, &hook_event.hook_event_name, event_time) {
-                return false;
+            if let Some(is_news) = self.apply_subagent_event(agent_id, &hook_event.hook_event_name, event_time) {
+                return is_news;
             }
         } else if let Some(transcript_path) = &hook_event.transcript_path {
             self.transcript_path = Some(PathBuf::from(transcript_path));
@@ -76,9 +76,11 @@ impl TrackedSession {
                 self.is_tool_a_subagent_launch = SUBAGENT_LAUNCH_TOOL_NAMES.contains(&tool_name);
                 false
             }
+            // With background subagents still running, Claude Code's turn ends but the work
+            // doesn't ("Waiting for 3 background agents to finish"): the news waits for the last one.
             (STOP_HOOK_EVENT, _) => {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Done);
-                true
+                !self.is_waiting_on_subagents()
             }
             (STOP_FAILURE_HOOK_EVENT, _) if hook_event.is_usage_limit_stop() => {
                 let is_news = self.session_status != Some(ClaudeCodeSessionStatus::UsageLimited);
@@ -103,11 +105,9 @@ impl TrackedSession {
                 }
                 is_news
             }
-            // Claude Code sends this about a minute after "done"; "done" says more, and a second
-            // peek a minute later would only be noise.
-            (NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION))
-                if self.session_status != Some(ClaudeCodeSessionStatus::Done) =>
-            {
+            // Claude Code sends this about a minute after a turn ends; "done", "cancelled" and the
+            // rest say more, and a second peek a minute later would only be noise.
+            (NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION)) if !self.has_turn_ending_status() => {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
                 false
             }
@@ -117,12 +117,17 @@ impl TrackedSession {
 
     /// A subagent's own events only change its count, never the main line: parallel subagents
     /// would make it jump, and one still running in the background mustn't turn "done" back into
-    /// "working". Returns whether the event was handled here; a subagent's permission request
-    /// still goes through the session's own rules.
-    fn apply_subagent_event(&mut self, agent_id: &str, hook_event_name: &str, event_time: Instant) -> bool {
+    /// "working". Returns whether the event was news, or `None` when it wasn't handled here: a
+    /// subagent's permission request still goes through the session's own rules. The last
+    /// subagent stopping after the turn ended is the session's "done".
+    fn apply_subagent_event(&mut self, agent_id: &str, hook_event_name: &str, event_time: Instant) -> Option<bool> {
         match hook_event_name {
             SUBAGENT_START_HOOK_EVENT => self.running_subagents.record_sign_of_life(agent_id, event_time),
-            SUBAGENT_STOP_HOOK_EVENT => self.running_subagents.record_stop(agent_id),
+            SUBAGENT_STOP_HOOK_EVENT => {
+                let was_waiting_on_subagents = self.is_waiting_on_subagents();
+                self.running_subagents.record_stop(agent_id);
+                return Some(was_waiting_on_subagents && !self.is_waiting_on_subagents());
+            }
             PRE_TOOL_USE_HOOK_EVENT | POST_TOOL_USE_HOOK_EVENT | POST_TOOL_USE_FAILURE_HOOK_EVENT => {
                 self.running_subagents.record_sign_of_life(agent_id, event_time);
                 // A subagent that moves on had its permission request answered (in Claude Code).
@@ -130,9 +135,27 @@ impl TrackedSession {
                     self.session_status = Some(ClaudeCodeSessionStatus::Working);
                 }
             }
-            _ => return false,
+            _ => return None,
         }
-        true
+        Some(false)
+    }
+
+    /// The turn ended in a way that already tells the user what happened.
+    fn has_turn_ending_status(&self) -> bool {
+        matches!(
+            self.session_status,
+            Some(
+                ClaudeCodeSessionStatus::Done
+                    | ClaudeCodeSessionStatus::Cancelled
+                    | ClaudeCodeSessionStatus::Denied
+                    | ClaudeCodeSessionStatus::UsageLimited
+            )
+        )
+    }
+
+    /// The turn has ended, but subagents it started in the background still run.
+    fn is_waiting_on_subagents(&self) -> bool {
+        self.session_status == Some(ClaudeCodeSessionStatus::Done) && self.running_subagents.running_count() > 0
     }
 
     /// The reset time read from the transcript after the session stopped on a usage limit.
@@ -142,23 +165,37 @@ impl TrackedSession {
         }
     }
 
-    /// Working, or waiting for the user's OK.
+    /// Working (its own turn or only its subagents), or waiting for the user's OK.
     pub fn is_busy(&self) -> bool {
-        self.session_status.is_some_and(ClaudeCodeSessionStatus::is_busy)
+        self.session_status.is_some_and(ClaudeCodeSessionStatus::is_busy) || self.is_waiting_on_subagents()
     }
 
-    /// The user interrupted the turn or denied in Claude Code: it waits for input now.
-    pub fn show_interrupt(&mut self, event_time: Instant, event_order: u64) {
-        self.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
+    /// The user cancelled the turn or denied in Claude Code (`stopped_status` says which).
+    pub fn show_interrupt(&mut self, stopped_status: ClaudeCodeSessionStatus, event_time: Instant, event_order: u64) {
+        self.show_status_without_tool(stopped_status);
         self.running_subagents.forget_all();
         self.note_event(event_time, event_order);
+    }
+
+    /// The user stopped the background subagents. A turn that was only waiting for them was
+    /// cancelled: its work didn't finish. Esc, Ctrl+C and Ctrl+X Ctrl+K all write the same line
+    /// then (seen 2026-10-23), so which key it was can't be told. Returns whether it cancelled
+    /// the turn.
+    pub fn show_subagents_stopped(&mut self, event_time: Instant, event_order: u64) -> bool {
+        let is_turn_cancelled = self.is_waiting_on_subagents();
+        if is_turn_cancelled {
+            self.show_status_without_tool(ClaudeCodeSessionStatus::Cancelled);
+        }
+        self.running_subagents.forget_all();
+        self.note_event(event_time, event_order);
+        is_turn_cancelled
     }
 
     /// An allow lets the tool run; a deny ends the turn (no `Stop` follows an interrupted one).
     pub fn show_permission_answer(&mut self, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant, event_order: u64) {
         self.show_status_without_tool(match permission_answer {
             ClaudeCodePermissionAnswer::Allow => ClaudeCodeSessionStatus::Working,
-            ClaudeCodePermissionAnswer::Deny => ClaudeCodeSessionStatus::WaitingForInput,
+            ClaudeCodePermissionAnswer::Deny => ClaudeCodeSessionStatus::Denied,
         });
         self.note_event(event_time, event_order);
     }
@@ -182,22 +219,30 @@ impl TrackedSession {
     }
 
     /// Its row in the pill's list, `None` while there is nothing to show yet. A session with a
-    /// request still waiting shows "needs your OK" whatever it sent since.
-    pub fn listable_session(&self, is_waiting_for_an_answer: bool) -> Option<ListableClaudeCodeSession> {
-        let session_status =
-            if is_waiting_for_an_answer { ClaudeCodeSessionStatus::NeedsPermission } else { self.session_status? };
+    /// request still waiting shows "needs your OK" whatever it sent since; one whose turn ended
+    /// while background subagents still run shows as working on them ("Running 3 subagents").
+    pub fn listable_session(&self, session_id: &str, is_waiting_for_an_answer: bool) -> Option<ListableClaudeCodeSession> {
+        let is_waiting_on_subagents = !is_waiting_for_an_answer && self.is_waiting_on_subagents();
+        let session_status = match (is_waiting_for_an_answer, is_waiting_on_subagents) {
+            (true, _) => ClaudeCodeSessionStatus::NeedsPermission,
+            (false, true) => ClaudeCodeSessionStatus::Working,
+            (false, false) => self.session_status?,
+        };
         let (tool_summary, unmentioned_subagent_count) = if is_waiting_for_an_answer {
             (None, self.running_subagents.running_count())
         } else {
-            self.running_subagents.describe_with_line(self.tool_summary.as_deref(), self.is_tool_a_subagent_launch)
+            let is_line_about_subagents = self.is_tool_a_subagent_launch || is_waiting_on_subagents;
+            self.running_subagents.describe_with_line(self.tool_summary.as_deref(), is_line_about_subagents)
         };
         Some(ListableClaudeCodeSession {
             session_row: ClaudeCodeSessionRow {
+                session_id: session_id.to_string(),
                 session_status,
                 tool_summary,
                 project_folder_name: self.project_folder_name.clone(),
                 unmentioned_subagent_count,
                 usage_limit_resets_at: self.usage_limit_wait.map(|usage_limit_wait| usage_limit_wait.resets_at_unix_seconds),
+                can_dismiss: !session_status.is_busy(),
             },
             last_event_order: self.last_event_order,
         })

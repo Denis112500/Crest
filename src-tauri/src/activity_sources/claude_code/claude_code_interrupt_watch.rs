@@ -1,13 +1,16 @@
-//! Notices interrupted turns and denied permissions (both write the same line): while a session is
-//! busy (working or waiting for an OK), its transcript's folder is watched and only the newly
-//! added lines are checked for the interrupt line. Nothing is watched while no session is busy.
+//! Notices interrupted turns, denied permissions (both write the same line) and stopped background
+//! subagents: while a session is busy (working, on its turn or its subagents, or waiting for an
+//! OK), its transcript's folder is watched and only the newly added lines are checked. Nothing is
+//! watched while no session is busy.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
 
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
-use crate::activity_sources::claude_code::claude_code_transcript_interrupt::is_interrupt_transcript_line;
+use crate::activity_sources::claude_code::claude_code_transcript_interrupt::{
+    find_transcript_interrupt, ClaudeCodeTranscriptInterrupt,
+};
 use crate::activity_sources::claude_code::transcript_tail_reader::TranscriptTailReader;
 use crate::folder_change_watching::{CurrentPlatformFolderChangeWatch, FolderChangeWatch};
 
@@ -58,18 +61,19 @@ impl ClaudeCodeInterruptWatch {
         }
     }
 
-    /// The followed sessions in `changed_folder` whose new transcript lines include an interrupt.
-    pub fn find_interrupted_sessions(&mut self, changed_folder: &Path) -> Vec<String> {
-        let mut interrupted_session_ids = Vec::new();
+    /// The interrupts in the new transcript lines of the followed sessions in `changed_folder`,
+    /// in the order they were written.
+    pub fn find_session_interrupts(&mut self, changed_folder: &Path) -> Vec<(String, ClaudeCodeTranscriptInterrupt)> {
+        let mut session_interrupts = Vec::new();
         for (session_id, tail_reader) in &mut self.transcript_tails_by_session_id {
             if tail_reader.transcript_path().parent() != Some(changed_folder) {
                 continue;
             }
             // Every followed transcript in the folder is read, so each stays at its own end.
-            if tail_reader.read_new_lines().iter().any(|line| is_interrupt_transcript_line(line)) {
-                interrupted_session_ids.push(session_id.clone());
+            for transcript_interrupt in tail_reader.read_new_lines().iter().filter_map(|line| find_transcript_interrupt(line)) {
+                session_interrupts.push((session_id.clone(), transcript_interrupt));
             }
         }
-        interrupted_session_ids
+        session_interrupts
     }
 }

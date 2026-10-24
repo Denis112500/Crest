@@ -12,6 +12,8 @@ pub enum ClaudeCodeStatusMessage {
     TranscriptFolderChanged(PathBuf),
     /// Allow or Deny was clicked in the pill's alert for the request with this id.
     PermissionAnswered { request_id: u64, permission_answer: ClaudeCodePermissionAnswer },
+    /// The "×" on a finished session's row was clicked: the session leaves the list.
+    SessionDismissed { session_id: String },
     /// "Answer permission requests in the pill" was switched; when off, waiting requests leave.
     PermissionAnsweringChanged,
     /// The integration was switched off. Needed as a message because the folder watches hold
