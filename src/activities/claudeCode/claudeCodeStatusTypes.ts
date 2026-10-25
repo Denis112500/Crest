@@ -19,6 +19,9 @@ export interface ClaudeCodeSessionRow {
   projectFolderName: string;
   /** Shown after the folder, so sessions of one folder can be told apart. */
   sessionTitle: string | null;
+  /** The activity's attention key (a count of news) right after this session's latest news, 0
+      for none: the light only takes the colour of news newer than the key last seen. */
+  newsCount: number;
   /** Running subagents the line doesn't already count ("Editing main.rs · 1 subagent"). */
   unmentionedSubagentCount: number;
   /** When a reached usage limit resets (Unix seconds), if Claude Code's transcript said. */

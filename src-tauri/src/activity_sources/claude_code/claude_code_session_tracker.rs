@@ -42,6 +42,7 @@ impl ClaudeCodeSessionTracker {
             .or_insert_with(|| TrackedSession::new(event_time, event_order));
         if tracked_session.apply_hook_event(hook_event, event_time, event_order) {
             self.attention_event_count += 1;
+            tracked_session.note_news(self.attention_event_count);
         }
     }
 
@@ -59,6 +60,7 @@ impl ClaudeCodeSessionTracker {
         self.next_event_order += 1;
         tracked_session.show_interrupt(stopped_status, event_time, event_order);
         self.attention_event_count += 1;
+        tracked_session.note_news(self.attention_event_count);
     }
 
     /// A title line in the session's transcript.
@@ -78,6 +80,7 @@ impl ClaudeCodeSessionTracker {
         self.next_event_order += 1;
         if tracked_session.show_subagents_stopped(event_time, event_order) {
             self.attention_event_count += 1;
+            tracked_session.note_news(self.attention_event_count);
         }
     }
 
@@ -92,6 +95,7 @@ impl ClaudeCodeSessionTracker {
         tracked_session.show_permission_answer(permission_answer, event_time, event_order);
         if permission_answer == ClaudeCodePermissionAnswer::Deny {
             self.attention_event_count += 1;
+            tracked_session.note_news(self.attention_event_count);
         }
     }
 
@@ -308,6 +312,28 @@ mod tests {
         };
         tracker.record_hook_event(&moved_into_subfolder, event_time);
         assert_eq!(top_session(&tracker)["projectFolderName"], "Dynamic Island");
+    }
+
+    #[test]
+    fn each_row_carries_the_news_count_of_its_own_latest_news() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        tracker.record_hook_event(&hook_event("cancelled", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
+        tracker.record_interrupt("cancelled", ClaudeCodeSessionStatus::Cancelled, event_time);
+        tracker.record_hook_event(&hook_event("done", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        tracker.record_hook_event(&hook_event("never news", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        tracker.record_hook_event(&hook_event("done", STOP_HOOK_EVENT, None), event_time);
+        let activity_update = tracker.describe_activity(None, &[]).unwrap();
+        assert_eq!(activity_update.attention_key, "2");
+        let news_count_of = |session_id: &str| {
+            activity_update.activity_payload["listedSessions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|session_row| session_row["sessionId"] == session_id)
+                .unwrap()["newsCount"]
+                .clone()
+        };
+        assert_eq!((news_count_of("cancelled"), news_count_of("done"), news_count_of("never news")), (1.into(), 2.into(), 0.into()));
     }
 
     #[test]

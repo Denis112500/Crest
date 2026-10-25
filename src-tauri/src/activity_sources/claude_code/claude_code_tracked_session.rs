@@ -30,6 +30,8 @@ pub struct TrackedSession {
     /// From the `Stop` that ended the turn; any later status forgets it.
     turn_summary: Option<String>,
     session_title: Option<ClaudeCodeSessionTitle>,
+    /// The tracker's news count right after this session's latest news (0: none yet).
+    news_count: u64,
     pub last_event_time: Instant,
     last_event_order: u64,
 }
@@ -47,6 +49,7 @@ impl TrackedSession {
             usage_limit_wait: None,
             turn_summary: None,
             session_title: None,
+            news_count: 0,
             last_event_time: event_time,
             last_event_order: event_order,
         }
@@ -169,6 +172,11 @@ impl TrackedSession {
         self.session_status == Some(ClaudeCodeSessionStatus::Done) && self.running_subagents.running_count() > 0
     }
 
+    /// So the light can tell this session's news from older news the user has already seen.
+    pub fn note_news(&mut self, news_count: u64) {
+        self.news_count = news_count;
+    }
+
     /// From the hook (a chosen title) or the transcript watch; not news, and it doesn't count as
     /// the session's latest event.
     pub fn show_session_title(&mut self, session_title: ClaudeCodeSessionTitle) {
@@ -264,6 +272,7 @@ impl TrackedSession {
                 // Waiting on background subagents shows as working: the summary waits for "done".
                 turn_summary: if session_status == ClaudeCodeSessionStatus::Done { self.turn_summary.clone() } else { None },
                 session_title: self.session_title.as_ref().map(|session_title| session_title.title_text.clone()),
+                news_count: self.news_count,
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order: self.last_event_order,

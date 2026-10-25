@@ -18,9 +18,10 @@ export type PillLightKind =
 // working (Starlight white, even with music playing), a reached usage limit not seen yet (red),
 // a cancel or deny not seen yet (red too), a finish not seen yet (green), then music's own
 // colour (never a status colour), dimmed while paused, and a dim white for everything else
-// (waiting, news already seen, nothing to show). Claude Code's attention key only grows with
-// news (a finish, a request, a limit, a cancel, a deny), so "not seen yet" means: a session is
-// in that state and that key isn't the one last seen.
+// (waiting, news already seen, nothing to show). Claude Code's attention key counts news (a
+// finish, a request, a limit, a cancel, a deny), and each row carries the count right after its
+// own latest news, so "not seen yet" means: that row's news came after the key last seen. Only
+// those rows give their colour; an older cancel already seen doesn't turn a new "done" red.
 export function decidePillLightKind(
   pillArrangement: PillArrangement,
   lastSeenClaudeCodeAttentionKey: string | null,
@@ -33,11 +34,10 @@ export function decidePillLightKind(
   ].filter((pillActivity): pillActivity is PillActivity => pillActivity !== null);
   const claudeCodeActivity = placedActivities.find((pillActivity) => pillActivity.activityKind === CLAUDE_CODE_ACTIVITY_KIND);
   const musicActivity = placedActivities.find((pillActivity) => pillActivity.activityKind === MUSIC_ACTIVITY_KIND);
-  const sessionStatuses = claudeCodeActivity
-    ? (claudeCodeActivity.activityPayload as ClaudeCodeStatusPayload).listedSessions.map(
-        (sessionRow) => sessionRow.sessionStatus,
-      )
+  const sessionRows = claudeCodeActivity
+    ? (claudeCodeActivity.activityPayload as ClaudeCodeStatusPayload).listedSessions
     : [];
+  const sessionStatuses = sessionRows.map((sessionRow) => sessionRow.sessionStatus);
 
   if (pillArrangement.alertActivity !== null || sessionStatuses.includes("needsPermission")) {
     return "needsPermission";
@@ -45,14 +45,23 @@ export function decidePillLightKind(
   if (sessionStatuses.includes("working")) {
     return "working";
   }
-  const isClaudeCodeNewsUnseen = claudeCodeActivity?.attentionKey !== lastSeenClaudeCodeAttentionKey;
-  if (sessionStatuses.includes("usageLimited") && isClaudeCodeNewsUnseen) {
+  // Nothing seen yet (the pill just started), or a count above the current one (the integration
+  // was switched off and on, which starts Rust's count again): every row with news counts.
+  const currentNewsCount = Number(claudeCodeActivity?.attentionKey ?? 0);
+  const lastSeenNewsCount =
+    lastSeenClaudeCodeAttentionKey === null || Number(lastSeenClaudeCodeAttentionKey) > currentNewsCount
+      ? 0
+      : Number(lastSeenClaudeCodeAttentionKey);
+  const unseenNewsStatuses = sessionRows
+    .filter((sessionRow) => sessionRow.newsCount > lastSeenNewsCount)
+    .map((sessionRow) => sessionRow.sessionStatus);
+  if (unseenNewsStatuses.includes("usageLimited")) {
     return "freshUsageLimit";
   }
-  if ((sessionStatuses.includes("cancelled") || sessionStatuses.includes("denied")) && isClaudeCodeNewsUnseen) {
+  if (unseenNewsStatuses.includes("cancelled") || unseenNewsStatuses.includes("denied")) {
     return "freshCancelledOrDenied";
   }
-  if (sessionStatuses.includes("done") && isClaudeCodeNewsUnseen) {
+  if (unseenNewsStatuses.includes("done")) {
     return "freshDone";
   }
   if (musicActivity) {

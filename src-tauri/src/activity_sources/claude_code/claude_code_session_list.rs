@@ -42,6 +42,9 @@ pub struct ClaudeCodeSessionRow {
     pub project_folder_name: String,
     /// Shown after the folder, so sessions of one folder can be told apart.
     pub session_title: Option<String>,
+    /// The activity's attention key (a count of news) right after this session's latest news, 0
+    /// for none: the light only takes the colour of news newer than the key last seen.
+    pub news_count: u64,
     /// Running subagents the line doesn't already mention ("Editing main.rs · 1 subagent"); 0 while the
     /// line is "Running 2 subagents".
     pub unmentioned_subagent_count: usize,
@@ -121,6 +124,7 @@ mod tests {
                 usage_limit_resets_at: None,
                 turn_summary: None,
                 session_title: None,
+                news_count: 0,
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order,
