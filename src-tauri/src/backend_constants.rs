@@ -135,6 +135,9 @@ pub const CLAUDE_CODE_TRANSCRIPT_CONTINUATION_SEARCH_BYTES: u64 = 16 * 1024;
 /// How much of a transcript's end is searched for the usage-limit entry when a turn stops on a
 /// limit: the entry is about 1.5 KB and comes last, or nearly (seen 2026-10-06).
 pub const CLAUDE_CODE_TRANSCRIPT_USAGE_LIMIT_SEARCH_BYTES: u64 = 16 * 1024;
+/// How much of a transcript's start is searched, once per session, for its title: the first
+/// title line started at most 332 KB in (median 134 KB) in 93 local transcripts (2026-10-24).
+pub const CLAUDE_CODE_TRANSCRIPT_TITLE_SEARCH_BYTES: u64 = 512 * 1024;
 
 /// A session stopped by a usage limit stays listed until the reset (then the silence timeout
 /// as usual), but never longer than this: Claude Code itself only waits for resets within

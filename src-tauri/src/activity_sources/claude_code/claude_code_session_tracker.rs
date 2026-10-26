@@ -70,6 +70,11 @@ impl ClaudeCodeSessionTracker {
         }
     }
 
+    /// The transcript to search once for the session's title (`TrackedSession`'s rule).
+    pub fn take_title_lookup_transcript(&mut self, session_id: &str) -> Option<PathBuf> {
+        self.sessions_by_id.get_mut(session_id)?.take_title_lookup_transcript()
+    }
+
     /// The user stopped the session's background subagents (seen only in its transcript). A turn
     /// that was only waiting for them is cancelled, which is news like any other cancel.
     pub fn record_subagents_stopped(&mut self, session_id: &str, event_time: Instant) {
@@ -334,6 +339,18 @@ mod tests {
                 .clone()
         };
         assert_eq!((news_count_of("cancelled"), news_count_of("done"), news_count_of("never news")), (1.into(), 2.into(), 0.into()));
+    }
+
+    #[test]
+    fn the_transcript_is_searched_for_a_title_once_and_not_when_one_is_known() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
+        assert_eq!(tracker.take_title_lookup_transcript("a"), Some(PathBuf::from(r"C:\transcripts\a.jsonl")));
+        assert_eq!(tracker.take_title_lookup_transcript("a"), None);
+        tracker.record_hook_event(&hook_event("titled", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        tracker.record_session_title("titled", ClaudeCodeSessionTitle::new("TCP", false).unwrap());
+        assert_eq!(tracker.take_title_lookup_transcript("titled"), None);
+        assert_eq!(tracker.take_title_lookup_transcript("unknown"), None);
     }
 
     #[test]

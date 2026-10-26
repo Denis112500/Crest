@@ -23,6 +23,7 @@ mod claude_code_tool_summary;
 mod claude_code_transcript_continuation;
 mod claude_code_tracked_session;
 mod claude_code_transcript_interrupt;
+mod claude_code_transcript_title_lookup;
 mod claude_code_transcript_usage_limit;
 mod claude_code_transcript_watch;
 mod claude_code_turn_summary;

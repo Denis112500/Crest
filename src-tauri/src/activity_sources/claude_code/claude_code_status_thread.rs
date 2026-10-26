@@ -18,6 +18,7 @@ use crate::activity_sources::claude_code::claude_code_session_tracker::ClaudeCod
 use crate::activity_sources::claude_code::claude_code_status_message::ClaudeCodeStatusMessage;
 use crate::activity_sources::claude_code::claude_code_transcript_continuation::find_sessions_continued_in;
 use crate::activity_sources::claude_code::claude_code_transcript_interrupt::ClaudeCodeTranscriptInterrupt;
+use crate::activity_sources::claude_code::claude_code_transcript_title_lookup::find_title_at_transcript_start;
 use crate::activity_sources::claude_code::claude_code_transcript_usage_limit::find_usage_limit_reset;
 use crate::activity_sources::claude_code::claude_code_transcript_watch::{ClaudeCodeTranscriptNews, ClaudeCodeTranscriptWatch};
 use crate::backend_constants::{CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE, CLAUDE_CODE_SESSION_SILENCE_TIMEOUT};
@@ -129,6 +130,12 @@ fn record_hook_event(
         hook_reply.send_reply(NO_HOOK_DECISION);
     }
     session_tracker.record_hook_event(&hook_event, current_time);
+    // A session met mid-way has its made-up title only near its transcript's start.
+    if let Some(transcript_path) = session_tracker.take_title_lookup_transcript(&hook_event.session_id) {
+        if let Some(session_title) = find_title_at_transcript_start(&transcript_path) {
+            session_tracker.record_session_title(&hook_event.session_id, session_title);
+        }
+    }
     if let (true, Some(transcript_path)) = (hook_event.is_usage_limit_stop(), &hook_event.transcript_path) {
         record_usage_limit_reset(&hook_event.session_id, Path::new(transcript_path), session_tracker, current_time);
     }

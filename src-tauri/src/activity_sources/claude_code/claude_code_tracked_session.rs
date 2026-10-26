@@ -30,6 +30,8 @@ pub struct TrackedSession {
     /// From the `Stop` that ended the turn; any later status forgets it.
     turn_summary: Option<String>,
     session_title: Option<ClaudeCodeSessionTitle>,
+    /// The transcript's start was searched for a title (once per session).
+    is_title_looked_up: bool,
     /// The tracker's news count right after this session's latest news (0: none yet).
     news_count: u64,
     pub last_event_time: Instant,
@@ -49,6 +51,7 @@ impl TrackedSession {
             usage_limit_wait: None,
             turn_summary: None,
             session_title: None,
+            is_title_looked_up: false,
             news_count: 0,
             last_event_time: event_time,
             last_event_order: event_order,
@@ -175,6 +178,17 @@ impl TrackedSession {
     /// So the light can tell this session's news from older news the user has already seen.
     pub fn note_news(&mut self, news_count: u64) {
         self.news_count = news_count;
+    }
+
+    /// The transcript whose start may hold the title of a session met mid-way: given once, as soon
+    /// as the transcript is known, and only while the session has no title.
+    pub fn take_title_lookup_transcript(&mut self) -> Option<PathBuf> {
+        if self.is_title_looked_up || self.session_title.is_some() {
+            return None;
+        }
+        let transcript_path = self.transcript_path.clone()?;
+        self.is_title_looked_up = true;
+        Some(transcript_path)
     }
 
     /// From the hook (a chosen title) or the transcript watch; not news, and it doesn't count as
