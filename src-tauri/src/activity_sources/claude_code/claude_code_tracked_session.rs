@@ -5,6 +5,7 @@
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use crate::activity_sources::claude_code::claude_code_api_error_line::describe_api_error;
 use crate::activity_sources::claude_code::claude_code_hook_event::*;
 use crate::activity_sources::claude_code::claude_code_permission_answer::ClaudeCodePermissionAnswer;
 use crate::activity_sources::claude_code::claude_code_running_subagents::ClaudeCodeRunningSubagents;
@@ -27,7 +28,8 @@ pub struct TrackedSession {
     is_tool_a_subagent_launch: bool,
     running_subagents: ClaudeCodeRunningSubagents,
     usage_limit_wait: Option<ClaudeCodeUsageLimitWait>,
-    /// From the `Stop` that ended the turn; any later status forgets it.
+    /// How the turn ended, shown under the row: a line from Claude's answer (`Stop`) or the API
+    /// error that stopped it (`StopFailure`); any later status forgets it.
     turn_summary: Option<String>,
     session_title: Option<ClaudeCodeSessionTitle>,
     /// The transcript's start was searched for a title (once per session).
@@ -104,9 +106,14 @@ impl TrackedSession {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::UsageLimited);
                 is_news
             }
-            // Any other API error ends the turn too (no `Stop` follows); Claude Code waits for input.
-            (STOP_FAILURE_HOOK_EVENT, _)
-            | (NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_STALE_NOTIFICATION))
+            // Any other API error ends the turn too (no `Stop` follows); Claude Code waits for input,
+            // and the row says which error it was.
+            (STOP_FAILURE_HOOK_EVENT, _) => {
+                self.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
+                self.turn_summary = describe_api_error(hook_event.last_assistant_message.as_deref(), hook_event.error.as_deref());
+                false
+            }
+            (NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_STALE_NOTIFICATION))
             | (NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_DISABLED_NOTIFICATION)) => {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
                 false
@@ -157,17 +164,21 @@ impl TrackedSession {
         Some(false)
     }
 
-    /// The turn ended in a way that already tells the user what happened.
+    /// The turn ended in a way that already tells the user what happened (an API error's line
+    /// included, which "waiting for you" would otherwise wipe a minute later).
     fn has_turn_ending_status(&self) -> bool {
-        matches!(
-            self.session_status,
-            Some(
-                ClaudeCodeSessionStatus::Done
-                    | ClaudeCodeSessionStatus::Cancelled
-                    | ClaudeCodeSessionStatus::Denied
-                    | ClaudeCodeSessionStatus::UsageLimited
+        let is_waiting_after_an_api_error =
+            self.session_status == Some(ClaudeCodeSessionStatus::WaitingForInput) && self.turn_summary.is_some();
+        is_waiting_after_an_api_error
+            || matches!(
+                self.session_status,
+                Some(
+                    ClaudeCodeSessionStatus::Done
+                        | ClaudeCodeSessionStatus::Cancelled
+                        | ClaudeCodeSessionStatus::Denied
+                        | ClaudeCodeSessionStatus::UsageLimited
+                )
             )
-        )
     }
 
     /// The turn has ended, but subagents it started in the background still run.
@@ -284,7 +295,11 @@ impl TrackedSession {
                 unmentioned_subagent_count,
                 usage_limit_resets_at: self.usage_limit_wait.map(|usage_limit_wait| usage_limit_wait.resets_at_unix_seconds),
                 // Waiting on background subagents shows as working: the summary waits for "done".
-                turn_summary: if session_status == ClaudeCodeSessionStatus::Done { self.turn_summary.clone() } else { None },
+                // While waiting for you, there is a line only after an API error.
+                turn_summary: match session_status {
+                    ClaudeCodeSessionStatus::Done | ClaudeCodeSessionStatus::WaitingForInput => self.turn_summary.clone(),
+                    _ => None,
+                },
                 session_title: self.session_title.as_ref().map(|session_title| session_title.title_text.clone()),
                 news_count: self.news_count,
                 can_dismiss: !session_status.is_busy(),

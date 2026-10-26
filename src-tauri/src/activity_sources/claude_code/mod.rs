@@ -2,6 +2,7 @@
 //! and its permission requests, answered from the pill.
 
 mod claude_code_activity_source;
+mod claude_code_api_error_line;
 mod claude_code_hook_event;
 mod claude_code_hook_registration;
 mod claude_code_integration_switch;

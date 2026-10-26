@@ -26,7 +26,8 @@ export interface ClaudeCodeSessionRow {
   unmentionedSubagentCount: number;
   /** When a reached usage limit resets (Unix seconds), if Claude Code's transcript said. */
   usageLimitResetsAt: number | null;
-  /** Only while "done": a line from Claude's final answer, shown under the row. */
+  /** Shown under the row: while "done" a line from Claude's final answer, while "waiting for
+      you" after an API error that error. */
   turnSummary: string | null;
   /** Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it. */
   canDismiss: boolean;

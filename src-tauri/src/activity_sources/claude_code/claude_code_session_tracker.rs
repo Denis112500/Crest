@@ -342,6 +342,25 @@ mod tests {
     }
 
     #[test]
+    fn an_api_error_says_why_the_session_waits_until_the_next_prompt() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
+        let connection_lost = ClaudeCodeHookEvent {
+            last_assistant_message: Some("API Error: Connection lost mid-response.".to_string()),
+            ..stop_failure("a", "server_error")
+        };
+        tracker.record_hook_event(&connection_lost, event_time);
+        assert_eq!(top_session(&tracker)["sessionStatus"], "waitingForInput");
+        assert_eq!(top_session(&tracker)["turnSummary"], "API Error: Connection lost mid-response.");
+        tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION)), event_time);
+        assert_eq!(top_session(&tracker)["turnSummary"], "API Error: Connection lost mid-response.");
+        tracker.record_hook_event(&hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        assert!(top_session(&tracker)["turnSummary"].is_null());
+        tracker.record_hook_event(&stop_failure("a", "overloaded"), event_time);
+        assert_eq!(top_session(&tracker)["turnSummary"], "API error: overloaded");
+    }
+
+    #[test]
     fn the_transcript_is_searched_for_a_title_once_and_not_when_one_is_known() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
