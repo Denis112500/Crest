@@ -22,5 +22,6 @@ export function createNothingToShowViewSet(): ActivityViewSet {
     expandedViewLogicalHeight: () => NOTHING_TO_SHOW_EXPANDED_LOGICAL_HEIGHT,
     setExpandedViewVisible: () => {},
     setCompactPlaceOnScreen: () => {},
+    setExpandedSizeChangeListener: () => {},
   };
 }

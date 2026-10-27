@@ -1,6 +1,7 @@
 import { CLAUDE_CODE_ACTIVITY_KIND, CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX } from "../../ipc/ipcChannelNames";
 import { requestActivityAction } from "../../ipc/requestActivityAction";
 import type { ClaudeCodeSessionRow } from "./claudeCodeStatusTypes";
+import { createClaudeCodeTurnStepsElement } from "./claudeCodeTurnStepsElement";
 import { describeClaudeCodeSessionStatus } from "./describeClaudeCodeSessionStatus";
 
 const UNKNOWN_PROJECT_FOLDER_TEXT = "Unknown folder";
@@ -11,18 +12,32 @@ const DISMISS_BUTTON_TEXT = "×";
 // session's title (so sessions of one folder can be told apart; look A, CC.2d), what it is doing
 // at the right end, and for a finished one a "×" that removes it from the list (shown while the
 // session is pointed at). A done session adds a dim line from Claude's final answer under it.
-// The row itself isn't clickable: hook events don't say which window a session runs in.
-export function createClaudeCodeSessionRowElement(claudeCodeSession: ClaudeCodeSessionRow): HTMLElement {
+// A click on the line unfolds the row (CC.3): `unfoldedStepLineCount` of its newest steps
+// follow, or `null` while folded. It can't bring the session's window forward: hook events
+// don't say which window a session runs in.
+export function createClaudeCodeSessionRowElement(
+  claudeCodeSession: ClaudeCodeSessionRow,
+  unfoldedStepLineCount: number | null,
+  isTurnSummaryShown: boolean,
+  toggleUnfolded: () => void,
+): HTMLElement {
   const sessionEntryElement = document.createElement("div");
   sessionEntryElement.className = "claude-code-session-entry";
-  sessionEntryElement.append(createSessionLineElement(claudeCodeSession));
-  if (claudeCodeSession.turnSummary !== null) {
+  const sessionLineElement = createSessionLineElement(claudeCodeSession);
+  sessionLineElement.setAttribute("role", "button");
+  sessionLineElement.setAttribute("aria-expanded", String(unfoldedStepLineCount !== null));
+  sessionLineElement.addEventListener("click", toggleUnfolded);
+  sessionEntryElement.append(sessionLineElement);
+  if (claudeCodeSession.turnSummary !== null && isTurnSummaryShown) {
     const turnSummaryElement = document.createElement("div");
     turnSummaryElement.className = "claude-code-session-turn-summary";
     // textContent, never innerHTML: Claude's answer must not be able to inject markup.
     turnSummaryElement.textContent = claudeCodeSession.turnSummary;
     turnSummaryElement.title = claudeCodeSession.turnSummary;
     sessionEntryElement.append(turnSummaryElement);
+  }
+  if (unfoldedStepLineCount !== null) {
+    sessionEntryElement.append(createClaudeCodeTurnStepsElement(claudeCodeSession.turnSteps, unfoldedStepLineCount));
   }
   return sessionEntryElement;
 }
@@ -70,7 +85,9 @@ function createDismissButton(claudeCodeSession: ClaudeCodeSessionRow, sessionNam
   dismissButton.textContent = DISMISS_BUTTON_TEXT;
   dismissButton.setAttribute("aria-label", `Dismiss ${sessionNameText}`);
   dismissButton.title = "Dismiss";
-  dismissButton.addEventListener("click", () => {
+  dismissButton.addEventListener("click", (clickEvent) => {
+    // The click belongs to the "×" alone: it must not also fold or unfold the row.
+    clickEvent.stopPropagation();
     // One click is enough: the row leaves with the next arrangement update.
     dismissButton.disabled = true;
     const dismissAction = `${CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX}${claudeCodeSession.sessionId}`;

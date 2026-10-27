@@ -6,6 +6,7 @@ use std::cmp::Reverse;
 use serde::Serialize;
 
 use crate::activity_sources::claude_code::claude_code_permission_queue::ClaudeCodePermissionAlert;
+use crate::activity_sources::claude_code::claude_code_turn_steps::ClaudeCodeTurnStep;
 use crate::backend_constants::CLAUDE_CODE_LISTED_SESSION_MAX_COUNT;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -55,6 +56,8 @@ pub struct ClaudeCodeSessionRow {
     /// Shown under the row: while "done" a line from Claude's final answer, while "error" the
     /// error.
     pub turn_summary: Option<String>,
+    /// The latest turn's steps, oldest first, shown when the row is unfolded (CC.3).
+    pub turn_steps: Vec<ClaudeCodeTurnStep>,
     /// Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it.
     pub can_dismiss: bool,
 }
@@ -129,6 +132,7 @@ mod tests {
                 turn_summary: None,
                 session_title: None,
                 news_count: 0,
+                turn_steps: Vec::new(),
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order,

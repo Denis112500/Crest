@@ -1,0 +1,30 @@
+/* The steps under an unfolded Claude Code row (CC.3). A line is exactly
+   --claude-code-turn-step-height tall, because expandedClaudeCodeView.ts counts lines to size the
+   open pill. Kept apart from expandedClaudeCodeView.css, which is past 150 lines. */
+
+.claude-code-turn-steps {
+  padding-left: calc(var(--claude-code-session-status-dot-size) + var(--claude-code-session-row-inner-gap));
+  font-size: var(--claude-code-session-turn-summary-font-size);
+}
+
+.claude-code-turn-step {
+  display: flex;
+  align-items: center;
+  gap: var(--claude-code-turn-step-mark-gap);
+  height: var(--claude-code-turn-step-height);
+  line-height: var(--claude-code-turn-step-height);
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+.claude-code-turn-step-mark {
+  flex: none;
+  width: var(--claude-code-turn-step-mark-width);
+  text-align: center;
+}
+
+.claude-code-turn-step-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

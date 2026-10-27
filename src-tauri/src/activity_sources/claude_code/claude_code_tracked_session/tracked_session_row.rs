@@ -37,6 +37,7 @@ impl TrackedSession {
                 },
                 session_title: self.session_title.as_ref().map(|session_title| session_title.title_text.clone()),
                 news_count: self.news_count,
+                turn_steps: self.turn_steps.list_steps(),
                 can_dismiss: !session_status.is_busy(),
             },
             last_event_order: self.last_event_order,

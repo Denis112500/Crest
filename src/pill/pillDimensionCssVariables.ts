@@ -12,6 +12,7 @@ import {
   CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP,
   CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT,
   CLAUDE_CODE_SESSION_TURN_SUMMARY_LOGICAL_HEIGHT,
+  CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT,
   CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT,
   PILL_COMPACT_LOGICAL_HEIGHT,
   PILL_COMPACT_LOGICAL_WIDTH,
@@ -49,6 +50,7 @@ export function applyPillDimensionCssVariables(): void {
     "--claude-code-session-turn-summary-height",
     `${CLAUDE_CODE_SESSION_TURN_SUMMARY_LOGICAL_HEIGHT}px`,
   );
+  rootStyle.setProperty("--claude-code-turn-step-height", `${CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT}px`);
   rootStyle.setProperty(
     "--claude-code-unlisted-sessions-height",
     `${CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT}px`,

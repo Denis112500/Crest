@@ -364,6 +364,39 @@ mod tests {
     }
 
     #[test]
+    fn a_turn_lists_its_own_tool_calls_with_their_outcomes_until_the_next_prompt() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        let tool_event = |hook_event_name: &str, tool_use_id: &str| ClaudeCodeHookEvent {
+            tool_use_id: Some(tool_use_id.to_string()),
+            ..hook_event("a", hook_event_name, None)
+        };
+        tracker.record_hook_event(&hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        tracker.record_hook_event(&tool_event(PRE_TOOL_USE_HOOK_EVENT, "toolu_1"), event_time);
+        tracker.record_hook_event(&tool_event(POST_TOOL_USE_HOOK_EVENT, "toolu_1"), event_time);
+        tracker.record_hook_event(&tool_event(PRE_TOOL_USE_HOOK_EVENT, "toolu_2"), event_time);
+        tracker.record_hook_event(&tool_event(POST_TOOL_USE_FAILURE_HOOK_EVENT, "toolu_2"), event_time);
+        tracker.record_hook_event(&subagent_event("a", PRE_TOOL_USE_HOOK_EVENT, "agent_1"), event_time);
+        tracker.record_hook_event(&tool_event(PRE_TOOL_USE_HOOK_EVENT, "toolu_3"), event_time);
+        tracker.record_hook_event(&hook_event("a", STOP_HOOK_EVENT, None), event_time);
+        let step_outcomes: Vec<_> = top_session(&tracker)["turnSteps"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|turn_step| (turn_step["stepText"].clone(), turn_step["stepOutcome"].clone()))
+            .collect();
+        assert_eq!(
+            step_outcomes,
+            vec![
+                ("Running cargo test".into(), "done".into()),
+                ("Running cargo test".into(), "failed".into()),
+                ("Running cargo test".into(), "running".into())
+            ]
+        );
+        tracker.record_hook_event(&hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        assert_eq!(top_session(&tracker)["turnSteps"], serde_json::json!([]));
+    }
+
+    #[test]
     fn the_transcript_is_searched_for_a_title_once_and_not_when_one_is_known() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);

@@ -5,21 +5,25 @@ import {
   CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP,
   CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT,
   CLAUDE_CODE_SESSION_TURN_SUMMARY_LOGICAL_HEIGHT,
+  CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT,
   CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT,
 } from "../../frontendConstants";
 
 // How tall the open Claude Code view is for this many rows: the same sum the flex column in
 // expandedClaudeCodeView.css produces (padding, header, gap, rows with their gaps and the
-// summary lines under done rows, and the "+N more" line with its gap only when it is shown).
+// summary lines under done rows, an unfolded row's step lines, and the "+N more" line with its
+// gap only when it is shown).
 // Calculated rather than measured, so the pill can start growing before the new rows are laid out.
 export function calculateClaudeCodeExpandedHeight(
   listedSessionCount: number,
   turnSummaryCount: number,
   hasUnlistedSessions: boolean,
+  turnStepLineCount: number,
 ): number {
   const sessionListHeight =
     listedSessionCount * CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT +
     turnSummaryCount * CLAUDE_CODE_SESSION_TURN_SUMMARY_LOGICAL_HEIGHT +
+    turnStepLineCount * CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT +
     Math.max(listedSessionCount - 1, 0) * CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP;
   const unlistedSessionsHeight = hasUnlistedSessions
     ? CLAUDE_CODE_EXPANDED_SECTION_LOGICAL_GAP + CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT

@@ -11,6 +11,12 @@ export type ClaudeCodeSessionStatus =
   | "cancelled"
   | "denied";
 
+/** Mirrors `ClaudeCodeTurnStep` in claude_code_turn_steps.rs: one tool call of the latest turn. */
+export interface ClaudeCodeTurnStep {
+  stepText: string;
+  stepOutcome: "running" | "done" | "failed";
+}
+
 export interface ClaudeCodeSessionRow {
   /** Sent back with the "×", so a click can only dismiss the session it was shown on. */
   sessionId: string;
@@ -30,6 +36,8 @@ export interface ClaudeCodeSessionRow {
   /** Shown under the row: while "done" a line from Claude's final answer, while "error" the
       error. */
   turnSummary: string | null;
+  /** The latest turn's steps, oldest first, shown when the row is unfolded (CC.3). */
+  turnSteps: ClaudeCodeTurnStep[];
   /** Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it. */
   canDismiss: boolean;
 }

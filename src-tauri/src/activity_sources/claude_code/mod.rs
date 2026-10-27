@@ -28,6 +28,7 @@ mod claude_code_transcript_interrupt;
 mod claude_code_transcript_title_lookup;
 mod claude_code_transcript_usage_limit;
 mod claude_code_transcript_watch;
+mod claude_code_turn_steps;
 mod claude_code_turn_summary;
 mod claude_code_usage_limit_wait;
 mod last_path_part;

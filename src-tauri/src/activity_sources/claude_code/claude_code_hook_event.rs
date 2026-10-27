@@ -34,6 +34,10 @@ pub struct ClaudeCodeHookEvent {
     pub tool_name: Option<String>,
     #[serde(default)]
     pub tool_input: Option<serde_json::Value>,
+    /// The same id on a tool call's `PreToolUse` and on its `PostToolUse` / `PostToolUseFailure`
+    /// (verified by testing, 2026-10-27), so a step's outcome finds its step.
+    #[serde(default)]
+    pub tool_use_id: Option<String>,
     #[serde(default)]
     pub notification_type: Option<String>,
     /// The subagent the event comes from: on `SubagentStart` / `SubagentStop`, and on the tool

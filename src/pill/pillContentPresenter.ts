@@ -49,6 +49,7 @@ export class PillContentPresenter {
       let activityViewSet = this.viewSetByActivityKind.get(placedActivity.activityKind);
       if (!activityViewSet) {
         activityViewSet = createActivityViewSetForKind(placedActivity.activityKind) ?? createNothingToShowViewSet();
+        activityViewSet.setExpandedSizeChangeListener(() => this.mountViews());
         this.viewSetByActivityKind.set(placedActivity.activityKind, activityViewSet);
       }
       activityViewSet.showActivityPayload(placedActivity.activityPayload);

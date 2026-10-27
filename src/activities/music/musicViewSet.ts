@@ -55,5 +55,6 @@ export function createMusicViewSet(): ActivityViewSet {
       compactMusicView.setPillOnScreen(compactPlaceOnScreen === "main");
       companionMusicView.setCompanionOnScreen(compactPlaceOnScreen === "companion");
     },
+    setExpandedSizeChangeListener: () => {},
   };
 }

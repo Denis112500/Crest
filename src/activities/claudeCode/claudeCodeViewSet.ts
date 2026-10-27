@@ -1,6 +1,5 @@
 import { CLAUDE_CODE_PERMISSION_ALERT_LOGICAL_WIDTH, PILL_DASHBOARD_TILE_LOGICAL_WIDTH } from "../../frontendConstants";
 import type { ActivityViewSet } from "../activityViewSet";
-import { calculateClaudeCodeExpandedHeight } from "./calculateClaudeCodeExpandedHeight";
 import { calculateClaudeCodePermissionAlertHeight } from "./calculateClaudeCodePermissionAlertHeight";
 import { createClaudeCodePermissionAlertView } from "./claudeCodePermissionAlertView";
 import type { ClaudeCodeStatusPayload } from "./claudeCodeStatusTypes";
@@ -10,7 +9,8 @@ import { createExpandedClaudeCodeView } from "./expandedClaudeCodeView";
 
 // The "claude-code" activity's views, as registered in activityViewRegistry.ts. The open pill
 // shows the session list, or the permission alert while a request waits. No animations, so
-// nothing to pause while hidden; only the alert's buttons care about being seen.
+// nothing to pause while hidden; the alert's buttons care about being seen, and an unfolded row
+// folds when the pill closes.
 export function createClaudeCodeViewSet(): ActivityViewSet {
   const compactClaudeCodeView = createCompactClaudeCodeView();
   const companionClaudeCodeView = createCompanionClaudeCodeView();
@@ -20,8 +20,7 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
   // element, so switching never needs the presenter.
   const expandedSlotElement = document.createElement("div");
   expandedSlotElement.className = "claude-code-expanded-slot";
-  // Replaced by the first payload, which always comes right after the views are mounted.
-  let expandedLogicalHeight = calculateClaudeCodeExpandedHeight(1, 0, false);
+  let permissionAlertLogicalHeight = 0;
   let isPermissionAlertShown = false;
   let isExpandedViewVisible = false;
   return {
@@ -37,7 +36,7 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
       if (permissionAlert) {
         const requestRowCount = permissionAlertView.showPermissionAlert(permissionAlert);
         showInExpandedSlot(expandedSlotElement, permissionAlertView.alertViewElement);
-        expandedLogicalHeight = calculateClaudeCodePermissionAlertHeight(requestRowCount);
+        permissionAlertLogicalHeight = calculateClaudeCodePermissionAlertHeight(requestRowCount);
         isPermissionAlertShown = true;
         return;
       }
@@ -45,24 +44,26 @@ export function createClaudeCodeViewSet(): ActivityViewSet {
       permissionAlertView.forgetShownRequest();
       expandedClaudeCodeView.showClaudeCodeStatus(claudeCodeStatus);
       showInExpandedSlot(expandedSlotElement, expandedClaudeCodeView.expandedViewElement);
-      expandedLogicalHeight = calculateClaudeCodeExpandedHeight(
-        claudeCodeStatus.listedSessions.length,
-        claudeCodeStatus.listedSessions.filter((claudeCodeSession) => claudeCodeSession.turnSummary !== null).length,
-        claudeCodeStatus.unlistedSessionCount > 0,
-      );
     },
     expandedViewLogicalWidth: () =>
       isPermissionAlertShown ? CLAUDE_CODE_PERMISSION_ALERT_LOGICAL_WIDTH : PILL_DASHBOARD_TILE_LOGICAL_WIDTH,
-    expandedViewLogicalHeight: () => expandedLogicalHeight,
+    expandedViewLogicalHeight: () =>
+      isPermissionAlertShown ? permissionAlertLogicalHeight : expandedClaudeCodeView.logicalHeight(),
     // Called again after every change, so only the moment it becomes visible counts: an alert
     // that was hidden (during a game) gets its pause before clicks count when it shows again.
     setExpandedViewVisible(isVisibleNow) {
       if (isVisibleNow && !isExpandedViewVisible) {
         permissionAlertView.armButtonsAfterDelay();
       }
+      if (!isVisibleNow) {
+        expandedClaudeCodeView.foldSessions();
+      }
       isExpandedViewVisible = isVisibleNow;
     },
     setCompactPlaceOnScreen: () => {},
+    setExpandedSizeChangeListener(expandedSizeChangeListener) {
+      expandedClaudeCodeView.setSizeChangeListener(expandedSizeChangeListener);
+    },
   };
 }
 

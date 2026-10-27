@@ -9,6 +9,7 @@ use crate::activity_sources::claude_code::claude_code_hook_event::*;
 use crate::activity_sources::claude_code::claude_code_session_list::ClaudeCodeSessionStatus;
 use crate::activity_sources::claude_code::claude_code_session_title::ClaudeCodeSessionTitle;
 use crate::activity_sources::claude_code::claude_code_tool_summary::{summarize_tool_use, SUBAGENT_LAUNCH_TOOL_NAMES};
+use crate::activity_sources::claude_code::claude_code_turn_steps::ClaudeCodeStepOutcome;
 use crate::activity_sources::claude_code::claude_code_turn_summary::summarize_final_answer;
 use crate::activity_sources::claude_code::last_path_part::find_last_path_part;
 
@@ -33,17 +34,31 @@ impl TrackedSession {
             self.show_session_title(chosen_title);
         }
         match (hook_event.hook_event_name.as_str(), hook_event.notification_type.as_deref()) {
-            (USER_PROMPT_SUBMIT_HOOK_EVENT, _)
-            | (POST_TOOL_USE_HOOK_EVENT, _)
-            | (POST_TOOL_USE_FAILURE_HOOK_EVENT, _)
-            | (NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_FIRED_NOTIFICATION)) => {
+            (USER_PROMPT_SUBMIT_HOOK_EVENT, _) => {
+                self.turn_steps.start_turn();
+                self.show_status_without_tool(ClaudeCodeSessionStatus::Working);
+                false
+            }
+            (POST_TOOL_USE_HOOK_EVENT, _) | (POST_TOOL_USE_FAILURE_HOOK_EVENT, _) => {
+                let step_outcome = if hook_event.hook_event_name == POST_TOOL_USE_HOOK_EVENT {
+                    ClaudeCodeStepOutcome::Done
+                } else {
+                    ClaudeCodeStepOutcome::Failed
+                };
+                self.turn_steps.record_tool_outcome(hook_event.tool_use_id.as_deref(), step_outcome);
+                self.show_status_without_tool(ClaudeCodeSessionStatus::Working);
+                false
+            }
+            (NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_FIRED_NOTIFICATION)) => {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Working);
                 false
             }
             (PRE_TOOL_USE_HOOK_EVENT, _) => {
                 let tool_name = hook_event.tool_name.as_deref().unwrap_or_default();
+                let tool_summary = summarize_tool_use(tool_name, hook_event.tool_input.as_ref());
+                self.turn_steps.record_tool_start(hook_event.tool_use_id.as_deref(), tool_summary.clone());
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Working);
-                self.tool_summary = Some(summarize_tool_use(tool_name, hook_event.tool_input.as_ref()));
+                self.tool_summary = Some(tool_summary);
                 self.is_tool_a_subagent_launch = SUBAGENT_LAUNCH_TOOL_NAMES.contains(&tool_name);
                 false
             }

@@ -58,5 +58,6 @@ export function createIdleViewSet(): ActivityViewSet {
       isCompactViewSeen = compactPlaceOnScreen === "main";
       updateClockSeen();
     },
+    setExpandedSizeChangeListener: () => {},
   };
 }

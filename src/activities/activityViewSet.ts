@@ -21,4 +21,7 @@ export interface ActivityViewSet {
   /** Lets only the small view that's seen animate: none while hidden (during a game), while the
       pill is open, or while the activity isn't placed small at all. */
   setCompactPlaceOnScreen(compactPlaceOnScreen: CompactPlaceOnScreen): void;
+  /** Given once by the presenter: called when a click inside the open view changed its size
+      (an unfolded Claude Code row), so the pill can follow without new data from Rust. */
+  setExpandedSizeChangeListener(expandedSizeChangeListener: () => void): void;
 }

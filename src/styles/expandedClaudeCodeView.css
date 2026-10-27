@@ -56,6 +56,7 @@
   align-items: center;
   gap: var(--claude-code-session-row-inner-gap);
   height: var(--claude-code-session-row-height);
+  cursor: pointer;
 }
 
 /* A ring drawn as an inset shadow, so it stays exactly round at any size and needs no border

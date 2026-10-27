@@ -152,6 +152,9 @@
   /* The line from Claude's final answer under a done row (CC.2, look A): a step smaller than
      the row, in the secondary text opacity, so the row stays the first thing read. */
   --claude-code-session-turn-summary-font-size: 12px;
+  /* An unfolded row's steps (CC.3): a small mark column (›, ✓, ✗) before each step's text. */
+  --claude-code-turn-step-mark-width: 10px;
+  --claude-code-turn-step-mark-gap: 5px;
   /* The "×" that dismisses a finished session: a small round target, hidden until the row is
      pointed at (CC.1 fixes). */
   --claude-code-session-dismiss-button-size: 18px;

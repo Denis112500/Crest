@@ -152,6 +152,10 @@ pub const CLAUDE_CODE_TOOL_SUMMARY_MAX_CHARACTERS: usize = 40;
 /// characters (2026-10-24), and the companion mark's tooltip has room for more than the row.
 pub const CLAUDE_CODE_TURN_SUMMARY_MAX_CHARACTERS: usize = 160;
 
+/// A session keeps this many of its latest turn's steps (the oldest drops); the unfolded row
+/// shows the newest ones that fit (CC.3).
+pub const CLAUDE_CODE_TURN_STEP_MAX_COUNT: usize = 12;
+
 /// A session's title after its folder in the row is cut to this many characters; the row cuts
 /// it again to its width. Made-up titles are a few words ("Tauri source directory"); chosen
 /// ones can be a whole sentence (seen 2026-10-24).

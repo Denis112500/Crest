@@ -9,6 +9,7 @@ use std::time::{Duration, Instant};
 use crate::activity_sources::claude_code::claude_code_running_subagents::ClaudeCodeRunningSubagents;
 use crate::activity_sources::claude_code::claude_code_session_list::ClaudeCodeSessionStatus;
 use crate::activity_sources::claude_code::claude_code_session_title::ClaudeCodeSessionTitle;
+use crate::activity_sources::claude_code::claude_code_turn_steps::ClaudeCodeTurnSteps;
 use crate::activity_sources::claude_code::claude_code_usage_limit_wait::ClaudeCodeUsageLimitWait;
 
 pub struct TrackedSession {
@@ -24,6 +25,8 @@ pub struct TrackedSession {
     /// How the turn ended, shown under the row: a line from Claude's answer (`Stop`) or the API
     /// error that stopped it (`StopFailure`); any later status forgets it.
     pub(super) turn_summary: Option<String>,
+    /// The latest turn's tool calls, shown when the row is unfolded; kept after the turn ends.
+    pub(super) turn_steps: ClaudeCodeTurnSteps,
     pub(super) session_title: Option<ClaudeCodeSessionTitle>,
     /// The transcript's start was searched for a title (once per session).
     pub(super) is_title_looked_up: bool,
@@ -45,6 +48,7 @@ impl TrackedSession {
             running_subagents: ClaudeCodeRunningSubagents::default(),
             usage_limit_wait: None,
             turn_summary: None,
+            turn_steps: ClaudeCodeTurnSteps::default(),
             session_title: None,
             is_title_looked_up: false,
             news_count: 0,

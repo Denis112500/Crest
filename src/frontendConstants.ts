@@ -45,6 +45,8 @@ export const CLAUDE_CODE_EXPANDED_SECTION_LOGICAL_GAP = 12;
 export const CLAUDE_CODE_SESSION_ROW_LOGICAL_HEIGHT = 22;
 // The dim line from Claude's final answer under a done row (CC.2).
 export const CLAUDE_CODE_SESSION_TURN_SUMMARY_LOGICAL_HEIGHT = 16;
+// One line of an unfolded row's steps (CC.3); the row shows the newest steps that fit.
+export const CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT = 16;
 export const CLAUDE_CODE_SESSION_ROW_LOGICAL_GAP = 4;
 export const CLAUDE_CODE_UNLISTED_SESSIONS_LOGICAL_HEIGHT = 16;
 
