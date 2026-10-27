@@ -46,6 +46,8 @@ export function createExpandedClaudeCodeView(): ExpandedClaudeCodeView {
 
   let shownClaudeCodeStatus: ClaudeCodeStatusPayload | null = null;
   let unfoldedSessionId: string | null = null;
+  /** The row unfolded when the list was last drawn: its scroll position carries over. */
+  let lastUnfoldedSessionId: string | null = null;
   let expandedLogicalHeight = calculateClaudeCodeExpandedHeight(1, 0, false, 0);
   let sizeChangeListener = (): void => {};
 
@@ -72,6 +74,8 @@ export function createExpandedClaudeCodeView(): ExpandedClaudeCodeView {
 
     const sessionCount = listedSessions.length + claudeCodeStatus.unlistedSessionCount;
     sessionCountElement.textContent = `${sessionCount} session${sessionCount === 1 ? "" : "s"}`;
+    const stepScrollPosition = readStepScrollPosition(sessionListElement, unfoldedSessionId === lastUnfoldedSessionId);
+    lastUnfoldedSessionId = unfoldedSessionId;
     sessionListElement.replaceChildren(
       ...listedSessions.map((claudeCodeSession) =>
         createClaudeCodeSessionRowElement(
@@ -86,6 +90,7 @@ export function createExpandedClaudeCodeView(): ExpandedClaudeCodeView {
         ),
       ),
     );
+    restoreStepScrollPosition(sessionListElement, stepScrollPosition);
     // Hidden, not just empty: a hidden element adds no gap, which the height calculation relies on.
     unlistedSessionsElement.hidden = !hasUnlistedSessions;
     unlistedSessionsElement.textContent = `+${claudeCodeStatus.unlistedSessionCount} more`;
@@ -108,4 +113,25 @@ export function createExpandedClaudeCodeView(): ExpandedClaudeCodeView {
       sizeChangeListener = newSizeChangeListener;
     },
   };
+}
+
+/** `null`: follow the newest step (a newly unfolded row, or the box was scrolled to its end). */
+type StepScrollPosition = number | null;
+
+// Every update redraws the rows, which would throw away how far the steps were scrolled. Someone
+// reading older steps keeps their place; otherwise the newest step stays in view as steps come.
+function readStepScrollPosition(sessionListElement: HTMLElement, isSameRowUnfolded: boolean): StepScrollPosition {
+  const turnStepsElement = sessionListElement.querySelector<HTMLElement>(".claude-code-turn-steps");
+  if (!turnStepsElement || !isSameRowUnfolded) {
+    return null;
+  }
+  const isAtNewestStep = turnStepsElement.scrollTop + turnStepsElement.clientHeight >= turnStepsElement.scrollHeight - 1;
+  return isAtNewestStep ? null : turnStepsElement.scrollTop;
+}
+
+function restoreStepScrollPosition(sessionListElement: HTMLElement, stepScrollPosition: StepScrollPosition): void {
+  const turnStepsElement = sessionListElement.querySelector<HTMLElement>(".claude-code-turn-steps");
+  if (turnStepsElement) {
+    turnStepsElement.scrollTop = stepScrollPosition ?? turnStepsElement.scrollHeight;
+  }
 }

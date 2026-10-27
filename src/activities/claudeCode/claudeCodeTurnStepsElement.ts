@@ -1,25 +1,25 @@
-import "../../styles/claudeCodeTurnSteps.css";
-
 import type { ClaudeCodeTurnStep } from "./claudeCodeStatusTypes";
 
 const NO_STEPS_TEXT = "No steps in this turn yet";
+// The running step's mark is a ring drawn in CSS (claudeCodeSessionUnfolding.css).
 const STEP_OUTCOME_MARKS: Record<ClaudeCodeTurnStep["stepOutcome"], string> = {
-  running: "›",
+  running: "",
   done: "✓",
   failed: "✗",
 };
 
-// Under an unfolded row: the newest steps of its latest turn, oldest of them first, as many as
-// the open pill has room for (expandedClaudeCodeView.ts counts the lines).
-export function createClaudeCodeTurnStepsElement(turnSteps: ClaudeCodeTurnStep[], shownStepLineCount: number): HTMLElement {
+// Under an unfolded row: every step of its latest turn, oldest first, in a box as tall as
+// `visibleStepLineCount` lines (as many as the open pill has room for; expandedClaudeCodeView.ts
+// counts them and scrolls the box to the newest step); the wheel scrolls to the older ones.
+export function createClaudeCodeTurnStepsElement(turnSteps: ClaudeCodeTurnStep[], visibleStepLineCount: number): HTMLElement {
   const turnStepsElement = document.createElement("div");
   turnStepsElement.className = "claude-code-turn-steps";
+  turnStepsElement.style.height = `calc(${visibleStepLineCount} * var(--claude-code-turn-step-height))`;
   if (turnSteps.length === 0) {
     turnStepsElement.append(createStepLineElement(NO_STEPS_TEXT, null));
     return turnStepsElement;
   }
-  const shownSteps = turnSteps.slice(-shownStepLineCount);
-  turnStepsElement.append(...shownSteps.map((turnStep) => createStepLineElement(turnStep.stepText, turnStep.stepOutcome)));
+  turnStepsElement.append(...turnSteps.map((turnStep) => createStepLineElement(turnStep.stepText, turnStep.stepOutcome)));
   return turnStepsElement;
 }
 

@@ -152,9 +152,17 @@
   /* The line from Claude's final answer under a done row (CC.2, look A): a step smaller than
      the row, in the secondary text opacity, so the row stays the first thing read. */
   --claude-code-session-turn-summary-font-size: 12px;
-  /* An unfolded row's steps (CC.3): a small mark column (›, ✓, ✗) before each step's text. */
+  /* An unfolded row's steps (CC.3): a small mark column (a ring, ✓, ✗) before each step's text. */
   --claude-code-turn-step-mark-width: 10px;
   --claude-code-turn-step-mark-gap: 5px;
+  --claude-code-turn-step-ring-size: 7px;
+  /* A row says it can be clicked (CC.3b, option 3): a soft background and a chevron while
+     pointed at, faded in quickly so passing over the list doesn't flash. */
+  --claude-code-session-row-hover-background: rgba(230, 240, 255, 0.07);
+  --claude-code-session-row-hover-inset: 6px;
+  --claude-code-session-row-hover-radius: 8px;
+  --claude-code-session-chevron-width: 10px;
+  --claude-code-session-unfolding-duration: 120ms;
   /* The "×" that dismisses a finished session: a small round target, hidden until the row is
      pointed at (CC.1 fixes). */
   --claude-code-session-dismiss-button-size: 18px;

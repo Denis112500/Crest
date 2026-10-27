@@ -1,3 +1,5 @@
+import "../../styles/claudeCodeSessionUnfolding.css";
+
 import { CLAUDE_CODE_ACTIVITY_KIND, CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX } from "../../ipc/ipcChannelNames";
 import { requestActivityAction } from "../../ipc/requestActivityAction";
 import type { ClaudeCodeSessionRow } from "./claudeCodeStatusTypes";
@@ -7,13 +9,16 @@ import { describeClaudeCodeSessionStatus } from "./describeClaudeCodeSessionStat
 const UNKNOWN_PROJECT_FOLDER_TEXT = "Unknown folder";
 const SESSION_TITLE_SEPARATOR = "· ";
 const DISMISS_BUTTON_TEXT = "×";
+// Points right while folded; CSS turns it down on the unfolded row.
+const UNFOLD_CHEVRON_TEXT = "›";
 
 // One session in the open pill: a dot coloured by its status, its project folder and, dimmed, the
 // session's title (so sessions of one folder can be told apart; look A, CC.2d), what it is doing
 // at the right end, and for a finished one a "×" that removes it from the list (shown while the
 // session is pointed at). A done session adds a dim line from Claude's final answer under it.
-// A click on the line unfolds the row (CC.3): `unfoldedStepLineCount` of its newest steps
-// follow, or `null` while folded. It can't bring the session's window forward: hook events
+// A click on the line unfolds the row (CC.3): its steps follow in a box `unfoldedStepLineCount`
+// lines tall, or `null` while folded. Pointing at the line lights it and shows a chevron, so it
+// reads as clickable (CC.3b). It can't bring the session's window forward: hook events
 // don't say which window a session runs in.
 export function createClaudeCodeSessionRowElement(
   claudeCodeSession: ClaudeCodeSessionRow,
@@ -52,7 +57,11 @@ function createSessionLineElement(claudeCodeSession: ClaudeCodeSessionRow): HTML
   const sessionStatusElement = document.createElement("span");
   sessionStatusElement.className = "claude-code-session-status";
   sessionStatusElement.textContent = describeClaudeCodeSessionStatus(claudeCodeSession);
-  sessionRowElement.append(statusDotElement, sessionNameElement, sessionStatusElement);
+  const unfoldChevronElement = document.createElement("span");
+  unfoldChevronElement.className = "claude-code-session-chevron";
+  unfoldChevronElement.textContent = UNFOLD_CHEVRON_TEXT;
+  unfoldChevronElement.setAttribute("aria-hidden", "true");
+  sessionRowElement.append(statusDotElement, sessionNameElement, sessionStatusElement, unfoldChevronElement);
   if (claudeCodeSession.canDismiss) {
     sessionRowElement.append(createDismissButton(claudeCodeSession, sessionNameElement.title));
   }

@@ -1,0 +1,98 @@
+/* Unfolding a Claude Code row to its steps (CC.3): the row says it can be clicked (a soft
+   background and a chevron while pointed at; the unfolded row keeps its chevron, turned down),
+   and the steps under it. A step line is exactly --claude-code-turn-step-height tall, because
+   expandedClaudeCodeView.ts counts lines to size the open pill. Kept apart from
+   expandedClaudeCodeView.css, which is past 150 lines. */
+
+/* The background reaches a little past the row's content without moving it. */
+.claude-code-session-row {
+  margin-inline: calc(-1 * var(--claude-code-session-row-hover-inset));
+  padding-inline: var(--claude-code-session-row-hover-inset);
+  border-radius: var(--claude-code-session-row-hover-radius);
+  cursor: pointer;
+  transition: background var(--claude-code-session-unfolding-duration);
+}
+
+.claude-code-session-row:hover {
+  background: var(--claude-code-session-row-hover-background);
+}
+
+/* Always holds its place, so the status text doesn't move when it shows. */
+.claude-code-session-chevron {
+  flex: none;
+  width: var(--claude-code-session-chevron-width);
+  text-align: center;
+  opacity: 0;
+  transition:
+    opacity var(--claude-code-session-unfolding-duration),
+    transform var(--claude-code-session-unfolding-duration);
+}
+
+.claude-code-session-row:hover .claude-code-session-chevron {
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+.claude-code-session-row[aria-expanded="true"] .claude-code-session-chevron {
+  opacity: var(--pill-secondary-text-opacity);
+  transform: rotate(90deg);
+}
+
+/* All of the turn's steps, as tall as the lines that fit; the wheel scrolls to older ones. */
+.claude-code-turn-steps {
+  padding-left: calc(var(--claude-code-session-status-dot-size) + var(--claude-code-session-row-inner-gap));
+  font-size: var(--claude-code-session-turn-summary-font-size);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.claude-code-turn-step {
+  display: flex;
+  align-items: center;
+  gap: var(--claude-code-turn-step-mark-gap);
+  height: var(--claude-code-turn-step-height);
+  line-height: var(--claude-code-turn-step-height);
+}
+
+.claude-code-turn-step-mark {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  width: var(--claude-code-turn-step-mark-width);
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+.claude-code-turn-step-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: var(--pill-secondary-text-opacity);
+}
+
+/* The step running now reads at full strength, its mark a small ring like the session's own. */
+.claude-code-turn-step[data-step-outcome="running"] .claude-code-turn-step-text {
+  opacity: 1;
+}
+
+.claude-code-turn-step[data-step-outcome="running"] .claude-code-turn-step-mark::before {
+  content: "";
+  width: var(--claude-code-turn-step-ring-size);
+  height: var(--claude-code-turn-step-ring-size);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 var(--claude-code-session-status-ring-width) var(--claude-code-accent-color);
+}
+
+.claude-code-turn-step[data-step-outcome="running"] .claude-code-turn-step-mark {
+  opacity: 1;
+}
+
+/* Done in the finish green, failed in the alarm red; the step's text stays dim either way. */
+.claude-code-turn-step[data-step-outcome="done"] .claude-code-turn-step-mark {
+  color: var(--claude-code-done-color);
+  opacity: 1;
+}
+
+.claude-code-turn-step[data-step-outcome="failed"] .claude-code-turn-step-mark {
+  color: var(--claude-code-usage-limit-color);
+  opacity: 1;
+}
