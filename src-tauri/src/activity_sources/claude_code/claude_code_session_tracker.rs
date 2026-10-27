@@ -1,6 +1,6 @@
 //! Follows every Claude Code session from its hook events and describes them for the pill.
 //! Pure (the caller passes the time in), so every rule is unit-tested. How one event changes one
-//! session is in `claude_code_tracked_session.rs`; this file keeps the sessions, their order,
+//! session is in the `claude_code_tracked_session` folder; this file keeps the sessions, their order,
 //! the news count and the timeouts.
 
 use std::collections::HashMap;
