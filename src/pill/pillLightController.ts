@@ -82,7 +82,7 @@ export class PillLightController {
     const [startColor, middleColor, endColor] = {
       needsPermission: this.palette.goldColors,
       working: this.palette.starlightColors,
-      freshUsageLimit: this.palette.redColors,
+      freshUsageLimitOrError: this.palette.redColors,
       freshCancelledOrDenied: this.palette.redColors,
       freshDone: this.palette.doneColors,
       song: this.palette.musicColors,

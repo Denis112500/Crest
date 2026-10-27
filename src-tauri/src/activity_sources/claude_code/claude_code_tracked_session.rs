@@ -61,7 +61,7 @@ impl TrackedSession {
     }
 
     /// Returns whether the event is news for the user ("done", a new "needs your OK", a reached
-    /// usage limit).
+    /// usage limit, an API error).
     pub fn apply_hook_event(&mut self, hook_event: &ClaudeCodeHookEvent, event_time: Instant, event_order: u64) -> bool {
         self.note_event(event_time, event_order);
         // Whether a subagent's events name its own transcript or the session's isn't documented:
@@ -106,12 +106,12 @@ impl TrackedSession {
                 self.show_status_without_tool(ClaudeCodeSessionStatus::UsageLimited);
                 is_news
             }
-            // Any other API error ends the turn too (no `Stop` follows); Claude Code waits for input,
-            // and the row says which error it was.
+            // Any other API error ends the turn too (no `Stop` follows) without its work done:
+            // news, and the row says which error it was.
             (STOP_FAILURE_HOOK_EVENT, _) => {
-                self.show_status_without_tool(ClaudeCodeSessionStatus::WaitingForInput);
+                self.show_status_without_tool(ClaudeCodeSessionStatus::Errored);
                 self.turn_summary = describe_api_error(hook_event.last_assistant_message.as_deref(), hook_event.error.as_deref());
-                false
+                true
             }
             (NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_STALE_NOTIFICATION))
             | (NOTIFICATION_HOOK_EVENT, Some(QUOTA_AUTO_RESUME_DISABLED_NOTIFICATION)) => {
@@ -164,21 +164,18 @@ impl TrackedSession {
         Some(false)
     }
 
-    /// The turn ended in a way that already tells the user what happened (an API error's line
-    /// included, which "waiting for you" would otherwise wipe a minute later).
+    /// The turn ended in a way that already tells the user what happened.
     fn has_turn_ending_status(&self) -> bool {
-        let is_waiting_after_an_api_error =
-            self.session_status == Some(ClaudeCodeSessionStatus::WaitingForInput) && self.turn_summary.is_some();
-        is_waiting_after_an_api_error
-            || matches!(
-                self.session_status,
-                Some(
-                    ClaudeCodeSessionStatus::Done
-                        | ClaudeCodeSessionStatus::Cancelled
-                        | ClaudeCodeSessionStatus::Denied
-                        | ClaudeCodeSessionStatus::UsageLimited
-                )
+        matches!(
+            self.session_status,
+            Some(
+                ClaudeCodeSessionStatus::Done
+                    | ClaudeCodeSessionStatus::Errored
+                    | ClaudeCodeSessionStatus::Cancelled
+                    | ClaudeCodeSessionStatus::Denied
+                    | ClaudeCodeSessionStatus::UsageLimited
             )
+        )
     }
 
     /// The turn has ended, but subagents it started in the background still run.
@@ -295,9 +292,8 @@ impl TrackedSession {
                 unmentioned_subagent_count,
                 usage_limit_resets_at: self.usage_limit_wait.map(|usage_limit_wait| usage_limit_wait.resets_at_unix_seconds),
                 // Waiting on background subagents shows as working: the summary waits for "done".
-                // While waiting for you, there is a line only after an API error.
                 turn_summary: match session_status {
-                    ClaudeCodeSessionStatus::Done | ClaudeCodeSessionStatus::WaitingForInput => self.turn_summary.clone(),
+                    ClaudeCodeSessionStatus::Done | ClaudeCodeSessionStatus::Errored => self.turn_summary.clone(),
                     _ => None,
                 },
                 session_title: self.session_title.as_ref().map(|session_title| session_title.title_text.clone()),

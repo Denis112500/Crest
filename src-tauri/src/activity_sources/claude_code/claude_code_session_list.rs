@@ -17,6 +17,8 @@ pub enum ClaudeCodeSessionStatus {
     NeedsPermission,
     /// The turn stopped on a reached usage or rate limit.
     UsageLimited,
+    /// Any other API error stopped the turn (overloaded, a lost connection, a billing error…).
+    Errored,
     /// The user stopped the turn (Esc or Ctrl+C).
     Cancelled,
     /// The user denied a permission (in Claude Code or from the pill), which ends the turn.
@@ -50,8 +52,8 @@ pub struct ClaudeCodeSessionRow {
     pub unmentioned_subagent_count: usize,
     /// When a reached usage limit resets (Unix seconds), if the transcript said.
     pub usage_limit_resets_at: Option<u64>,
-    /// Shown under the row: while "done" a line from Claude's final answer, while "waiting for
-    /// you" after an API error that error.
+    /// Shown under the row: while "done" a line from Claude's final answer, while "error" the
+    /// error.
     pub turn_summary: Option<String>,
     /// Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it.
     pub can_dismiss: bool,
@@ -79,7 +81,7 @@ pub struct ListableClaudeCodeSession {
 }
 
 /// Needs your OK first (it's blocked on the user), then working, then stopped by a usage limit,
-/// then waiting for you, done, cancelled or denied; within each group the newest first. Only as many rows as the open pill has room for.
+/// then waiting for you, done, error, cancelled or denied; within each group the newest first. Only as many rows as the open pill has room for.
 pub fn list_claude_code_sessions(mut listable_sessions: Vec<ListableClaudeCodeSession>) -> ClaudeCodeStatusPayload {
     listable_sessions.sort_by_key(|listable_session| {
         (urgency_rank(listable_session.session_row.session_status), Reverse(listable_session.last_event_order))
@@ -105,6 +107,7 @@ fn urgency_rank(session_status: ClaudeCodeSessionStatus) -> u8 {
         ClaudeCodeSessionStatus::UsageLimited => 2,
         ClaudeCodeSessionStatus::WaitingForInput
         | ClaudeCodeSessionStatus::Done
+        | ClaudeCodeSessionStatus::Errored
         | ClaudeCodeSessionStatus::Cancelled
         | ClaudeCodeSessionStatus::Denied => 3,
     }

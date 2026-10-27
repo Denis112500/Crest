@@ -104,7 +104,7 @@ export const PILL_MORPH_END_FALLBACK_SLACK_MILLISECONDS = 100;
 export const PILL_HOVER_EXPAND_DELAY_MILLISECONDS = 150;
 export const PILL_COLLAPSE_DELAY_AFTER_POINTER_LEAVES_MILLISECONDS = 350;
 export const PILL_ATTENTION_PEEK_DURATION_MILLISECONDS = 4000;
-// Claude Code's news (done, cancelled, denied, a usage limit) is a line to read, not just a
+// Claude Code's news (done, cancelled, denied, a usage limit, an error) is a line to read, not just a
 // cover: it stays open longer before the pill goes back to the music (CC.1 fixes, 2026-10-23).
 export const CLAUDE_CODE_NEWS_PEEK_DURATION_MILLISECONDS = 8000;
 

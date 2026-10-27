@@ -7,7 +7,7 @@ import { CLAUDE_CODE_ACTIVITY_KIND, MUSIC_ACTIVITY_KIND } from "../ipc/ipcChanne
 export type PillLightKind =
   | "needsPermission"
   | "working"
-  | "freshUsageLimit"
+  | "freshUsageLimitOrError"
   | "freshCancelledOrDenied"
   | "freshDone"
   | "song"
@@ -15,13 +15,14 @@ export type PillLightKind =
   | "quiet";
 
 // The light rule (notes/design-spec.md), first match wins: Claude Code needing an OK (gold),
-// working (Starlight white, even with music playing), a reached usage limit not seen yet (red),
-// a cancel or deny not seen yet (red too), a finish not seen yet (green), then music's own
-// colour (never a status colour), dimmed while paused, and a dim white for everything else
-// (waiting, news already seen, nothing to show). Claude Code's attention key counts news (a
-// finish, a request, a limit, a cancel, a deny), and each row carries the count right after its
-// own latest news, so "not seen yet" means: that row's news came after the key last seen. Only
-// those rows give their colour; an older cancel already seen doesn't turn a new "done" red.
+// working (Starlight white, even with music playing), a reached usage limit or an API error not
+// seen yet (red), a cancel or deny not seen yet (red too), a finish not seen yet (green), then
+// music's own colour (never a status colour), dimmed while paused, and a dim white for everything
+// else (waiting, news already seen, nothing to show). Claude Code's attention key counts news (a
+// finish, a request, a limit, an error, a cancel, a deny), and each row carries the count right
+// after its own latest news, so "not seen yet" means: that row's news came after the key last
+// seen. Only those rows give their colour; an older cancel already seen doesn't turn a new "done"
+// red.
 export function decidePillLightKind(
   pillArrangement: PillArrangement,
   lastSeenClaudeCodeAttentionKey: string | null,
@@ -55,8 +56,8 @@ export function decidePillLightKind(
   const unseenNewsStatuses = sessionRows
     .filter((sessionRow) => sessionRow.newsCount > lastSeenNewsCount)
     .map((sessionRow) => sessionRow.sessionStatus);
-  if (unseenNewsStatuses.includes("usageLimited")) {
-    return "freshUsageLimit";
+  if (unseenNewsStatuses.includes("usageLimited") || unseenNewsStatuses.includes("errored")) {
+    return "freshUsageLimitOrError";
   }
   if (unseenNewsStatuses.includes("cancelled") || unseenNewsStatuses.includes("denied")) {
     return "freshCancelledOrDenied";

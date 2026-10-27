@@ -22,6 +22,8 @@ function describeStatusLine(claudeCodeSession: ClaudeCodeSessionRow): string {
       return "Waiting for you";
     case "needsPermission":
       return "Needs your OK";
+    case "errored":
+      return "Error";
     case "cancelled":
       return "Cancelled";
     case "denied":

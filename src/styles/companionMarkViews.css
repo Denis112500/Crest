@@ -44,7 +44,8 @@
   color: var(--claude-code-needs-permission-color);
 }
 
-.companion-claude-code-view[data-session-status="usageLimited"] .companion-claude-code-icon {
+.companion-claude-code-view[data-session-status="usageLimited"] .companion-claude-code-icon,
+.companion-claude-code-view[data-session-status="errored"] .companion-claude-code-icon {
   color: var(--claude-code-usage-limit-color);
 }
 

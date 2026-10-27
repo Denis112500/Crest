@@ -23,7 +23,7 @@ pub struct ClaudeCodeSessionTracker {
     sessions_by_id: HashMap<String, TrackedSession>,
     next_event_order: u64,
     /// Grows whenever any session has news for the user ("done", "needs your OK", a usage limit,
-    /// "cancelled", "denied"). It is the activity's attention key, so another session merely
+    /// an API error, "cancelled", "denied"). It is the activity's attention key, so another session merely
     /// moving to the top isn't news.
     attention_event_count: u64,
 }
@@ -342,15 +342,18 @@ mod tests {
     }
 
     #[test]
-    fn an_api_error_says_why_the_session_waits_until_the_next_prompt() {
+    fn an_api_error_is_news_and_says_which_error_until_the_next_prompt() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
+        let working_key = tracker.describe_activity(None, &[]).unwrap().attention_key;
         let connection_lost = ClaudeCodeHookEvent {
             last_assistant_message: Some("API Error: Connection lost mid-response.".to_string()),
             ..stop_failure("a", "server_error")
         };
         tracker.record_hook_event(&connection_lost, event_time);
-        assert_eq!(top_session(&tracker)["sessionStatus"], "waitingForInput");
+        let errored = tracker.describe_activity(None, &[]).unwrap();
+        assert_eq!((errored.activity_presence, errored.attention_key == working_key), (ActivityPresence::Lingering, false));
+        assert_eq!(top_session(&tracker)["sessionStatus"], "errored");
         assert_eq!(top_session(&tracker)["turnSummary"], "API Error: Connection lost mid-response.");
         tracker.record_hook_event(&hook_event("a", NOTIFICATION_HOOK_EVENT, Some(IDLE_PROMPT_NOTIFICATION)), event_time);
         assert_eq!(top_session(&tracker)["turnSummary"], "API Error: Connection lost mid-response.");
@@ -677,7 +680,7 @@ mod tests {
     }
 
     #[test]
-    fn a_limit_days_away_is_listed_for_a_day_at_most_and_other_errors_only_end_the_turn() {
+    fn a_limit_days_away_is_listed_for_a_day_at_most_and_other_errors_are_listed_after_it() {
         let (mut tracker, start_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         let silence_timeout = Duration::from_secs(600);
         tracker.record_hook_event(&stop_failure("a", RATE_LIMIT_STOP_FAILURE_ERROR), start_time);
@@ -690,7 +693,7 @@ mod tests {
         let after_error = tracker.describe_activity(None, &[]).unwrap();
         let listed_sessions = &after_error.activity_payload["listedSessions"];
         assert_eq!(listed_sessions[0]["sessionStatus"], "usageLimited");
-        assert_eq!(listed_sessions[1]["sessionStatus"], "waitingForInput");
-        assert_eq!(after_error.attention_key, key_before);
+        assert_eq!(listed_sessions[1]["sessionStatus"], "errored");
+        assert_ne!(after_error.attention_key, key_before);
     }
 }

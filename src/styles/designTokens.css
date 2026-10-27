@@ -40,7 +40,7 @@
   --pill-light-gold-start-color: #ffd98a;
   --pill-light-gold-middle-color: #fff1c9;
   --pill-light-gold-end-color: #ffd98a;
-  /* Red: a reached usage limit, or a turn cancelled or a permission denied, until seen. Far
+  /* Red: a reached usage limit, an API error, a turn cancelled or a permission denied, until seen. Far
      from gold (act now) and from the music's violet (CC.1). */
   --pill-light-red-start-color: #ff6b6b;
   --pill-light-red-middle-color: #ffd4d4;
@@ -162,7 +162,8 @@
   /* A finished session the user hasn't seen yet (design phase, L.2 answers). */
   --claude-code-done-color: #7ee2a8;
   --claude-code-done-ring-glow-color: rgba(126, 226, 168, 0.6);
-  /* A session stopped by a usage limit: its ring stays red while it waits for the reset. */
+  /* A session stopped by a usage limit or an API error: a full red ring (a limit's stays while it
+     waits for the reset). */
   --claude-code-usage-limit-color: #ff6b6b;
   --claude-code-usage-limit-ring-glow-color: rgba(255, 107, 107, 0.6);
   /* A turn the user cancelled or a permission they denied: a soft red, quieter than the usage
