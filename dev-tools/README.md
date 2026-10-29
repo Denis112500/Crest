@@ -3,7 +3,8 @@
 Debugging helpers used while building Crest. None of them are part of the app or the
 installer; all are read-only (they look, they don't change anything), except the hook probe pair,
 which writes hooks into one test folder and can answer Claude Code's permission requests there,
-and `measure_open_pill_cases.ps1`, which restyles the running page for a while and puts it back.
+`measure_open_pill_cases.ps1`, which restyles the running page for a while and puts it back,
+and `freeze_crest_for_hook_test.ps1`, which pauses the running Crest until told to go on.
 
 | Tool | What it answers | Run with |
 |---|---|---|
@@ -15,6 +16,7 @@ and `measure_open_pill_cases.ps1`, which restyles the running page for a while a
 | `fullscreen_event_watcher/` | What does Windows report when a fullscreen app or game comes to the front or leaves? Registers as an appbar (`ABN_FULLSCREENAPP`, the taskbar's own signal) and watches front-window changes; each event logs the front window's class/title, its monitor, whether it covers that monitor, and `SHQueryUserNotificationState`. | `cargo run --release` |
 | `claude_code_hook_probe/` | Can Claude Code's hooks reach Crest locally, and can an Allow/Deny answer get back? `listen` stands in for Crest: prints every hook event arriving over a named pipe (only the current Windows user may open it) or `http://127.0.0.1:47615/hook`, and answers PermissionRequest as told (`--permission-answer none\|allow\|deny`, `--answer-delay-seconds`). `forward` is what a command hook runs. | `cargo run --release -- listen` |
 | `write_hook_probe_session_settings.ps1` | Writes the hooks for the probe into one test folder's `.claude/settings.local.json` (never the global settings); `-Transport pipe` or `http`. Delete the folder to undo. | `pwsh` |
+| `freeze_crest_for_hook_test.ps1` | What do Claude Code's hooks do when Crest runs but never answers? `-Action Freeze` pauses `crest.exe` (not its WebView2 processes; the pipe stays open), `-Action ListHookCopies` says whether Crest is frozen and lists the `crest.exe --claude-code-hook` copies still running and for how long, `-Action Resume` lets Crest go on. Close the pill first; always end with Resume. Windows counts suspensions, so Freeze refuses an already frozen Crest and Resume repeats until no thread is left suspended. | `pwsh` |
 | `find_crest_processes.ps1` | Which processes belong to the running Crest? `crest.exe` and every WebView2 process it started, each with its role from the command line. Used by both measuring scripts, so they count the same processes. | `pwsh` (called by the others) |
 | `measure_crest_memory.ps1` | How much memory do Crest and its WebView2 processes use? Per process (role from the command line) and in total: private working set (Task Manager's "Memory"), private bytes, working set, averaged over samples. Measure release builds, and check which `crest.exe` is running. | `pwsh` |
 | `measure_crest_cpu.ps1` | How much CPU do Crest and its WebView2 processes use? Each process's total CPU time at the start and end of a window (`-WindowSeconds`, default 60), as a percentage of one core, so short bursts (a sweep, a ring redraw) count. Measure release builds. | `pwsh` |
@@ -53,5 +55,6 @@ powershell.exe -ExecutionPolicy Bypass -File dev-tools/list_media_sessions.ps1 -
 cd dev-tools/smtc_thumbnail_watcher; cargo run --release -- 300 $env:TEMP
 pwsh dev-tools/write_hook_probe_session_settings.ps1 -SessionFolder ..\crest-hook-probe-session -Transport pipe
 cd dev-tools/claude_code_hook_probe; cargo run --release -- listen --permission-answer allow --answer-delay-seconds 5
+pwsh dev-tools/freeze_crest_for_hook_test.ps1 -Action Freeze
 cd dev-tools/fullscreen_event_watcher; cargo run --release -- 600 $env:TEMP\crest_fullscreen_events.log
 ```
