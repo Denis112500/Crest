@@ -171,7 +171,7 @@ Crest/
 │  │  ├─ pillArrangementTypes.ts     the shape of what Rust sends (alert, main, companion)
 │  │  ├─ findLeadingActivity.ts      the alert if there is one, else the main activity
 │  │  ├─ orderActivitiesByTilePosition.ts  every activity keeps its place in the dashboard (music left)
-│  │  ├─ activityViewSet.ts          what an activity's views must provide
+│  │  ├─ activityViewSet.ts          what an activity's views must provide (and a call when a click resized the open view)
 │  │  ├─ activityViewRegistry.ts     activity kind → its view set (plugin point)
 │  │  ├─ nothingToShowViewSet.ts     shown for an activity kind the page doesn't know
 │  │  ├─ idle/
@@ -183,9 +183,10 @@ Crest/
 │  │  │  ├─ claudeCodeViewSet.ts         the Claude Code activity's views; the open one is the list or the alert
 │  │  │  ├─ compactClaudeCodeView.ts     terminal mark, what the most urgent session is doing, "+N"
 │  │  │  ├─ companionClaudeCodeView.ts   next to the music: only the terminal mark, coloured by status
-│  │  │  ├─ expandedClaudeCodeView.ts    every session, most urgent first, "+N more"
-│  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status ring, project folder · title, what it's doing, the line on how its turn ended, × to dismiss a finished one
-│  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its number of rows
+│  │  │  ├─ expandedClaudeCodeView.ts    every session, most urgent first, "+N more"; which row is unfolded, how many step lines fit
+│  │  │  ├─ claudeCodeSessionRowElement.ts  one session: status ring, project folder · title, what it's doing, the line on how its turn ended, × to dismiss a finished one; a click unfolds it
+│  │  │  ├─ claudeCodeTurnStepsElement.ts  an unfolded row: the prompt's first line, then the turn's steps (ring, ✓, ✗, –), scrolling
+│  │  │  ├─ calculateClaudeCodeExpandedHeight.ts  the open view's height for its rows, summary lines and an unfolded row's steps
 │  │  │  ├─ claudeCodePermissionAlertView.ts  a permission request: session, command, MCP call or action, Allow / Deny
 │  │  │  ├─ claudeCodePermissionCommandBox.ts  the command, wrapped, 3 rows tall and scrolling; knows when all was seen
 │  │  │  ├─ claudeCodePermissionAnswerButtons.ts  Deny / Allow: a short pause, one answer, Allow only once all was seen
@@ -227,8 +228,8 @@ Crest/
 │     ├─ settingsWindow.css     the settings window, in the style of Windows 11's settings
 │     └─ albumArtImage.css, coverProgressGauge.css, compactMusicView.css, expandedMusicView.css,
 │        musicControlButtons.css, systemVolumeControl.css, idleView.css,
-│        compactClaudeCodeView.css, expandedClaudeCodeView.css, companionMarkViews.css,
-│        claudeCodePermissionAlertView.css, pillDashboardLayout.css
+│        compactClaudeCodeView.css, expandedClaudeCodeView.css, claudeCodeSessionUnfolding.css,
+│        companionMarkViews.css, claudeCodePermissionAlertView.css, pillDashboardLayout.css
 └─ src-tauri/
    ├─ Cargo.toml                Rust package and dependencies (`windows` crate only on Windows)
    ├─ build.rs                  Tauri's build step; lists Crest's commands so each gets a permission
@@ -298,7 +299,9 @@ Crest/
       │  │  ├─ claude_code_running_subagents.rs   the subagents a session runs; "Running 2 subagents" (unit-tested)
       │  │  ├─ claude_code_usage_limit_wait.rs    a session stopped by a usage limit stays listed until the reset
       │  │  ├─ claude_code_session_list.rs        the sessions the pill lists: order, how many, "+N" (pure, unit-tested)
-      │  │  ├─ claude_code_tool_summary.rs        "Editing notes.md", "Running cargo test" (unit-tested)
+      │  │  ├─ claude_code_tool_summary.rs        "Editing notes.md", "Running cargo test", "Subagent: Explore" (unit-tested)
+│  │  ├─ claude_code_turn_steps.rs          the latest turn's tool calls and subagents: running, done, failed, stopped; 12 at most (unit-tested)
+│  │  ├─ claude_code_turn_prompt_line.rs    the prompt's first line for an unfolded row, cut at a word (unit-tested)
       │  │  ├─ claude_code_hook_registration.rs   adds/removes Crest's hooks in Claude Code's settings, nothing else (unit-tested)
       │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
       │  │  ├─ claude_code_integration_switch.rs  hooks and listening always switch on and off together
@@ -460,6 +463,8 @@ Before 0.3.0 entries matched any app ID that *contained* them, and an empty list
 
 Since 0.4.0, off by default. Switched on in the settings, the pill shows what your [Claude Code](https://claude.com/claude-code) sessions are doing: working (and the tool it runs, or "Running 2 subagents"), done, waiting for you, cancelled (Esc or Ctrl+C), denied, that it needs your OK, that it stopped on a usage limit (with when the limit resets, e.g. "Usage limit · resets 1:50"), or that an API error stopped it ("Error", e.g. when the servers are overloaded). Each session is named after the folder Claude Code was started in (even after a `cd`), followed by its title, so two sessions of one folder can be told apart. Under a finished session there is one line from Claude's last answer (its first sentence, or the question it ends with), and under an error the error itself. Subagents still running beside another line are counted after it ("Editing main.rs · 1 subagent"), and a session whose turn has ended while background subagents still run stays "Running 3 subagents" (and on screen) until the last one finishes. Next to playing music it shows only its `>_` mark at the end of the notch (rest the pointer on it to open the notch on Claude Code), and the notch's lit edge tells you its state: white while working, gold when it needs you, red when a session has just hit a usage limit or an error or you've just cancelled or denied, and green when one has just finished (until you've looked). Opened, the notch shows music and Claude Code side by side, with every session listed, most urgent first; a finished session (done, error, cancelled, denied, waiting, usage limit) can be dismissed with the × on its row and comes back with its next prompt.
 
+**A session's steps.** Pointing at a session's row lights it and shows a `›`; a click unfolds it (`⌄`) to what its latest turn has done so far: your prompt's first line in quotes on top, then one line per step, newest at the bottom. A step is a tool call, in the same words as the row ("Editing notes.md", "Running cargo test"), or a subagent ("Subagent: Explore"; its own tool calls aren't listed). The running step has a small ring; a finished one gets a green ✓, a failed one a red ✗, and one that never finished because you cancelled or denied, or an error stopped the turn, a dim –. The pill doesn't grow for it: as many lines show as fit (the other rows hide their lines meanwhile), and the mouse wheel scrolls back through the turn's latest 12 steps. Scrolled back, the list stays where you are while new steps come in; at the bottom it follows the newest. A new prompt starts a new list. A second click folds the row again, so does unfolding another one or the pill closing.
+
 **Allow / Deny in the pill.** When Claude Code asks for permission, the pill opens as a wide alert with the project folder, the command (or "Edit src\main.ts", "Open github.com", …; for a connected MCP tool its name and every input field, like `github: create issue` then `title: …`) and **Allow** / **Deny**. Claude Code's own question stays open at the same time, and the first answer wins; the alert goes away when either side answers. Deny stops Claude, like Claude Code's own "No". To make sure you only allow what you've read:
 
 - the buttons ignore clicks for half a second after the alert appears or the next request moves up (which also flashes once);
@@ -471,7 +476,7 @@ Since 0.4.0, off by default. Switched on in the settings, the pill shows what yo
 
 Claude Code's own deny and ask rules still apply after an Allow from the pill. Claude's questions to you (AskUserQuestion) and plan approval stay in Claude Code: the pill only says the session needs you.
 
-**What it changes.** Switching on adds hook entries to Claude Code's user settings (`~/.claude/settings.json`); the settings window shows exactly which before you switch, keeps a copy of the file first, and switching off (or uninstalling Crest) removes only Crest's entries. Each hook runs `crest.exe --claude-code-hook`, which hands the event to the running Crest through a named pipe that only your Windows user can open (the hook also checks the pipe belongs to your user) and exits. Nothing leaves your PC: no network, no account. For the line under a session, Crest reads the last answer Claude Code hands its hooks; for titles, interrupts and a usage limit's reset time, it reads the session's transcript on your disk. It keeps what it reads only in memory. A Claude Code session keeps the hooks it read when it started, so after switching on (or changing the second switch) restart the sessions that are already running.
+**What it changes.** Switching on adds hook entries to Claude Code's user settings (`~/.claude/settings.json`); the settings window shows exactly which before you switch, keeps a copy of the file first, and switching off (or uninstalling Crest) removes only Crest's entries. Each hook runs `crest.exe --claude-code-hook`, which hands the event to the running Crest through a named pipe that only your Windows user can open (the hook also checks the pipe belongs to your user) and exits. Nothing leaves your PC: no network, no account. For the line under a session, Crest reads the last answer Claude Code hands its hooks, and for the steps, the prompt you sent and each tool's input (of the prompt, it keeps only its first line); for titles, interrupts and a usage limit's reset time, it reads the session's transcript on your disk. It keeps what it reads only in memory. A Claude Code session keeps the hooks it read when it started, so after switching on (or changing the second switch) restart the sessions that are already running.
 
 ## Known limits
 
