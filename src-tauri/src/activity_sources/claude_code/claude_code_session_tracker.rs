@@ -397,6 +397,35 @@ mod tests {
     }
 
     #[test]
+    fn the_prompt_leads_a_subagent_is_one_step_and_a_cancel_stops_what_still_runs() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        let prompt = ClaudeCodeHookEvent {
+            prompt: Some("Look around the code\nand tell me".to_string()),
+            ..hook_event("a", USER_PROMPT_SUBMIT_HOOK_EVENT, None)
+        };
+        tracker.record_hook_event(&prompt, event_time);
+        let agent_launch = ClaudeCodeHookEvent {
+            tool_name: Some("Agent".to_string()),
+            tool_use_id: Some("toolu_agent".to_string()),
+            ..hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None)
+        };
+        tracker.record_hook_event(&agent_launch, event_time);
+        let explore_start = ClaudeCodeHookEvent {
+            agent_type: Some("Explore".to_string()),
+            ..subagent_event("a", SUBAGENT_START_HOOK_EVENT, "agent_1")
+        };
+        tracker.record_hook_event(&explore_start, event_time);
+        tracker.record_hook_event(&subagent_event("a", PRE_TOOL_USE_HOOK_EVENT, "agent_1"), event_time);
+        tracker.record_interrupt("a", ClaudeCodeSessionStatus::Cancelled, event_time);
+        let session_row = top_session(&tracker);
+        assert_eq!(session_row["turnPrompt"], "Look around the code");
+        assert_eq!(
+            session_row["turnSteps"],
+            serde_json::json!([{ "stepText": "Subagent: Explore", "stepOutcome": "stopped" }])
+        );
+    }
+
+    #[test]
     fn the_transcript_is_searched_for_a_title_once_and_not_when_one_is_known() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("a", PRE_TOOL_USE_HOOK_EVENT, None), event_time);

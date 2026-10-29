@@ -44,6 +44,13 @@ pub struct ClaudeCodeHookEvent {
     /// events a subagent's own tool calls send under its parent's session id (verified from docs).
     #[serde(default)]
     pub agent_id: Option<String>,
+    /// The subagent's kind ("Explore", or a custom agent's name), on `SubagentStart` and on its
+    /// tool events (verified from docs).
+    #[serde(default)]
+    pub agent_type: Option<String>,
+    /// The text the user sent, on `UserPromptSubmit` (verified by testing, 2026-10-27).
+    #[serde(default)]
+    pub prompt: Option<String>,
     /// Why a turn ended on an API error (`StopFailure` only), e.g. "rate_limit".
     #[serde(default)]
     pub error: Option<String>,

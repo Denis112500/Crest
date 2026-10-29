@@ -62,15 +62,19 @@ export function createExpandedClaudeCodeView(): ExpandedClaudeCodeView {
     ).length;
     const hasUnlistedSessions = claudeCodeStatus.unlistedSessionCount > 0;
     const heightWithoutSteps = calculateClaudeCodeExpandedHeight(listedSessions.length, shownTurnSummaryCount, hasUnlistedSessions, 0);
-    const fittingStepLineCount = Math.max(
+    // Even the fullest list (three sessions, a summary, "+N more") leaves two lines: the prompt
+    // and at least one step.
+    const fittingLineCount = Math.max(
       0,
       Math.floor((PILL_EXPANDED_MAX_LOGICAL_HEIGHT - heightWithoutSteps) / CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT),
     );
+    const turnPromptLineCount = unfoldedSession?.turnPrompt ? 1 : 0;
     // An empty turn still takes one line, which says so.
     const unfoldedStepLineCount = unfoldedSession
-      ? Math.min(Math.max(unfoldedSession.turnSteps.length, 1), fittingStepLineCount)
+      ? Math.min(Math.max(unfoldedSession.turnSteps.length, 1), fittingLineCount - turnPromptLineCount)
       : 0;
-    expandedLogicalHeight = heightWithoutSteps + unfoldedStepLineCount * CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT;
+    expandedLogicalHeight =
+      heightWithoutSteps + (turnPromptLineCount + unfoldedStepLineCount) * CLAUDE_CODE_TURN_STEP_LOGICAL_HEIGHT;
 
     const sessionCount = listedSessions.length + claudeCodeStatus.unlistedSessionCount;
     sessionCountElement.textContent = `${sessionCount} session${sessionCount === 1 ? "" : "s"}`;

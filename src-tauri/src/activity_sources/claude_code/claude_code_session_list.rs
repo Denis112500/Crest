@@ -56,6 +56,8 @@ pub struct ClaudeCodeSessionRow {
     /// Shown under the row: while "done" a line from Claude's final answer, while "error" the
     /// error.
     pub turn_summary: Option<String>,
+    /// The latest turn's prompt (its first line, cut), above the steps when unfolded (CC.3c).
+    pub turn_prompt: Option<String>,
     /// The latest turn's steps, oldest first, shown when the row is unfolded (CC.3).
     pub turn_steps: Vec<ClaudeCodeTurnStep>,
     /// Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it.
@@ -132,6 +134,7 @@ mod tests {
                 turn_summary: None,
                 session_title: None,
                 news_count: 0,
+                turn_prompt: None,
                 turn_steps: Vec::new(),
                 can_dismiss: !session_status.is_busy(),
             },

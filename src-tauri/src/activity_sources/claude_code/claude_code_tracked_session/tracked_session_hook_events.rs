@@ -8,7 +8,10 @@ use crate::activity_sources::claude_code::claude_code_api_error_line::describe_a
 use crate::activity_sources::claude_code::claude_code_hook_event::*;
 use crate::activity_sources::claude_code::claude_code_session_list::ClaudeCodeSessionStatus;
 use crate::activity_sources::claude_code::claude_code_session_title::ClaudeCodeSessionTitle;
-use crate::activity_sources::claude_code::claude_code_tool_summary::{summarize_tool_use, SUBAGENT_LAUNCH_TOOL_NAMES};
+use crate::activity_sources::claude_code::claude_code_tool_summary::{
+    summarize_subagent_step, summarize_tool_use, SUBAGENT_LAUNCH_TOOL_NAMES,
+};
+use crate::activity_sources::claude_code::claude_code_turn_prompt_line::describe_turn_prompt;
 use crate::activity_sources::claude_code::claude_code_turn_steps::ClaudeCodeStepOutcome;
 use crate::activity_sources::claude_code::claude_code_turn_summary::summarize_final_answer;
 use crate::activity_sources::claude_code::last_path_part::find_last_path_part;
@@ -21,7 +24,7 @@ impl TrackedSession {
         // Whether a subagent's events name its own transcript or the session's isn't documented:
         // only the session's own events set the transcript the transcript watch follows.
         if let Some(agent_id) = &hook_event.agent_id {
-            if let Some(is_news) = self.apply_subagent_event(agent_id, &hook_event.hook_event_name, event_time) {
+            if let Some(is_news) = self.apply_subagent_event(agent_id, hook_event, event_time) {
                 return is_news;
             }
         } else if let Some(transcript_path) = &hook_event.transcript_path {
@@ -35,7 +38,7 @@ impl TrackedSession {
         }
         match (hook_event.hook_event_name.as_str(), hook_event.notification_type.as_deref()) {
             (USER_PROMPT_SUBMIT_HOOK_EVENT, _) => {
-                self.turn_steps.start_turn();
+                self.turn_steps.start_turn(hook_event.prompt.as_deref().and_then(describe_turn_prompt));
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Working);
                 false
             }
@@ -45,7 +48,7 @@ impl TrackedSession {
                 } else {
                     ClaudeCodeStepOutcome::Failed
                 };
-                self.turn_steps.record_tool_outcome(hook_event.tool_use_id.as_deref(), step_outcome);
+                self.turn_steps.record_step_outcome(hook_event.tool_use_id.as_deref(), step_outcome);
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Working);
                 false
             }
@@ -56,10 +59,14 @@ impl TrackedSession {
             (PRE_TOOL_USE_HOOK_EVENT, _) => {
                 let tool_name = hook_event.tool_name.as_deref().unwrap_or_default();
                 let tool_summary = summarize_tool_use(tool_name, hook_event.tool_input.as_ref());
-                self.turn_steps.record_tool_start(hook_event.tool_use_id.as_deref(), tool_summary.clone());
+                let is_tool_a_subagent_launch = SUBAGENT_LAUNCH_TOOL_NAMES.contains(&tool_name);
+                // A subagent is listed from its own `SubagentStart`, which names its kind.
+                if !is_tool_a_subagent_launch {
+                    self.turn_steps.record_step_start(hook_event.tool_use_id.as_deref(), tool_summary.clone(), false);
+                }
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Working);
                 self.tool_summary = Some(tool_summary);
-                self.is_tool_a_subagent_launch = SUBAGENT_LAUNCH_TOOL_NAMES.contains(&tool_name);
+                self.is_tool_a_subagent_launch = is_tool_a_subagent_launch;
                 false
             }
             // With background subagents still running, Claude Code's turn ends but the work
@@ -70,6 +77,7 @@ impl TrackedSession {
                 !self.is_waiting_on_subagents()
             }
             (STOP_FAILURE_HOOK_EVENT, _) if hook_event.is_usage_limit_stop() => {
+                self.turn_steps.stop_running_steps();
                 let is_news = self.session_status != Some(ClaudeCodeSessionStatus::UsageLimited);
                 self.show_status_without_tool(ClaudeCodeSessionStatus::UsageLimited);
                 is_news
@@ -77,6 +85,7 @@ impl TrackedSession {
             // Any other API error ends the turn too (no `Stop` follows) without its work done:
             // news, and the row says which error it was.
             (STOP_FAILURE_HOOK_EVENT, _) => {
+                self.turn_steps.stop_running_steps();
                 self.show_status_without_tool(ClaudeCodeSessionStatus::Errored);
                 self.turn_summary = describe_api_error(hook_event.last_assistant_message.as_deref(), hook_event.error.as_deref());
                 true
@@ -111,11 +120,17 @@ impl TrackedSession {
     /// would make it jump, and one still running in the background mustn't turn "done" back into
     /// "working". Returns whether the event was news, or `None` when it wasn't handled here: a
     /// subagent's permission request still goes through the session's own rules. The last
-    /// subagent stopping after the turn ended is the session's "done".
-    fn apply_subagent_event(&mut self, agent_id: &str, hook_event_name: &str, event_time: Instant) -> Option<bool> {
-        match hook_event_name {
-            SUBAGENT_START_HOOK_EVENT => self.running_subagents.record_sign_of_life(agent_id, event_time),
+    /// subagent stopping after the turn ended is the session's "done". Each subagent is one
+    /// step of the turn; its own tool calls aren't steps (they would flood the list).
+    fn apply_subagent_event(&mut self, agent_id: &str, hook_event: &ClaudeCodeHookEvent, event_time: Instant) -> Option<bool> {
+        match hook_event.hook_event_name.as_str() {
+            SUBAGENT_START_HOOK_EVENT => {
+                self.running_subagents.record_sign_of_life(agent_id, event_time);
+                let step_text = summarize_subagent_step(hook_event.agent_type.as_deref());
+                self.turn_steps.record_step_start(Some(agent_id), step_text, true);
+            }
             SUBAGENT_STOP_HOOK_EVENT => {
+                self.turn_steps.record_step_outcome(Some(agent_id), ClaudeCodeStepOutcome::Done);
                 let was_waiting_on_subagents = self.is_waiting_on_subagents();
                 self.running_subagents.record_stop(agent_id);
                 return Some(was_waiting_on_subagents && !self.is_waiting_on_subagents());

@@ -19,6 +19,14 @@ pub fn summarize_running_subagents(running_subagent_count: usize) -> String {
     }
 }
 
+/// A subagent's step in an unfolded row (CC.3c): "Subagent: Explore".
+pub fn summarize_subagent_step(agent_type: Option<&str>) -> String {
+    match agent_type.map(str::trim).filter(|agent_type| !agent_type.is_empty()) {
+        Some(agent_type) => shorten_to_limit(&format!("Subagent: {agent_type}")),
+        None => "Subagent".to_string(),
+    }
+}
+
 pub fn summarize_tool_use(tool_name: &str, tool_input: Option<&Value>) -> String {
     let read_input_text = |field_name: &str| tool_input.and_then(|input| input.get(field_name)).and_then(Value::as_str);
     let tool_summary = match tool_name {
@@ -95,5 +103,7 @@ mod tests {
     fn subagent_launches_say_how_many_run() {
         assert_eq!(summarize_tool_use("Agent", None), "Running a subagent");
         assert_eq!(summarize_running_subagents(3), "Running 3 subagents");
+        assert_eq!(summarize_subagent_step(Some("Explore")), "Subagent: Explore");
+        assert_eq!(summarize_subagent_step(Some(" ")), "Subagent");
     }
 }

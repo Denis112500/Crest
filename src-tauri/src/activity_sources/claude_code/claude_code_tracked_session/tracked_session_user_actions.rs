@@ -10,6 +10,7 @@ use crate::activity_sources::claude_code::claude_code_session_list::ClaudeCodeSe
 impl TrackedSession {
     /// The user cancelled the turn or denied in Claude Code (`stopped_status` says which).
     pub fn show_interrupt(&mut self, stopped_status: ClaudeCodeSessionStatus, event_time: Instant, event_order: u64) {
+        self.turn_steps.stop_running_steps();
         self.show_status_without_tool(stopped_status);
         self.running_subagents.forget_all();
         self.note_event(event_time, event_order);
@@ -22,7 +23,10 @@ impl TrackedSession {
     pub fn show_subagents_stopped(&mut self, event_time: Instant, event_order: u64) -> bool {
         let is_turn_cancelled = self.is_waiting_on_subagents();
         if is_turn_cancelled {
+            self.turn_steps.stop_running_steps();
             self.show_status_without_tool(ClaudeCodeSessionStatus::Cancelled);
+        } else {
+            self.turn_steps.stop_running_subagent_steps();
         }
         self.running_subagents.forget_all();
         self.note_event(event_time, event_order);
@@ -31,6 +35,9 @@ impl TrackedSession {
 
     /// An allow lets the tool run; a deny ends the turn (no `Stop` follows an interrupted one).
     pub fn show_permission_answer(&mut self, permission_answer: ClaudeCodePermissionAnswer, event_time: Instant, event_order: u64) {
+        if permission_answer == ClaudeCodePermissionAnswer::Deny {
+            self.turn_steps.stop_running_steps();
+        }
         self.show_status_without_tool(match permission_answer {
             ClaudeCodePermissionAnswer::Allow => ClaudeCodeSessionStatus::Working,
             ClaudeCodePermissionAnswer::Deny => ClaudeCodeSessionStatus::Denied,

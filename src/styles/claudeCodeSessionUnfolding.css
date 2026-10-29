@@ -37,10 +37,14 @@
   transform: rotate(90deg);
 }
 
-/* All of the turn's steps, as tall as the lines that fit; the wheel scrolls to older ones. */
-.claude-code-turn-steps {
+/* The prompt and the steps, indented to start under the session's name. */
+.claude-code-turn-details {
   padding-left: calc(var(--claude-code-session-status-dot-size) + var(--claude-code-session-row-inner-gap));
   font-size: var(--claude-code-session-turn-summary-font-size);
+}
+
+/* All of the turn's steps, as tall as the lines that fit; the wheel scrolls to older ones. */
+.claude-code-turn-steps {
   overflow-y: auto;
   scrollbar-width: none;
 }

@@ -156,6 +156,10 @@ pub const CLAUDE_CODE_TURN_SUMMARY_MAX_CHARACTERS: usize = 160;
 /// shows the newest ones that fit (CC.3).
 pub const CLAUDE_CODE_TURN_STEP_MAX_COUNT: usize = 12;
 
+/// The prompt shown above an unfolded row's steps is cut to this many characters (CC.3c); the
+/// row cuts it again to its width.
+pub const CLAUDE_CODE_TURN_PROMPT_MAX_CHARACTERS: usize = 60;
+
 /// A session's title after its folder in the row is cut to this many characters; the row cuts
 /// it again to its width. Made-up titles are a few words ("Tauri source directory"); chosen
 /// ones can be a whole sentence (seen 2026-10-24).

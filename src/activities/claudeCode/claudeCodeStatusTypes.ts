@@ -14,7 +14,7 @@ export type ClaudeCodeSessionStatus =
 /** Mirrors `ClaudeCodeTurnStep` in claude_code_turn_steps.rs: one tool call of the latest turn. */
 export interface ClaudeCodeTurnStep {
   stepText: string;
-  stepOutcome: "running" | "done" | "failed";
+  stepOutcome: "running" | "done" | "failed" | "stopped";
 }
 
 export interface ClaudeCodeSessionRow {
@@ -36,6 +36,8 @@ export interface ClaudeCodeSessionRow {
   /** Shown under the row: while "done" a line from Claude's final answer, while "error" the
       error. */
   turnSummary: string | null;
+  /** The latest turn's prompt (its first line, cut), above the steps when unfolded (CC.3c). */
+  turnPrompt: string | null;
   /** The latest turn's steps, oldest first, shown when the row is unfolded (CC.3). */
   turnSteps: ClaudeCodeTurnStep[];
   /** Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it. */

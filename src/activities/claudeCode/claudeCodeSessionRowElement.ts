@@ -42,7 +42,9 @@ export function createClaudeCodeSessionRowElement(
     sessionEntryElement.append(turnSummaryElement);
   }
   if (unfoldedStepLineCount !== null) {
-    sessionEntryElement.append(createClaudeCodeTurnStepsElement(claudeCodeSession.turnSteps, unfoldedStepLineCount));
+    sessionEntryElement.append(
+      createClaudeCodeTurnStepsElement(claudeCodeSession.turnPrompt, claudeCodeSession.turnSteps, unfoldedStepLineCount),
+    );
   }
   return sessionEntryElement;
 }
