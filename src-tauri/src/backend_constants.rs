@@ -179,6 +179,14 @@ pub const CLAUDE_CODE_LISTED_SESSION_MAX_COUNT: usize = 3;
 pub const CLAUDE_CODE_SETTINGS_FOLDER_NAME: &str = ".claude";
 pub const CLAUDE_CODE_SETTINGS_FILE_NAME: &str = "settings.json";
 
+/// The settings window's preview of a change to Claude Code's `hooks` keeps this many unchanged
+/// lines around each change; longer runs show as "… N more".
+pub const CLAUDE_CODE_HOOKS_DIFF_CONTEXT_LINE_COUNT: usize = 2;
+
+/// A line diff compares every old line with every new one; past this many pairs (about 1,000
+/// lines on each side, 8 MB of counts) it shows the whole old text removed and the new one added.
+pub const TEXT_LINE_DIFF_MAX_COMPARED_LINE_PAIRS: usize = 1_000_000;
+
 /// Copy of Claude Code's settings file made right before Crest changes it.
 pub const CLAUDE_CODE_SETTINGS_BACKUP_EXTENSION: &str = "json.crest-backup";
 

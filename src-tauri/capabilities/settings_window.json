@@ -15,6 +15,7 @@
     "allow-change-show-every-player",
     "allow-read-claude-code-integration-setting",
     "allow-change-claude-code-integration-setting",
-    "allow-change-claude-code-permission-answering-setting"
+    "allow-change-claude-code-permission-answering-setting",
+    "allow-preview-claude-code-switch-change"
   ]
 }

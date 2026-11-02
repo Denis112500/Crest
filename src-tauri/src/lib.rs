@@ -16,6 +16,7 @@ mod settings_window;
 mod system_volume;
 mod system_tray;
 mod text_file_atomic_replacement;
+mod text_line_diff;
 mod user_settings_store;
 
 use std::sync::{Arc, Mutex};
@@ -151,6 +152,7 @@ pub fn run_crest_app() {
             settings_window::settings_window_commands::change_allowed_players,
             settings_window::settings_window_commands::change_show_every_player,
             settings_window::claude_code_integration_commands::read_claude_code_integration_setting,
+            settings_window::claude_code_integration_commands::preview_claude_code_switch_change,
             settings_window::claude_code_integration_commands::change_claude_code_integration_setting,
             settings_window::claude_code_integration_commands::change_claude_code_permission_answering_setting,
         ])

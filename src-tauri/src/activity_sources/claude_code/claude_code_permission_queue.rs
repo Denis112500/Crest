@@ -140,6 +140,10 @@ impl ClaudeCodePermissionQueue {
         })
     }
 
+    pub fn waiting_request_count(&self) -> usize {
+        self.pending_requests.len()
+    }
+
     /// Every session with a request waiting; each keeps "needs your OK" in the list.
     pub fn sessions_waiting_for_an_answer(&self) -> Vec<String> {
         self.pending_requests.iter().map(|pending| pending.session_id.clone()).collect()

@@ -88,6 +88,7 @@ pub fn publish_claude_code_status(
         if !permission_answering_switch.is_answering_on() {
             permission_queue.release_all_requests();
         }
+        permission_answering_switch.record_waiting_request_count(permission_queue.waiting_request_count());
         transcript_watch.follow_busy_sessions(session_tracker.busy_session_transcripts());
         let sessions_waiting_for_an_answer = permission_queue.sessions_waiting_for_an_answer();
         match session_tracker.describe_activity(permission_queue.describe_alert(), &sessions_waiting_for_an_answer) {
@@ -96,5 +97,6 @@ pub fn publish_claude_code_status(
         }
     }
     permission_queue.release_all_requests();
+    permission_answering_switch.record_waiting_request_count(0);
     activity_publisher.withdraw_activity();
 }

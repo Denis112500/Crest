@@ -11,7 +11,7 @@ use crate::activity_sources::claude_code::claude_code_hook_event::{
 };
 use crate::backend_constants::{CLAUDE_CODE_HOOK_ARGUMENT, CLAUDE_CODE_PERMISSION_HOOK_TIMEOUT};
 
-const HOOKS_SETTING_NAME: &str = "hooks";
+pub const HOOKS_SETTING_NAME: &str = "hooks";
 const EVERY_TOOL_MATCHER: &str = "*";
 
 /// `"C:/Users/…/crest.exe" --claude-code-hook`: quoted for paths with spaces, forward slashes
@@ -104,7 +104,7 @@ pub fn remove_crest_hooks(claude_code_settings: &mut Value) {
     }
 }
 
-fn is_crest_hook_handler(hook_handler: &Value) -> bool {
+pub fn is_crest_hook_handler(hook_handler: &Value) -> bool {
     hook_handler
         .get("command")
         .and_then(Value::as_str)

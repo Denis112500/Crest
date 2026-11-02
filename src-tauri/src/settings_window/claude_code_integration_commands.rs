@@ -1,17 +1,18 @@
 //! The settings window's commands for the Claude Code integration: show its state and exactly
-//! what it adds to Claude Code's settings, switch it on or off, and switch answering permission
-//! requests in the pill on or off.
+//! what it adds to Claude Code's settings, preview what a switch would change, switch it on or
+//! off, and switch answering permission requests in the pill on or off.
 
 use std::sync::PoisonError;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::State;
 
 use crate::activity_core::{SharedActivityArbiter, SharedActivitySourceRegistry};
 use crate::activity_sources::claude_code::{
     build_crest_hook_command, build_crest_hooks, change_claude_code_permission_answering, claude_code_settings_file_path,
-    turn_claude_code_integration_off, turn_claude_code_integration_on, ClaudeCodePermissionAnsweringSwitch,
+    preview_claude_code_settings_change, turn_claude_code_integration_off, turn_claude_code_integration_on,
+    ClaudeCodePermissionAnsweringSwitch, ClaudeCodeSettingsChange, ClaudeCodeSettingsChangePreview,
 };
 use crate::user_settings_store::{CrestUserSettings, CrestUserSettingsStore};
 
@@ -24,6 +25,60 @@ pub struct ClaudeCodeIntegrationSetting {
     claude_code_settings_file_path: String,
     /// The `hooks` block Crest adds, pretty-printed, shown before switching on.
     added_hooks_preview: String,
+}
+
+/// The two switches of the card, flipped one way or the other.
+#[derive(Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ClaudeCodeSwitchChange {
+    IntegrationOn,
+    IntegrationOff,
+    AnsweringOn,
+    AnsweringOff,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeCodeSwitchChangePreview {
+    #[serde(flatten)]
+    settings_change: ClaudeCodeSettingsChangePreview,
+    /// Requests waiting in the pill that the change hands back to Claude Code's own question.
+    handed_back_request_count: usize,
+}
+
+/// Writes nothing: shows what flipping a switch would change, before the user confirms.
+#[tauri::command]
+pub fn preview_claude_code_switch_change(
+    settings_store: State<'_, CrestUserSettingsStore>,
+    permission_answering_switch: State<'_, ClaudeCodePermissionAnsweringSwitch>,
+    switch_change: ClaudeCodeSwitchChange,
+) -> Result<ClaudeCodeSwitchChangePreview, String> {
+    let current_settings = settings_store.read_current_settings();
+    let crest_executable_path = std::env::current_exe().map_err(|error| error.to_string())?;
+    let add_crest_hooks =
+        |should_add_permission_hook| ClaudeCodeSettingsChange::AddCrestHooks { crest_executable_path, should_add_permission_hook };
+    let settings_change = match switch_change {
+        ClaudeCodeSwitchChange::IntegrationOn => Some(add_crest_hooks(current_settings.is_claude_code_permission_answering_on)),
+        ClaudeCodeSwitchChange::IntegrationOff => Some(ClaudeCodeSettingsChange::RemoveCrestHooks),
+        // While the integration is off, the answering switch only changes Crest's own setting.
+        ClaudeCodeSwitchChange::AnsweringOn | ClaudeCodeSwitchChange::AnsweringOff
+            if !current_settings.is_claude_code_integration_on =>
+        {
+            None
+        }
+        ClaudeCodeSwitchChange::AnsweringOn => Some(add_crest_hooks(true)),
+        ClaudeCodeSwitchChange::AnsweringOff => Some(add_crest_hooks(false)),
+    };
+    let handed_back_request_count = match switch_change {
+        ClaudeCodeSwitchChange::IntegrationOff | ClaudeCodeSwitchChange::AnsweringOff => {
+            permission_answering_switch.waiting_request_count()
+        }
+        ClaudeCodeSwitchChange::IntegrationOn | ClaudeCodeSwitchChange::AnsweringOn => 0,
+    };
+    Ok(ClaudeCodeSwitchChangePreview {
+        settings_change: preview_claude_code_settings_change(settings_change.as_ref())?,
+        handed_back_request_count,
+    })
 }
 
 #[tauri::command]

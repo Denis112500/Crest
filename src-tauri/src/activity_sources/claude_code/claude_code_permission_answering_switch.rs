@@ -1,8 +1,10 @@
 //! "Answer permission requests in the pill", shared by the settings window and the running
 //! Claude Code source. Off, Crest adds no `PermissionRequest` hook; a session started before the
 //! change may still send one, and it gets "no decision" at once, so the pill never offers Allow.
+//! It also tells the settings window how many requests wait in the pill: switching answering or
+//! the integration off hands them back to Claude Code's own question.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, PoisonError};
 
@@ -14,11 +16,25 @@ pub struct ClaudeCodePermissionAnsweringSwitch {
     /// The running status thread, if any: woken on a change, so requests already in the pill
     /// leave at once instead of at the next hook event.
     status_message_sender: Arc<Mutex<Option<Sender<ClaudeCodeStatusMessage>>>>,
+    /// Written by the status thread after every change, read by the settings window.
+    waiting_request_count: Arc<AtomicUsize>,
 }
 
 impl ClaudeCodePermissionAnsweringSwitch {
     pub fn new(is_answering_on: bool) -> Self {
-        Self { is_answering_on: Arc::new(AtomicBool::new(is_answering_on)), status_message_sender: Arc::default() }
+        Self {
+            is_answering_on: Arc::new(AtomicBool::new(is_answering_on)),
+            status_message_sender: Arc::default(),
+            waiting_request_count: Arc::default(),
+        }
+    }
+
+    pub fn record_waiting_request_count(&self, waiting_request_count: usize) {
+        self.waiting_request_count.store(waiting_request_count, Ordering::Relaxed);
+    }
+
+    pub fn waiting_request_count(&self) -> usize {
+        self.waiting_request_count.load(Ordering::Relaxed)
     }
 
     pub fn is_answering_on(&self) -> bool {

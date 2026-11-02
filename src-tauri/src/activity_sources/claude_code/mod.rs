@@ -6,6 +6,7 @@ mod claude_code_api_error_line;
 mod claude_code_hook_event;
 mod claude_code_hook_event_intake;
 mod claude_code_hook_registration;
+mod claude_code_hooks_change_preview;
 mod claude_code_integration_switch;
 mod claude_code_permission_action_wording;
 mod claude_code_permission_answer;
@@ -47,4 +48,7 @@ pub use claude_code_integration_switch::{
     change_claude_code_permission_answering, turn_claude_code_integration_off, turn_claude_code_integration_on,
 };
 pub use claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
-pub use claude_code_settings_file::{claude_code_settings_file_path, remove_crest_hooks_from_claude_code_settings};
+pub use claude_code_settings_file::{
+    claude_code_settings_file_path, preview_claude_code_settings_change, remove_crest_hooks_from_claude_code_settings,
+    ClaudeCodeSettingsChange, ClaudeCodeSettingsChangePreview,
+};
