@@ -2,6 +2,7 @@
 //! trait, like the other platform code.
 
 mod claude_code_hook_channel_trait;
+mod claude_code_hook_deadline;
 mod claude_code_hook_process;
 mod length_prefixed_message;
 mod pending_hook_reply;

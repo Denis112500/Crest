@@ -32,8 +32,10 @@ fn pipe_name_for_user(user_sid: &str) -> String {
 mod tests {
     use std::sync::mpsc;
     use std::thread;
+    use std::time::{Duration, Instant};
 
     use super::*;
+    use crate::claude_code_hook_channel::claude_code_hook_deadline::forward_within_hook_deadline;
     use crate::claude_code_hook_channel::PendingHookReply;
 
     /// Built from the real prefix, so a malformed prefix fails here instead of in the app; the
@@ -90,6 +92,35 @@ mod tests {
 
         let dropped_reply = forward_hook_event_through_pipe(&test_pipe_name, &current_user_sid, b"drop");
         assert_eq!(dropped_reply.as_deref(), Some(b"".as_slice()));
+        Box::new(hook_event_server).stop();
+    }
+
+    /// A stuck status thread: the server reads the event and keeps its reply without answering.
+    #[test]
+    fn a_hook_with_a_deadline_gives_up_on_a_crest_that_reads_but_never_answers() {
+        let current_user_sid = read_current_user_sid().unwrap();
+        let test_pipe_name = test_pipe_name("never-answers");
+        let (kept_reply_sender, kept_reply_receiver) = mpsc::channel::<Box<dyn PendingHookReply>>();
+        let hook_event_server = NamedPipeHookEventServer::start(
+            test_pipe_name.clone(),
+            current_user_sid.clone(),
+            Box::new(move |_, hook_reply| kept_reply_sender.send(hook_reply).unwrap()),
+        )
+        .unwrap();
+
+        let short_test_deadline = Duration::from_millis(300);
+        let waiting_started = Instant::now();
+        let crest_reply = {
+            let (test_pipe_name, current_user_sid) = (test_pipe_name.clone(), current_user_sid.clone());
+            forward_within_hook_deadline(Some(short_test_deadline), move || {
+                forward_hook_event_through_pipe(&test_pipe_name, &current_user_sid, br#"{"hook_event_name":"Stop"}"#)
+            })
+        };
+        assert_eq!(crest_reply, None);
+        assert!(waiting_started.elapsed() < short_test_deadline * 3);
+        // The event did arrive: only the answer was missing.
+        let kept_reply = kept_reply_receiver.recv_timeout(Duration::from_secs(1)).unwrap();
+        kept_reply.send_reply("too late");
         Box::new(hook_event_server).stop();
     }
 }

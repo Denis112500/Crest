@@ -109,6 +109,12 @@ pub const CLAUDE_CODE_PERMISSION_REQUEST_MAX_AGE: Duration = Duration::from_secs
 /// always ends the waiting hook itself and never answers a hook Claude Code already killed.
 pub const CLAUDE_CODE_PERMISSION_HOOK_TIMEOUT: Duration = Duration::from_secs(11 * 60);
 
+/// The hook copy of `crest.exe` gives up on a status event after this long and exits with no
+/// output. Claude Code doesn't wait for these hooks (they're async) and never ends them itself,
+/// so without it a frozen or stuck Crest would keep a hook copy alive for good (CC.4a,
+/// 2026-10-30). A running Crest answers in milliseconds; the permission hook has no such limit.
+pub const CLAUDE_CODE_STATUS_HOOK_DEADLINE: Duration = Duration::from_secs(2);
+
 /// A command waiting for permission goes to the pill whole up to this many characters; a longer
 /// one is cut there and can then only be denied from the pill. 2 % of 1,092 commands measured in
 /// local transcripts were longer (2026-10-11).
