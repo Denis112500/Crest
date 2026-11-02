@@ -126,13 +126,12 @@ impl ClaudeCodeSessionTracker {
             .collect()
     }
 
-    /// The user dismissed a finished session with the "×" on its row. It leaves the list until
-    /// its next event (a new prompt shows it again, as working). A session that works or waits
-    /// for an OK stays: the click came from a row shown before it moved on.
-    pub fn dismiss_finished_session(&mut self, session_id: &str) {
-        if self.sessions_by_id.get(session_id).is_some_and(|tracked_session| !tracked_session.is_busy()) {
-            self.sessions_by_id.remove(session_id);
-        }
+    /// The user dismissed a session with the "×" on its row: finished, or working but stale (its
+    /// `Stop` was lost, e.g. while Crest was frozen). It leaves the list until its next event, so
+    /// a session that really works comes back with its next step. The status thread keeps a
+    /// session whose permission request waits in the pill.
+    pub fn dismiss_session(&mut self, session_id: &str) {
+        self.sessions_by_id.remove(session_id);
     }
 
     /// The session continued under a new id, which carries on in its place.
@@ -584,20 +583,27 @@ mod tests {
     }
 
     #[test]
-    fn only_a_finished_session_can_be_dismissed_and_its_next_prompt_brings_it_back() {
+    fn working_and_finished_sessions_can_be_dismissed_and_their_next_event_brings_them_back() {
         let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
         tracker.record_hook_event(&hook_event("finished", STOP_HOOK_EVENT, None), event_time);
         tracker.record_hook_event(&hook_event("working", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
         let listed_sessions = tracker.describe_activity(None, &[]).unwrap().activity_payload["listedSessions"].clone();
-        assert_eq!((&listed_sessions[0]["sessionId"], &listed_sessions[0]["canDismiss"]), (&"working".into(), &false.into()));
+        assert_eq!((&listed_sessions[0]["sessionId"], &listed_sessions[0]["canDismiss"]), (&"working".into(), &true.into()));
         assert_eq!((&listed_sessions[1]["sessionId"], &listed_sessions[1]["canDismiss"]), (&"finished".into(), &true.into()));
-        tracker.dismiss_finished_session("working");
-        tracker.dismiss_finished_session("finished");
-        let listed_sessions = tracker.describe_activity(None, &[]).unwrap().activity_payload["listedSessions"].clone();
-        assert_eq!(listed_sessions.as_array().unwrap().len(), 1);
+        tracker.dismiss_session("working");
+        tracker.dismiss_session("finished");
+        assert!(tracker.describe_activity(None, &[]).is_none());
+        tracker.record_hook_event(&hook_event("working", PRE_TOOL_USE_HOOK_EVENT, None), event_time);
         assert_eq!(top_session(&tracker)["sessionId"], "working");
-        tracker.record_hook_event(&hook_event("finished", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
-        assert_eq!(tracker.describe_activity(None, &[]).unwrap().activity_payload["listedSessions"].as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn a_session_whose_request_waits_in_the_pill_offers_no_dismiss() {
+        let (mut tracker, event_time) = (ClaudeCodeSessionTracker::default(), Instant::now());
+        tracker.record_hook_event(&hook_event("asking", USER_PROMPT_SUBMIT_HOOK_EVENT, None), event_time);
+        let waiting_sessions = ["asking".to_string()];
+        let still_waiting = tracker.describe_activity(Some(permission_alert()), &waiting_sessions).unwrap();
+        assert_eq!(still_waiting.activity_payload["listedSessions"][0]["canDismiss"], false);
     }
 
     #[test]

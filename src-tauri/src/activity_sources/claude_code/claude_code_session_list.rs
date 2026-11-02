@@ -60,7 +60,8 @@ pub struct ClaudeCodeSessionRow {
     pub turn_prompt: Option<String>,
     /// The latest turn's steps, oldest first, shown when the row is unfolded (CC.3).
     pub turn_steps: Vec<ClaudeCodeTurnStep>,
-    /// Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it.
+    /// Every row but one whose permission request waits in the pill offers a "×": a finished
+    /// session, or a working one that went stale (its `Stop` never came).
     pub can_dismiss: bool,
 }
 
@@ -136,7 +137,7 @@ mod tests {
                 news_count: 0,
                 turn_prompt: None,
                 turn_steps: Vec::new(),
-                can_dismiss: !session_status.is_busy(),
+                can_dismiss: session_status != ClaudeCodeSessionStatus::NeedsPermission,
             },
             last_event_order,
         }

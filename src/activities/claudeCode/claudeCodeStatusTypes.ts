@@ -40,7 +40,8 @@ export interface ClaudeCodeSessionRow {
   turnPrompt: string | null;
   /** The latest turn's steps, oldest first, shown when the row is unfolded (CC.3). */
   turnSteps: ClaudeCodeTurnStep[];
-  /** Finished (not working, not waiting for an OK): the row offers a "×" to dismiss it. */
+  /** Every row but one whose permission request waits in the pill offers a "×": a finished
+   * session, or a working one that went stale. */
   canDismiss: boolean;
 }
 

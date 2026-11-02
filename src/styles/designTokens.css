@@ -163,7 +163,7 @@
   --claude-code-session-row-hover-radius: 8px;
   --claude-code-session-chevron-width: 10px;
   --claude-code-session-unfolding-duration: 120ms;
-  /* The "×" that dismisses a finished session: a small round target, hidden until the row is
+  /* The "×" that dismisses a session's row: a small round target, hidden until the row is
      pointed at (CC.1 fixes). */
   --claude-code-session-dismiss-button-size: 18px;
   --claude-code-session-dismiss-font-size: 14px;

@@ -39,7 +39,8 @@ impl TrackedSession {
                 news_count: self.news_count,
                 turn_prompt: self.turn_steps.turn_prompt(),
                 turn_steps: self.turn_steps.list_steps(),
-                can_dismiss: !session_status.is_busy(),
+                // Its request in the pill is answered there instead, so the alert never loses its row.
+                can_dismiss: !is_waiting_for_an_answer,
             },
             last_event_order: self.last_event_order,
         })

@@ -84,7 +84,7 @@ impl ActivitySource for ClaudeCodeActivitySource {
     }
 
     /// Allow or Deny from the pill's alert (the status thread sends it to the waiting hook), or the
-    /// "×" that dismisses a finished session.
+    /// "×" that dismisses a session's row.
     fn perform_activity_action(&self, activity_action: &str) -> Result<(), String> {
         let status_message = if let Some(session_id) = activity_action.strip_prefix(CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX) {
             ClaudeCodeStatusMessage::SessionDismissed { session_id: session_id.to_string() }
