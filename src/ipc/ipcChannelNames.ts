@@ -21,6 +21,7 @@ export const LIST_ALLOWED_PLAYER_OPTIONS_COMMAND = "list_allowed_player_options"
 export const CHANGE_ALLOWED_PLAYERS_COMMAND = "change_allowed_players";
 export const CHANGE_SHOW_EVERY_PLAYER_COMMAND = "change_show_every_player";
 export const READ_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND = "read_claude_code_integration_setting";
+export const PREVIEW_CLAUDE_CODE_SWITCH_CHANGE_COMMAND = "preview_claude_code_switch_change";
 export const CHANGE_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND = "change_claude_code_integration_setting";
 export const CHANGE_CLAUDE_CODE_PERMISSION_ANSWERING_SETTING_COMMAND = "change_claude_code_permission_answering_setting";
 
@@ -39,5 +40,5 @@ export const CLAUDE_CODE_ACTIVITY_KIND = "claude-code";
 // Followed by the request's id, so a click can only answer the request it was shown for.
 export const CLAUDE_CODE_ALLOW_PERMISSION_ACTION_PREFIX = "allow-permission:";
 export const CLAUDE_CODE_DENY_PERMISSION_ACTION_PREFIX = "deny-permission:";
-// The "×" on a finished session's row, followed by its session id.
+// The "×" on a session's row, followed by its session id.
 export const CLAUDE_CODE_DISMISS_SESSION_ACTION_PREFIX = "dismiss-session:";

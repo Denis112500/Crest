@@ -123,6 +123,7 @@ pub fn run_crest_app() {
                     &mut activity_source_registry,
                     &shared_activity_arbiter,
                     &permission_answering_switch,
+                    None,
                 ) {
                     eprintln!("Crest: the Claude Code integration could not start: {integration_error}");
                 }
@@ -152,7 +153,7 @@ pub fn run_crest_app() {
             settings_window::settings_window_commands::change_allowed_players,
             settings_window::settings_window_commands::change_show_every_player,
             settings_window::claude_code_integration_commands::read_claude_code_integration_setting,
-            settings_window::claude_code_integration_commands::preview_claude_code_switch_change,
+            settings_window::claude_code_switch_change_preview::preview_claude_code_switch_change,
             settings_window::claude_code_integration_commands::change_claude_code_integration_setting,
             settings_window::claude_code_integration_commands::change_claude_code_permission_answering_setting,
         ])

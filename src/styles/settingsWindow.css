@@ -145,8 +145,7 @@ body {
   opacity: var(--settings-disabled-opacity);
 }
 
-/* The About card holds plain text lines, padded like a setting row. */
-/* "What switching on adds": collapsed by default, so music-only users never have to read it. */
+/* "Exact lines": folded by default; the summary above it says the same in words. */
 .setting-details {
   padding: 0 16px 12px;
   color: var(--settings-secondary-text-color);
@@ -169,6 +168,64 @@ body {
   font-size: var(--settings-code-font-size);
 }
 
+/* Under the Claude Code switches while a flip waits for its confirmation. */
+.claude-code-switch-change-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--settings-panel-gap);
+  padding: var(--settings-card-padding);
+  border-top: 1px solid var(--settings-row-separator-color);
+  background: var(--settings-panel-background);
+  overflow-wrap: anywhere;
+}
+
+.claude-code-switch-change-panel p {
+  margin: 0;
+}
+
+.claude-code-switch-change-panel .setting-details {
+  padding: 0;
+}
+
+.claude-code-switch-change-question {
+  color: var(--settings-text-color);
+  font-weight: var(--settings-title-font-weight);
+}
+
+.claude-code-switch-change-warning {
+  color: var(--settings-warning-color);
+  font-size: var(--settings-description-font-size);
+}
+
+.claude-code-switch-change-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--settings-panel-gap);
+}
+
+.setting-button-confirm {
+  border-color: var(--settings-accent-color);
+  background: var(--settings-accent-color);
+  color: var(--settings-control-background);
+}
+
+.setting-diff-line {
+  display: block;
+  white-space: pre;
+}
+
+.setting-diff-line-added {
+  color: var(--settings-diff-added-color);
+}
+
+.setting-diff-line-removed {
+  color: var(--settings-diff-removed-color);
+}
+
+.setting-diff-line-skippedUnchanged {
+  font-style: italic;
+}
+
 .setting-error {
   margin: 0;
   padding: 0 16px 12px;
@@ -177,6 +234,7 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* The About card holds plain text lines, padded like a setting row. */
 .settings-about-card {
   padding: var(--settings-card-padding);
   overflow-wrap: anywhere;

@@ -260,6 +260,12 @@
   --settings-code-font-size: 11px;
   --settings-code-preview-max-height: 160px;
   --settings-error-color: #c42b1c;
+  /* The switch change panel: a lightly tinted box under the switches, its lines like a git diff. */
+  --settings-panel-background: #f9f9f9;
+  --settings-panel-gap: 8px;
+  --settings-warning-color: #9d5d00;
+  --settings-diff-added-color: #0f7b0f;
+  --settings-diff-removed-color: #c42b1c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -273,5 +279,9 @@
     --settings-control-border-color: #9a9a9a;
     --settings-control-background: #2d2d2d;
     --settings-row-separator-color: #1d1d1d;
+    --settings-panel-background: #323232;
+    --settings-warning-color: #fce100;
+    --settings-diff-added-color: #6ccb5f;
+    --settings-diff-removed-color: #ff99a4;
   }
 }

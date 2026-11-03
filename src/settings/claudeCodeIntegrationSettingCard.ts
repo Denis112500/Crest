@@ -3,82 +3,121 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   CHANGE_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND,
   CHANGE_CLAUDE_CODE_PERMISSION_ANSWERING_SETTING_COMMAND,
+  PREVIEW_CLAUDE_CODE_SWITCH_CHANGE_COMMAND,
   READ_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND,
 } from "../ipc/ipcChannelNames";
+import { fillClaudeCodeSwitchChangePanel } from "./claudeCodeSwitchChangePanel";
+import type {
+  ClaudeCodeIntegrationSetting,
+  ClaudeCodeSwitchChange,
+  ClaudeCodeSwitchChangeOutcome,
+  ClaudeCodeSwitchChangePreview,
+} from "./claudeCodeSwitchChangeTypes";
 import { createSettingRowElement } from "./settingRowElement";
 
 const CLAUDE_CODE_INTEGRATION_SWITCH_ID = "claude-code-integration-switch";
 const CLAUDE_CODE_PERMISSION_ANSWERING_SWITCH_ID = "claude-code-permission-answering-switch";
 
-// Mirrors `ClaudeCodeIntegrationSetting` in src-tauri/src/settings_window/claude_code_integration_commands.rs.
-interface ClaudeCodeIntegrationSetting {
-  isIntegrationOn: boolean;
-  isPermissionAnsweringOn: boolean;
-  claudeCodeSettingsFilePath: string;
-  addedHooksPreview: string;
-}
-
-// The Claude Code switch, the switch for answering its permission requests in the pill, and
-// exactly what they add to Claude Code's settings file, so nothing changes there without the
-// user having been able to read it first. Like the other switches, they always show Rust's
-// answer; a failed change flips back and says why.
+// The Claude Code switch and the switch for answering its permission requests in the pill. A
+// flip writes nothing at first: the panel under them shows what would change in Claude Code's
+// settings file, and only a confirmation writes it, and only to the file the panel showed. The
+// switches always show Rust's answer, so they move only once the change is saved.
 export async function fillClaudeCodeIntegrationSettingCard(integrationsCard: HTMLElement): Promise<void> {
-  const currentSetting = await invoke<ClaudeCodeIntegrationSetting>(READ_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND);
+  let shownSetting = await invoke<ClaudeCodeIntegrationSetting>(READ_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND);
   const integrationSwitch = createSwitchElement(CLAUDE_CODE_INTEGRATION_SWITCH_ID);
   const permissionAnsweringSwitch = createSwitchElement(CLAUDE_CODE_PERMISSION_ANSWERING_SWITCH_ID);
-
-  const addedHooksDetails = document.createElement("details");
-  addedHooksDetails.className = "setting-details";
-  const addedHooksSummary = document.createElement("summary");
-  addedHooksSummary.textContent = `What switching on adds to ${currentSetting.claudeCodeSettingsFilePath}`;
-  const addedHooksPreview = document.createElement("pre");
-  addedHooksPreview.className = "setting-code-preview";
-  const addedHooksNote = document.createElement("p");
-  addedHooksNote.className = "setting-row-description";
-  addedHooksNote.textContent =
-    "A copy of the file is kept first. New Claude Code sessions pick the change up; switching off removes only these entries. Nothing leaves this PC.";
-  addedHooksDetails.append(addedHooksSummary, addedHooksPreview, addedHooksNote);
-
+  const switchChangePanel = document.createElement("div");
+  switchChangePanel.className = "claude-code-switch-change-panel";
+  switchChangePanel.hidden = true;
   const changeErrorElement = document.createElement("p");
   changeErrorElement.className = "setting-error";
   changeErrorElement.hidden = true;
 
-  const showSetting = (shownSetting: ClaudeCodeIntegrationSetting): void => {
+  const showSwitches = (areSwitchesUsable: boolean): void => {
     integrationSwitch.checked = shownSetting.isIntegrationOn;
     permissionAnsweringSwitch.checked = shownSetting.isPermissionAnsweringOn;
+    integrationSwitch.disabled = !areSwitchesUsable;
     // Only means something while the integration is on.
-    permissionAnsweringSwitch.disabled = !shownSetting.isIntegrationOn;
-    addedHooksPreview.textContent = shownSetting.addedHooksPreview;
+    permissionAnsweringSwitch.disabled = !areSwitchesUsable || !shownSetting.isIntegrationOn;
   };
-  showSetting(currentSetting);
+  const closeSwitchChangePanel = (): void => {
+    switchChangePanel.hidden = true;
+    showSwitches(true);
+  };
+  const showChangeError = (changeError: unknown): void => {
+    console.error("Crest could not change the Claude Code integration:", changeError);
+    changeErrorElement.textContent = String(changeError);
+    changeErrorElement.hidden = false;
+    closeSwitchChangePanel();
+  };
 
-  const sendSwitchChange = (changedSwitch: HTMLInputElement, changeCommand: string, changeArguments: Record<string, boolean>): void => {
-    integrationSwitch.disabled = true;
-    permissionAnsweringSwitch.disabled = true;
-    changeErrorElement.hidden = true;
-    invoke<ClaudeCodeIntegrationSetting>(changeCommand, changeArguments)
-      .then(showSetting)
-      .catch((changeError: unknown) => {
-        console.error("Crest could not change the Claude Code integration:", changeError);
-        changedSwitch.checked = !changedSwitch.checked;
-        changeErrorElement.textContent = String(changeError);
-        changeErrorElement.hidden = false;
+  const confirmSwitchChange = (switchChange: ClaudeCodeSwitchChange, confirmedPreview: ClaudeCodeSwitchChangePreview): void => {
+    switchChangePanel.hidden = true;
+    const expectedSettingsFileFingerprint = confirmedPreview.settingsFileFingerprint;
+    const changeRequest =
+      switchChange === "integrationOn" || switchChange === "integrationOff"
+        ? invoke<ClaudeCodeSwitchChangeOutcome>(CHANGE_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND, {
+            shouldIntegrationBeOn: switchChange === "integrationOn",
+            expectedSettingsFileFingerprint,
+          })
+        : invoke<ClaudeCodeSwitchChangeOutcome>(CHANGE_CLAUDE_CODE_PERMISSION_ANSWERING_SETTING_COMMAND, {
+            shouldPermissionAnsweringBeOn: switchChange === "answeringOn",
+            expectedSettingsFileFingerprint,
+          });
+    changeRequest
+      .then((changeOutcome) => {
+        if (changeOutcome.outcome === "changed") {
+          shownSetting = changeOutcome.currentSetting;
+          closeSwitchChangePanel();
+        } else {
+          offerSwitchChange(switchChange, changeOutcome.currentPreview, true);
+        }
       })
-      .finally(() => {
-        integrationSwitch.disabled = false;
-        permissionAnsweringSwitch.disabled = !integrationSwitch.checked;
-      });
+      .catch(showChangeError);
+  };
+
+  const offerSwitchChange = (
+    switchChange: ClaudeCodeSwitchChange,
+    shownPreview: ClaudeCodeSwitchChangePreview,
+    isShownAgainAfterFileChange: boolean,
+  ): void => {
+    const changesSomething =
+      shownPreview.addedCrestHookCount + shownPreview.removedCrestHookCount + shownPreview.handedBackRequestCount > 0;
+    // Nothing to read, nothing to confirm; but a rewritten file is always shown, so a file
+    // that keeps changing can't loop.
+    if (!changesSomething && !isShownAgainAfterFileChange) {
+      confirmSwitchChange(switchChange, shownPreview);
+      return;
+    }
+    fillClaudeCodeSwitchChangePanel(
+      switchChangePanel,
+      {
+        switchChange,
+        preview: shownPreview,
+        claudeCodeSettingsFilePath: shownSetting.claudeCodeSettingsFilePath,
+        isShownAgainAfterFileChange,
+      },
+      () => confirmSwitchChange(switchChange, shownPreview),
+      closeSwitchChangePanel,
+    );
+    switchChangePanel.hidden = false;
+  };
+
+  const startSwitchChange = (switchChange: ClaudeCodeSwitchChange): void => {
+    // The flipped switch goes back until the change is confirmed and saved.
+    showSwitches(false);
+    changeErrorElement.hidden = true;
+    invoke<ClaudeCodeSwitchChangePreview>(PREVIEW_CLAUDE_CODE_SWITCH_CHANGE_COMMAND, { switchChange })
+      .then((shownPreview) => offerSwitchChange(switchChange, shownPreview, false))
+      .catch(showChangeError);
   };
   integrationSwitch.addEventListener("change", () =>
-    sendSwitchChange(integrationSwitch, CHANGE_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND, {
-      shouldIntegrationBeOn: integrationSwitch.checked,
-    }),
+    startSwitchChange(integrationSwitch.checked ? "integrationOn" : "integrationOff"),
   );
   permissionAnsweringSwitch.addEventListener("change", () =>
-    sendSwitchChange(permissionAnsweringSwitch, CHANGE_CLAUDE_CODE_PERMISSION_ANSWERING_SETTING_COMMAND, {
-      shouldPermissionAnsweringBeOn: permissionAnsweringSwitch.checked,
-    }),
+    startSwitchChange(permissionAnsweringSwitch.checked ? "answeringOn" : "answeringOff"),
   );
+  showSwitches(true);
 
   integrationsCard.append(
     createSettingRowElement(
@@ -91,7 +130,7 @@ export async function fillClaudeCodeIntegrationSettingCard(integrationsCard: HTM
       "Allow or Deny what Claude Code asks for, right in the pill. Claude Code's own question stays open; the first answer wins. Off: the pill only shows the status.",
       permissionAnsweringSwitch,
     ),
-    addedHooksDetails,
+    switchChangePanel,
     changeErrorElement,
   );
 }

@@ -19,6 +19,7 @@ mod claude_code_running_subagents;
 mod claude_code_session_list;
 mod claude_code_session_title;
 mod claude_code_session_tracker;
+mod claude_code_settings_change;
 mod claude_code_settings_file;
 mod claude_code_status_message;
 mod claude_code_status_thread;
@@ -43,12 +44,12 @@ mod visible_text_shaping;
 pub use claude_code_hook_event::{
     add_session_project_folder, CLAUDE_CODE_PROJECT_FOLDER_VARIABLE, PERMISSION_REQUEST_HOOK_EVENT,
 };
-pub use claude_code_hook_registration::{build_crest_hook_command, build_crest_hooks};
 pub use claude_code_integration_switch::{
     change_claude_code_permission_answering, turn_claude_code_integration_off, turn_claude_code_integration_on,
 };
 pub use claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
-pub use claude_code_settings_file::{
-    claude_code_settings_file_path, preview_claude_code_settings_change, remove_crest_hooks_from_claude_code_settings,
-    ClaudeCodeSettingsChange, ClaudeCodeSettingsChangePreview,
+pub use claude_code_settings_change::{
+    preview_claude_code_settings_change, remove_crest_hooks_from_claude_code_settings, ClaudeCodeSettingsChange,
+    ClaudeCodeSettingsChangeOutcome, ClaudeCodeSettingsChangePreview,
 };
+pub use claude_code_settings_file::claude_code_settings_file_path;

@@ -3,6 +3,7 @@
 // Public (not re-exported) because `tauri::generate_handler!` needs the path where each
 // `#[tauri::command]` is defined.
 pub mod claude_code_integration_commands;
+pub mod claude_code_switch_change_preview;
 pub mod settings_window_commands;
 
 mod allowed_player_options;
