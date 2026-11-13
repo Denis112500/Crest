@@ -19,6 +19,7 @@ mod claude_code_running_subagents;
 mod claude_code_session_list;
 mod claude_code_session_title;
 mod claude_code_session_tracker;
+mod claude_code_settings_backups;
 mod claude_code_settings_change;
 mod claude_code_settings_file;
 mod claude_code_status_message;

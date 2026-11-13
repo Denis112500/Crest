@@ -1,6 +1,6 @@
 //! Claude Code's user settings file (`~/.claude/settings.json`, or the folder in
-//! `CLAUDE_CONFIG_DIR`): where it is, reading it, and replacing it with a copy kept first. A
-//! file Crest can't read is never overwritten.
+//! `CLAUDE_CONFIG_DIR`): where it is, reading it, and replacing it. A file Crest can't read is
+//! never overwritten.
 
 use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -8,9 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
-use crate::backend_constants::{
-    CLAUDE_CODE_SETTINGS_BACKUP_EXTENSION, CLAUDE_CODE_SETTINGS_FILE_NAME, CLAUDE_CODE_SETTINGS_FOLDER_NAME,
-};
+use crate::backend_constants::{CLAUDE_CODE_SETTINGS_FILE_NAME, CLAUDE_CODE_SETTINGS_FOLDER_NAME};
 use crate::text_file_atomic_replacement::replace_text_file_atomically;
 
 /// Claude Code's own override for where its settings live.
@@ -67,16 +65,8 @@ pub fn read_claude_code_settings(settings_file_path: &Path) -> Result<ClaudeCode
     Ok(ClaudeCodeSettingsSnapshot { original_settings_text, claude_code_settings })
 }
 
-/// The copy holds the text as it was read, so it's the user's file, not Crest's re-formatting.
-pub fn replace_claude_code_settings(
-    settings_file_path: &Path,
-    original_settings_text: Option<&str>,
-    new_claude_code_settings: &Value,
-) -> Result<(), String> {
-    if let Some(settings_text) = original_settings_text {
-        let backup_file_path = settings_file_path.with_extension(CLAUDE_CODE_SETTINGS_BACKUP_EXTENSION);
-        fs::write(&backup_file_path, settings_text).map_err(|error| format!("could not keep a copy: {error}"))?;
-    }
+/// All at once, so Claude Code never reads half a file; the copy is kept before, by the caller.
+pub fn replace_claude_code_settings(settings_file_path: &Path, new_claude_code_settings: &Value) -> Result<(), String> {
     let new_settings_text = serde_json::to_string_pretty(new_claude_code_settings).map_err(|error| error.to_string())?;
     replace_text_file_atomically(settings_file_path, &new_settings_text)
 }

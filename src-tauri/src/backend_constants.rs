@@ -187,8 +187,21 @@ pub const CLAUDE_CODE_HOOKS_DIFF_CONTEXT_LINE_COUNT: usize = 2;
 /// lines on each side, 8 MB of counts) it shows the whole old text removed and the new one added.
 pub const TEXT_LINE_DIFF_MAX_COMPARED_LINE_PAIRS: usize = 1_000_000;
 
-/// Copy of Claude Code's settings file made right before Crest changes it.
-pub const CLAUDE_CODE_SETTINGS_BACKUP_EXTENSION: &str = "json.crest-backup";
+/// Crest's identifier in tauri.conf.json, which names its folder in %APPDATA%. Repeated here for
+/// the uninstaller, which runs without Tauri; a test checks the two still match.
+pub const CREST_APP_IDENTIFIER: &str = "dev.crest.pill";
+
+/// Dated copies of Claude Code's settings file, one made right before each change Crest makes,
+/// in Crest's own folder: `settings.json.<UTC time>.json`. The newest ones are kept.
+pub const CLAUDE_CODE_SETTINGS_BACKUP_FOLDER_NAME: &str = "claude-code-settings-backups";
+pub const CLAUDE_CODE_SETTINGS_BACKUP_FILE_NAME_PREFIX: &str = "settings.json.";
+pub const CLAUDE_CODE_SETTINGS_BACKUP_FILE_NAME_SUFFIX: &str = ".json";
+pub const CLAUDE_CODE_SETTINGS_BACKUP_KEPT_COUNT: usize = 10;
+
+/// The single copy Crest kept next to Claude Code's settings file before 2026-11; moved into the
+/// backup folder the next time Crest checks its hooks (each start with the integration on, each
+/// switch).
+pub const OLD_CLAUDE_CODE_SETTINGS_BACKUP_EXTENSION: &str = "json.crest-backup";
 
 /// Hook events are a few KB (a tool's input, e.g. a whole file for Write); anything bigger than
 /// this is refused instead of being read into memory.

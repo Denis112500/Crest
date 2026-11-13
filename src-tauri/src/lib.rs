@@ -18,6 +18,7 @@ mod system_tray;
 mod text_file_atomic_replacement;
 mod text_line_diff;
 mod user_settings_store;
+mod utc_file_name_timestamp;
 
 use std::sync::{Arc, Mutex};
 
