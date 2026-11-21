@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
 
+use crate::activity_core::PillVisibilityController;
 use crate::backend_constants::PILL_WINDOW_LABEL;
 use crate::ipc_channel_names::PILL_DISPLAY_CHANGED_EVENT;
 use crate::launch_at_login::{is_launch_at_login_enabled, set_launch_at_login};
@@ -58,6 +59,23 @@ pub fn choose_pill_display(
 ) -> Result<(), String> {
     settings_store.change_and_save(|settings| settings.pill_display_name = display_name)?;
     crest_app.emit_to(PILL_WINDOW_LABEL, PILL_DISPLAY_CHANGED_EVENT, ()).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub fn read_closed_pill_kept_hidden_setting(settings_store: State<'_, CrestUserSettingsStore>) -> bool {
+    settings_store.read_current_settings().is_closed_pill_kept_hidden
+}
+
+/// Saved first, so the pill only changes once the choice survives a restart.
+#[tauri::command]
+pub fn change_closed_pill_kept_hidden_setting(
+    settings_store: State<'_, CrestUserSettingsStore>,
+    pill_visibility_controller: State<'_, PillVisibilityController>,
+    should_keep_closed_pill_hidden: bool,
+) -> Result<bool, String> {
+    settings_store.change_and_save(|settings| settings.is_closed_pill_kept_hidden = should_keep_closed_pill_hidden)?;
+    pill_visibility_controller.set_closed_pill_kept_hidden(should_keep_closed_pill_hidden);
+    Ok(should_keep_closed_pill_hidden)
 }
 
 #[tauri::command]

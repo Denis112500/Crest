@@ -10,6 +10,8 @@
     "allow-change-launch-at-login-setting",
     "allow-list-pill-display-options",
     "allow-choose-pill-display",
+    "allow-read-closed-pill-kept-hidden-setting",
+    "allow-change-closed-pill-kept-hidden-setting",
     "allow-list-allowed-player-options",
     "allow-change-allowed-players",
     "allow-change-show-every-player",

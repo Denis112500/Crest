@@ -154,6 +154,8 @@ pub fn run_crest_app() {
             settings_window::settings_window_commands::change_launch_at_login_setting,
             settings_window::settings_window_commands::list_pill_display_options,
             settings_window::settings_window_commands::choose_pill_display,
+            settings_window::settings_window_commands::read_closed_pill_kept_hidden_setting,
+            settings_window::settings_window_commands::change_closed_pill_kept_hidden_setting,
             settings_window::settings_window_commands::list_allowed_player_options,
             settings_window::settings_window_commands::change_allowed_players,
             settings_window::settings_window_commands::change_show_every_player,

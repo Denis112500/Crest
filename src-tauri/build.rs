@@ -19,6 +19,8 @@ const CREST_COMMAND_NAMES: &[&str] = &[
     "change_launch_at_login_setting",
     "list_pill_display_options",
     "choose_pill_display",
+    "read_closed_pill_kept_hidden_setting",
+    "change_closed_pill_kept_hidden_setting",
     "list_allowed_player_options",
     "change_allowed_players",
     "change_show_every_player",

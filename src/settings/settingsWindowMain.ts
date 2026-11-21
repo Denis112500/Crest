@@ -1,5 +1,6 @@
 import { fillAllowedPlayersSettingCard } from "./allowedPlayersSettingCard";
 import { fillClaudeCodeIntegrationSettingCard } from "./claudeCodeIntegrationSettingCard";
+import { createClosedPillKeptHiddenSettingRow } from "./closedPillKeptHiddenSettingRow";
 import { fillCrestBuildDescriptionLine } from "./crestBuildDescriptionLine";
 import { createLaunchAtLoginSettingRow } from "./launchAtLoginSettingRow";
 import { createPillDisplaySettingRow } from "./pillDisplaySettingRow";
@@ -21,8 +22,9 @@ function startSettingsWindow(): void {
   createLaunchAtLoginSettingRow()
     .then((launchAtLoginSettingRow) => generalSettingsCard.append(launchAtLoginSettingRow))
     .catch(reportCardFailure("general"));
-  createPillDisplaySettingRow()
-    .then((pillDisplaySettingRow) => displaySettingsCard.append(pillDisplaySettingRow))
+  // Both rows are read before either is added, so their order never depends on which answers first.
+  Promise.all([createPillDisplaySettingRow(), createClosedPillKeptHiddenSettingRow()])
+    .then((displaySettingRows) => displaySettingsCard.append(...displaySettingRows))
     .catch(reportCardFailure("display"));
   fillAllowedPlayersSettingCard(allowedPlayersCard).catch(reportCardFailure("player"));
   fillClaudeCodeIntegrationSettingCard(integrationsCard).catch(reportCardFailure("integrations"));
