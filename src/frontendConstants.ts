@@ -155,5 +155,12 @@ export const SYSTEM_VOLUME_SLIDER_ARMING_DELAY_MILLISECONDS = 500;
 export const SYSTEM_VOLUME_SET_MIN_INTERVAL_MILLISECONDS = 50;
 // One mouse-wheel notch over the open slider (Windows' volume keys also step 2 %, unverified).
 export const SYSTEM_VOLUME_WHEEL_STEP_PERCENT = 2;
+// How far one notch of an ordinary wheel reports, per `WheelEvent.deltaMode`. Smaller deltas (a
+// touchpad, a smooth wheel) add up to this before the volume moves. 100 px per notch is what
+// Chromium (WebView2) reports on Windows at 100 % scaling, 3 lines is Windows' default (both
+// unverified); a page scroll counts as one notch.
+export const SYSTEM_VOLUME_WHEEL_NOTCH_PIXELS = 100;
+export const SYSTEM_VOLUME_WHEEL_NOTCH_LINES = 3;
+export const SYSTEM_VOLUME_WHEEL_NOTCH_PAGES = 1;
 // From this level up the speaker shows two sound waves, below it one.
 export const SYSTEM_VOLUME_SPEAKER_TWO_WAVES_FROM_LEVEL = 0.5;

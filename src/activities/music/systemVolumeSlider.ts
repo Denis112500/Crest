@@ -1,4 +1,9 @@
-import { SYSTEM_VOLUME_WHEEL_STEP_PERCENT } from "../../frontendConstants";
+import {
+  SYSTEM_VOLUME_WHEEL_NOTCH_LINES,
+  SYSTEM_VOLUME_WHEEL_NOTCH_PAGES,
+  SYSTEM_VOLUME_WHEEL_NOTCH_PIXELS,
+  SYSTEM_VOLUME_WHEEL_STEP_PERCENT,
+} from "../../frontendConstants";
 
 const PERCENT_PER_FULL_LEVEL = 100;
 const MUTED_CLASS = "is-system-volume-muted";
@@ -35,6 +40,28 @@ export function createSystemVolumeSlider(onLevelChosen: (level: number, isFinalS
   sliderElement.append(sliderTrackElement, levelReadoutElement);
 
   let isPointerDragging = false;
+  // A notched wheel sends one big delta per notch, a touchpad or smooth wheel many small ones per
+  // gesture. Stepping on every event made those race (Reddit feedback, 2026-11-18), so small deltas
+  // add up here until they make a whole notch.
+  // Kept in the event's own units (usually whole pixels): summing notch fractions instead drifts
+  // (ten 0.1s make 0.999…) and loses a notch.
+  let pendingWheelDelta = 0;
+
+  const countWheelNotches = (wheelEvent: WheelEvent): number => {
+    const wheelDeltaOfOneNotch = wheelDeltaPerNotch(wheelEvent.deltaMode);
+    if (Math.abs(wheelEvent.deltaY) >= wheelDeltaOfOneNotch) {
+      pendingWheelDelta = 0;
+      return Math.round(wheelEvent.deltaY / wheelDeltaOfOneNotch);
+    }
+    // Turning back starts afresh, so the first notch the other way isn't eaten by the leftover.
+    if (wheelEvent.deltaY * pendingWheelDelta < 0) {
+      pendingWheelDelta = 0;
+    }
+    pendingWheelDelta += wheelEvent.deltaY;
+    const wholeWheelNotches = Math.trunc(pendingWheelDelta / wheelDeltaOfOneNotch);
+    pendingWheelDelta -= wholeWheelNotches * wheelDeltaOfOneNotch;
+    return wholeWheelNotches;
+  };
 
   const paintLevel = (levelPercent: number, isMuted: boolean): void => {
     sliderElement.style.setProperty(LEVEL_CSS_VARIABLE, String(levelPercent / PERCENT_PER_FULL_LEVEL));
@@ -63,7 +90,12 @@ export function createSystemVolumeSlider(onLevelChosen: (level: number, isFinalS
     "wheel",
     (wheelEvent) => {
       wheelEvent.preventDefault();
-      const wheelStep = wheelEvent.deltaY < 0 ? SYSTEM_VOLUME_WHEEL_STEP_PERCENT : -SYSTEM_VOLUME_WHEEL_STEP_PERCENT;
+      const wheelNotches = countWheelNotches(wheelEvent);
+      if (wheelNotches === 0) {
+        return;
+      }
+      // Scrolling down (positive deltaY) turns the volume down.
+      const wheelStep = -wheelNotches * SYSTEM_VOLUME_WHEEL_STEP_PERCENT;
       const steppedLevelPercent = Math.min(Math.max(sliderInputElement.valueAsNumber + wheelStep, 0), PERCENT_PER_FULL_LEVEL);
       if (steppedLevelPercent !== sliderInputElement.valueAsNumber) {
         sliderInputElement.valueAsNumber = steppedLevelPercent;
@@ -83,4 +115,14 @@ export function createSystemVolumeSlider(onLevelChosen: (level: number, isFinalS
     },
     isBeingDragged: () => isPointerDragging,
   };
+}
+
+function wheelDeltaPerNotch(wheelDeltaMode: number): number {
+  if (wheelDeltaMode === WheelEvent.DOM_DELTA_LINE) {
+    return SYSTEM_VOLUME_WHEEL_NOTCH_LINES;
+  }
+  if (wheelDeltaMode === WheelEvent.DOM_DELTA_PAGE) {
+    return SYSTEM_VOLUME_WHEEL_NOTCH_PAGES;
+  }
+  return SYSTEM_VOLUME_WHEEL_NOTCH_PIXELS;
 }
