@@ -39,6 +39,9 @@ pub struct CrestUserSettings {
     /// "Answer permission requests in the pill": on by default (files from before 0.4.0 too);
     /// off, the integration only follows the status.
     pub is_claude_code_permission_answering_on: bool,
+    /// "Keep the closed pill hidden": off by default. On, only an alert or a rest at the top edge
+    /// brings the pill down; music and Claude Code no longer keep it on screen.
+    pub is_closed_pill_kept_hidden: bool,
 }
 
 /// Used when there is no settings file yet, i.e. on a fresh install. Since 0.3.1 it shows every
@@ -54,6 +57,7 @@ impl Default for CrestUserSettings {
             pill_display_name: None,
             is_claude_code_integration_on: false,
             is_claude_code_permission_answering_on: true,
+            is_closed_pill_kept_hidden: false,
         }
     }
 }
@@ -156,6 +160,7 @@ mod tests {
         assert_eq!(loaded_settings.media_player_filter(), MediaPlayerFilter::EveryPlayer);
         assert_eq!(loaded_settings.pill_display_name, None);
         assert!(loaded_settings.is_claude_code_permission_answering_on);
+        assert!(!loaded_settings.is_closed_pill_kept_hidden);
         fs::remove_dir_all(&test_directory).unwrap();
     }
 

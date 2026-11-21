@@ -8,7 +8,9 @@ use std::thread;
 use serde::Serialize;
 
 use crate::activity_core::pill_activity_arrangement::PillArrangement;
-use crate::activity_core::pill_visibility_policy::{decide_pill_visibility, PendingHideChange};
+use crate::activity_core::pill_visibility_policy::{
+    decide_pill_visibility, is_pill_on_screen, PendingHideChange, PillScreenConditions,
+};
 
 /// Whether the pill should be on screen, and whether a fullscreen app is in front. The
 /// second part travels along because the frontend hides the pill instantly for a game
@@ -32,6 +34,8 @@ struct PillVisibilityState {
     is_fullscreen_app_in_front: bool,
     /// Until the page releases it (the pill closed again), or a fullscreen app comes to the front.
     is_held_open_from_top_edge: bool,
+    is_alert_waiting: bool,
+    is_closed_pill_kept_hidden: bool,
     last_reported_visibility: PillVisibility,
     previous_arrangement: PillArrangement,
     /// Bumped whenever the pending hide changes; a sleeping hide timer only acts if the
@@ -43,8 +47,13 @@ struct PillVisibilityState {
 impl PillVisibilityState {
     fn current_visibility(&self) -> PillVisibility {
         PillVisibility {
-            is_pill_visible: (self.is_wanted_by_activity || self.is_held_open_from_top_edge)
-                && !self.is_fullscreen_app_in_front,
+            is_pill_visible: is_pill_on_screen(&PillScreenConditions {
+                is_wanted_by_activity: self.is_wanted_by_activity,
+                is_alert_waiting: self.is_alert_waiting,
+                is_closed_pill_kept_hidden: self.is_closed_pill_kept_hidden,
+                is_held_open_from_top_edge: self.is_held_open_from_top_edge,
+                is_fullscreen_app_in_front: self.is_fullscreen_app_in_front,
+            }),
             is_fullscreen_app_in_front: self.is_fullscreen_app_in_front,
             is_opened_from_top_edge: self.is_held_open_from_top_edge && !self.is_fullscreen_app_in_front,
         }
@@ -81,6 +90,8 @@ impl PillVisibilityController {
                 is_wanted_by_activity: false,
                 is_fullscreen_app_in_front: false,
                 is_held_open_from_top_edge: false,
+                is_alert_waiting: false,
+                is_closed_pill_kept_hidden: false,
                 last_reported_visibility: hidden_without_fullscreen_app,
                 previous_arrangement: PillArrangement::default(),
                 hide_generation: 0,
@@ -93,6 +104,9 @@ impl PillVisibilityController {
         let mut visibility_state = lock_visibility_state(&self.shared_visibility_state);
         let visibility_decision = decide_pill_visibility(&visibility_state.previous_arrangement, current_arrangement);
         visibility_state.previous_arrangement = current_arrangement.clone();
+        visibility_state.is_alert_waiting = current_arrangement.alert_activity.is_some();
+        // An answered alert can hide a kept-hidden pill at once, with no countdown involved.
+        visibility_state.report_visibility_if_changed();
         if visibility_decision.should_show_now {
             visibility_state.set_wanted_by_activity(true);
         }
@@ -122,6 +136,13 @@ impl PillVisibilityController {
         if is_fullscreen_app_in_front {
             visibility_state.is_held_open_from_top_edge = false;
         }
+        visibility_state.report_visibility_if_changed();
+    }
+
+    /// The "Keep the closed pill hidden" setting: read at start and changed from the settings window.
+    pub fn set_closed_pill_kept_hidden(&self, is_closed_pill_kept_hidden: bool) {
+        let mut visibility_state = lock_visibility_state(&self.shared_visibility_state);
+        visibility_state.is_closed_pill_kept_hidden = is_closed_pill_kept_hidden;
         visibility_state.report_visibility_if_changed();
     }
 
@@ -180,6 +201,46 @@ mod tests {
             }),
             ..Default::default()
         }
+    }
+
+    fn permission_request_over_music_arrangement() -> PillArrangement {
+        PillArrangement {
+            alert_activity: Some(PillActivity {
+                activity_kind: "claude-code",
+                activity_update: ActivityUpdate {
+                    display_priority: 90,
+                    activity_presence: ActivityPresence::Alert,
+                    attention_key: "permission".to_string(),
+                    activity_payload: serde_json::Value::Null,
+                },
+            }),
+            ..playing_music_arrangement()
+        }
+    }
+
+    #[test]
+    fn a_kept_hidden_pill_comes_down_only_while_an_alert_waits() {
+        let (pill_visibility_controller, _reported_visibilities) = controller_recording_visibility_reports();
+        pill_visibility_controller.set_closed_pill_kept_hidden(true);
+        pill_visibility_controller.handle_arrangement_change(&playing_music_arrangement());
+        assert!(!pill_visibility_controller.current_pill_visibility().is_pill_visible);
+        pill_visibility_controller.handle_arrangement_change(&permission_request_over_music_arrangement());
+        assert!(pill_visibility_controller.current_pill_visibility().is_pill_visible);
+        pill_visibility_controller.handle_arrangement_change(&playing_music_arrangement());
+        assert!(!pill_visibility_controller.current_pill_visibility().is_pill_visible);
+    }
+
+    #[test]
+    fn switching_kept_hidden_on_and_off_hides_and_shows_a_playing_pill() {
+        let (pill_visibility_controller, _reported_visibilities) = controller_recording_visibility_reports();
+        pill_visibility_controller.handle_arrangement_change(&playing_music_arrangement());
+        pill_visibility_controller.set_closed_pill_kept_hidden(true);
+        assert!(!pill_visibility_controller.current_pill_visibility().is_pill_visible);
+        pill_visibility_controller.open_from_top_edge();
+        assert!(pill_visibility_controller.current_pill_visibility().is_opened_from_top_edge);
+        pill_visibility_controller.release_top_edge_opening();
+        pill_visibility_controller.set_closed_pill_kept_hidden(false);
+        assert!(pill_visibility_controller.current_pill_visibility().is_pill_visible);
     }
 
     #[test]

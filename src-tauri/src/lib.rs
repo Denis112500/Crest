@@ -78,6 +78,9 @@ pub fn run_crest_app() {
                     eprintln!("Crest: could not send the pill visibility to the window: {emit_error}");
                 }
             }));
+            pill_visibility_controller.set_closed_pill_kept_hidden(
+                crest_app.state::<CrestUserSettingsStore>().read_current_settings().is_closed_pill_kept_hidden,
+            );
             crest_app.manage(pill_visibility_controller.clone());
             start_watching_pointer_rest(crest_app, &pill_visibility_controller);
 

@@ -1,6 +1,6 @@
-//! The rules for when the pill is on screen (something happening, paused, nothing), as one
-//! pure function with no timers or threads, so every rule is unit-tested. The controller runs
-//! the countdowns.
+//! The rules for when the pill is on screen (something happening, paused, nothing; the
+//! settings and the top edge), as pure functions with no timers or threads, so every rule is
+//! unit-tested. The controller runs the countdowns.
 
 use std::time::Duration;
 
@@ -62,6 +62,27 @@ pub fn decide_pill_visibility(
 
 fn is_holding_the_pill_open(pill_activity: &PillActivity) -> bool {
     pill_activity.activity_update.activity_presence != ActivityPresence::Lingering
+}
+
+/// Everything that decides, at this moment, whether the pill is on screen.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct PillScreenConditions {
+    /// What `decide_pill_visibility`'s countdowns currently want.
+    pub is_wanted_by_activity: bool,
+    pub is_alert_waiting: bool,
+    /// The "Keep the closed pill hidden" setting.
+    pub is_closed_pill_kept_hidden: bool,
+    pub is_held_open_from_top_edge: bool,
+    pub is_fullscreen_app_in_front: bool,
+}
+
+/// With the closed pill kept hidden, music or a working session no longer keep it on screen (it
+/// covered a maximized browser's tabs, Reddit feedback 2026-11-18); only an alert, which waits for
+/// an answer, still brings it down. The top-edge rest opens it either way.
+pub fn is_pill_on_screen(screen_conditions: &PillScreenConditions) -> bool {
+    let is_shown_for_activity = screen_conditions.is_wanted_by_activity
+        && (!screen_conditions.is_closed_pill_kept_hidden || screen_conditions.is_alert_waiting);
+    (is_shown_for_activity || screen_conditions.is_held_open_from_top_edge) && !screen_conditions.is_fullscreen_app_in_front
 }
 
 #[cfg(test)]
@@ -139,5 +160,31 @@ mod tests {
         assert_eq!(decision, PillVisibilityDecision { should_show_now: true, pending_hide_change: PendingHideChange::CancelPendingHide });
         let answered = decide_pill_visibility(&alert, &music_arrangement("song", false));
         assert_eq!(answered.pending_hide_change, PendingHideChange::HideAfter(PILL_HIDE_DELAY_AFTER_ACTIVITY_PAUSES));
+    }
+
+    #[test]
+    fn music_keeps_the_pill_on_screen_unless_the_closed_pill_is_kept_hidden() {
+        let playing = PillScreenConditions { is_wanted_by_activity: true, ..Default::default() };
+        assert!(is_pill_on_screen(&playing));
+        assert!(!is_pill_on_screen(&PillScreenConditions { is_closed_pill_kept_hidden: true, ..playing }));
+    }
+
+    #[test]
+    fn a_kept_hidden_pill_still_comes_down_for_an_alert_and_the_top_edge() {
+        let kept_hidden = PillScreenConditions { is_closed_pill_kept_hidden: true, ..Default::default() };
+        assert!(is_pill_on_screen(&PillScreenConditions { is_wanted_by_activity: true, is_alert_waiting: true, ..kept_hidden }));
+        assert!(is_pill_on_screen(&PillScreenConditions { is_held_open_from_top_edge: true, ..kept_hidden }));
+    }
+
+    #[test]
+    fn a_fullscreen_app_hides_the_pill_whatever_else_holds_it() {
+        let held_every_way = PillScreenConditions {
+            is_wanted_by_activity: true,
+            is_alert_waiting: true,
+            is_held_open_from_top_edge: true,
+            is_fullscreen_app_in_front: true,
+            ..Default::default()
+        };
+        assert!(!is_pill_on_screen(&held_every_way));
     }
 }
