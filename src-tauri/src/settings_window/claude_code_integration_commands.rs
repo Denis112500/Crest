@@ -1,5 +1,6 @@
-//! The settings window's commands for the Claude Code integration: show its state, switch it
-//! on or off, and switch answering permission requests in the pill on or off. Each change
+//! The settings window's commands for the Claude Code integration: show its state and the copies
+//! kept of Claude Code's settings, switch it on or off, and switch answering permission requests
+//! in the pill on or off. Each change
 //! carries the fingerprint of the preview the user confirmed (`claude_code_switch_change_preview.rs`).
 
 use std::sync::PoisonError;
@@ -9,9 +10,11 @@ use tauri::State;
 
 use crate::activity_core::{SharedActivityArbiter, SharedActivitySourceRegistry};
 use crate::activity_sources::claude_code::{
-    change_claude_code_permission_answering, claude_code_settings_file_path, turn_claude_code_integration_off,
-    turn_claude_code_integration_on, ClaudeCodePermissionAnsweringSwitch, ClaudeCodeSettingsChangeOutcome,
+    change_claude_code_permission_answering, claude_code_settings_backup_folder, claude_code_settings_file_path,
+    describe_claude_code_settings_copies, turn_claude_code_integration_off, turn_claude_code_integration_on,
+    ClaudeCodePermissionAnsweringSwitch, ClaudeCodeSettingsChangeOutcome, ClaudeCodeSettingsCopies,
 };
+use crate::folder_revealing::{CurrentPlatformFolderReveal, FolderReveal};
 use crate::settings_window::claude_code_switch_change_preview::{
     describe_claude_code_switch_change, ClaudeCodeSwitchChange, ClaudeCodeSwitchChangePreview,
 };
@@ -24,6 +27,8 @@ pub struct ClaudeCodeIntegrationSetting {
     is_permission_answering_on: bool,
     /// Where Claude Code's settings file is, shown so the user knows which file changes.
     claude_code_settings_file_path: String,
+    /// Read again with every answer, so the card shows the copy a change just kept.
+    settings_copies: ClaudeCodeSettingsCopies,
 }
 
 #[derive(Serialize)]
@@ -41,6 +46,14 @@ pub fn read_claude_code_integration_setting(
     settings_store: State<'_, CrestUserSettingsStore>,
 ) -> Result<ClaudeCodeIntegrationSetting, String> {
     describe_claude_code_integration(&settings_store.read_current_settings())
+}
+
+/// The folder is created first, so the button works before the first copy too.
+#[tauri::command]
+pub fn show_claude_code_settings_copies() -> Result<(), String> {
+    let backup_folder = claude_code_settings_backup_folder()?;
+    std::fs::create_dir_all(&backup_folder).map_err(|error| format!("could not create {}: {error}", backup_folder.display()))?;
+    CurrentPlatformFolderReveal::reveal_folder(&backup_folder)
 }
 
 /// Saves the choice only once Claude Code's settings were changed, so the switch never shows
@@ -134,5 +147,6 @@ fn describe_claude_code_integration(current_settings: &CrestUserSettings) -> Res
         is_integration_on: current_settings.is_claude_code_integration_on,
         is_permission_answering_on: current_settings.is_claude_code_permission_answering_on,
         claude_code_settings_file_path: claude_code_settings_file_path()?.display().to_string(),
+        settings_copies: describe_claude_code_settings_copies(&claude_code_settings_backup_folder()?)?,
     })
 }

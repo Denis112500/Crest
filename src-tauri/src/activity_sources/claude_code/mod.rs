@@ -49,6 +49,9 @@ pub use claude_code_integration_switch::{
     change_claude_code_permission_answering, turn_claude_code_integration_off, turn_claude_code_integration_on,
 };
 pub use claude_code_permission_answering_switch::ClaudeCodePermissionAnsweringSwitch;
+pub use claude_code_settings_backups::{
+    claude_code_settings_backup_folder, describe_claude_code_settings_copies, ClaudeCodeSettingsCopies,
+};
 pub use claude_code_settings_change::{
     preview_claude_code_settings_change, remove_crest_hooks_from_claude_code_settings, ClaudeCodeSettingsChange,
     ClaudeCodeSettingsChangeOutcome, ClaudeCodeSettingsChangePreview,

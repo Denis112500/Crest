@@ -4,7 +4,9 @@
 use std::fs::{self, OpenOptions};
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use serde::Serialize;
 
 use crate::backend_constants::{
     CLAUDE_CODE_SETTINGS_BACKUP_FILE_NAME_PREFIX, CLAUDE_CODE_SETTINGS_BACKUP_FILE_NAME_SUFFIX,
@@ -14,6 +16,18 @@ use crate::backend_constants::{
 use crate::utc_file_name_timestamp::format_utc_file_name_timestamp;
 
 const ROAMING_APP_DATA_FOLDER_VARIABLE: &str = "APPDATA";
+
+/// What the settings window says about the copies. Only counts and a time: the copies' text
+/// holds the user's settings (`env` included) and never leaves Rust.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeCodeSettingsCopies {
+    kept_copy_count: usize,
+    kept_copy_limit: usize,
+    /// When the newest copy was written (the old single copy keeps the time of its last change);
+    /// the page shows it in local time.
+    newest_copy_unix_milliseconds: Option<u64>,
+}
 
 /// Inside the folder where Tauri keeps Crest's own settings, found without Tauri so the
 /// uninstaller keeps a copy too.
@@ -59,6 +73,21 @@ pub fn move_in_old_crest_backup(settings_file_path: &Path, backup_folder: &Path)
     }
     fs::remove_file(&old_backup_path).map_err(|error| format!("could not remove the old copy: {error}"))?;
     remove_older_settings_copies(backup_folder)
+}
+
+/// A folder that doesn't exist yet simply holds no copies.
+pub fn describe_claude_code_settings_copies(backup_folder: &Path) -> Result<ClaudeCodeSettingsCopies, String> {
+    let settings_copies = if backup_folder.exists() { list_settings_copies(backup_folder)? } else { Vec::new() };
+    let newest_copy_unix_milliseconds = settings_copies
+        .last()
+        .and_then(|newest_copy| fs::metadata(newest_copy).and_then(|copy_metadata| copy_metadata.modified()).ok())
+        .and_then(|newest_copy_time| newest_copy_time.duration_since(UNIX_EPOCH).ok())
+        .map(|time_since_epoch| time_since_epoch.as_millis() as u64);
+    Ok(ClaudeCodeSettingsCopies {
+        kept_copy_count: settings_copies.len(),
+        kept_copy_limit: CLAUDE_CODE_SETTINGS_BACKUP_KEPT_COUNT,
+        newest_copy_unix_milliseconds,
+    })
 }
 
 fn name_settings_copy(copy_time: SystemTime) -> String {
@@ -174,6 +203,24 @@ mod tests {
         assert_eq!(copy_names(&backup_folder), ["settings.json.2026-11-03_09-15-07-UTC.json"]);
         move_in_old_crest_backup(&settings_file_path, &backup_folder).unwrap();
         assert_eq!(copy_names(&backup_folder).len(), 1);
+        let _ = fs::remove_dir_all(&test_folder);
+    }
+
+    #[test]
+    fn the_description_counts_the_copies_and_dates_the_newest() {
+        let test_folder = create_empty_test_folder("description");
+        let backup_folder = test_folder.join("backups");
+        let no_copies = describe_claude_code_settings_copies(&backup_folder).unwrap();
+        assert_eq!((no_copies.kept_copy_count, no_copies.newest_copy_unix_milliseconds), (0, None));
+
+        keep_claude_code_settings_copy(&backup_folder, "first", moment(1_793_697_307)).unwrap();
+        keep_claude_code_settings_copy(&backup_folder, "second", moment(1_793_697_308)).unwrap();
+        let newest_copy = list_settings_copies(&backup_folder).unwrap().pop().unwrap();
+        fs::File::options().write(true).open(&newest_copy).unwrap().set_modified(moment(1_793_697_308)).unwrap();
+        let two_copies = describe_claude_code_settings_copies(&backup_folder).unwrap();
+        assert_eq!(two_copies.kept_copy_count, 2);
+        assert_eq!(two_copies.kept_copy_limit, CLAUDE_CODE_SETTINGS_BACKUP_KEPT_COUNT);
+        assert_eq!(two_copies.newest_copy_unix_milliseconds, Some(1_793_697_308_000));
         let _ = fs::remove_dir_all(&test_folder);
     }
 

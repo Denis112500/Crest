@@ -179,6 +179,17 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* `display: flex` above would otherwise beat the browser's own `[hidden]` rule and leave an
+   empty padded strip in the card. */
+.claude-code-switch-change-panel[hidden] {
+  display: none;
+}
+
+/* The row after the panel keeps its dividing line while the panel is hidden too. */
+.claude-code-switch-change-panel + .setting-row {
+  border-top: 1px solid var(--settings-row-separator-color);
+}
+
 .claude-code-switch-change-panel p {
   margin: 0;
 }

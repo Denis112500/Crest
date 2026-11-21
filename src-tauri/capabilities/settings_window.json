@@ -16,6 +16,7 @@
     "allow-read-claude-code-integration-setting",
     "allow-change-claude-code-integration-setting",
     "allow-change-claude-code-permission-answering-setting",
-    "allow-preview-claude-code-switch-change"
+    "allow-preview-claude-code-switch-change",
+    "allow-show-claude-code-settings-copies"
   ]
 }

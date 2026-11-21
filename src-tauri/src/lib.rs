@@ -6,6 +6,7 @@ mod activity_sources;
 mod backend_constants;
 mod claude_code_hook_channel;
 mod folder_change_watching;
+mod folder_revealing;
 mod fullscreen_detection;
 mod ipc_channel_names;
 mod launch_at_login;
@@ -157,6 +158,7 @@ pub fn run_crest_app() {
             settings_window::claude_code_switch_change_preview::preview_claude_code_switch_change,
             settings_window::claude_code_integration_commands::change_claude_code_integration_setting,
             settings_window::claude_code_integration_commands::change_claude_code_permission_answering_setting,
+            settings_window::claude_code_integration_commands::show_claude_code_settings_copies,
         ])
         .run(tauri::generate_context!())
         .expect("Crest failed to start the Tauri application");

@@ -26,6 +26,7 @@ const CREST_COMMAND_NAMES: &[&str] = &[
     "change_claude_code_integration_setting",
     "change_claude_code_permission_answering_setting",
     "preview_claude_code_switch_change",
+    "show_claude_code_settings_copies",
 ];
 
 fn main() {

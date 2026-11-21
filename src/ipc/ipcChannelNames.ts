@@ -24,6 +24,7 @@ export const READ_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND = "read_claude_code_in
 export const PREVIEW_CLAUDE_CODE_SWITCH_CHANGE_COMMAND = "preview_claude_code_switch_change";
 export const CHANGE_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND = "change_claude_code_integration_setting";
 export const CHANGE_CLAUDE_CODE_PERMISSION_ANSWERING_SETTING_COMMAND = "change_claude_code_permission_answering_setting";
+export const SHOW_CLAUDE_CODE_SETTINGS_COPIES_COMMAND = "show_claude_code_settings_copies";
 
 export const PILL_ARRANGEMENT_CHANGED_EVENT = "pill-arrangement-changed";
 export const PILL_VISIBILITY_CHANGED_EVENT = "pill-visibility-changed";

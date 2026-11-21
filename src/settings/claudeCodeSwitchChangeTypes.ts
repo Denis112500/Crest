@@ -3,11 +3,19 @@
 // `ClaudeCodeSwitchChange` in src-tauri/src/settings_window/claude_code_switch_change_preview.rs.
 export type ClaudeCodeSwitchChange = "integrationOn" | "integrationOff" | "answeringOn" | "answeringOff";
 
+// `ClaudeCodeSettingsCopies` in src-tauri/src/activity_sources/claude_code/claude_code_settings_backups.rs.
+export interface ClaudeCodeSettingsCopies {
+  keptCopyCount: number;
+  keptCopyLimit: number;
+  newestCopyUnixMilliseconds: number | null;
+}
+
 // `ClaudeCodeIntegrationSetting` in src-tauri/src/settings_window/claude_code_integration_commands.rs.
 export interface ClaudeCodeIntegrationSetting {
   isIntegrationOn: boolean;
   isPermissionAnsweringOn: boolean;
   claudeCodeSettingsFilePath: string;
+  settingsCopies: ClaudeCodeSettingsCopies;
 }
 
 // `TextLineDiffEntry` in src-tauri/src/text_line_diff.rs.

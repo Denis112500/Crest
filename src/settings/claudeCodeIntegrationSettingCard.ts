@@ -6,6 +6,7 @@ import {
   PREVIEW_CLAUDE_CODE_SWITCH_CHANGE_COMMAND,
   READ_CLAUDE_CODE_INTEGRATION_SETTING_COMMAND,
 } from "../ipc/ipcChannelNames";
+import { createClaudeCodeSettingsCopiesRow } from "./claudeCodeSettingsCopiesRow";
 import { fillClaudeCodeSwitchChangePanel } from "./claudeCodeSwitchChangePanel";
 import type {
   ClaudeCodeIntegrationSetting,
@@ -33,7 +34,14 @@ export async function fillClaudeCodeIntegrationSettingCard(integrationsCard: HTM
   changeErrorElement.className = "setting-error";
   changeErrorElement.hidden = true;
 
+  const settingsCopiesRow = createClaudeCodeSettingsCopiesRow((showCopiesError) => {
+    console.error("Crest could not open the folder of copies:", showCopiesError);
+    changeErrorElement.textContent = String(showCopiesError);
+    changeErrorElement.hidden = false;
+  });
+
   const showSwitches = (areSwitchesUsable: boolean): void => {
+    settingsCopiesRow.showSettingsCopies(shownSetting.settingsCopies);
     integrationSwitch.checked = shownSetting.isIntegrationOn;
     permissionAnsweringSwitch.checked = shownSetting.isPermissionAnsweringOn;
     integrationSwitch.disabled = !areSwitchesUsable;
@@ -131,6 +139,7 @@ export async function fillClaudeCodeIntegrationSettingCard(integrationsCard: HTM
       permissionAnsweringSwitch,
     ),
     switchChangePanel,
+    settingsCopiesRow.rowElement,
     changeErrorElement,
   );
 }
