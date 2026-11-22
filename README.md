@@ -22,7 +22,7 @@ Closed, it's a small black notch with sloped sides (a "visor") showing the cover
   <img src="docs/crest-expanded.png" width="476" alt="The open pill: the cover inside a ring showing the song's progress, title and artist, previous, pause and next buttons, the speaker button for the system volume, and the time">
 </p>
 
-In the open music tile, a speaker button after next-track slides out a thin slider for the **system volume** (all sound, like the speaker icon in the taskbar). The playback buttons step aside while it's open; it follows the volume keys, the mouse wheel moves it 2 % per notch, and it slides back by itself a few seconds after you leave it. Moving it while muted turns the sound back on, as Windows' own slider does. It isn't a replacement for Windows' volume popup.
+In the open music tile, a speaker button after next-track slides out a thin slider for the **system volume** (all sound, like the speaker icon in the taskbar). The playback buttons step aside while it's open; it follows the volume keys, the mouse wheel moves it 2 % per notch (a touchpad in the same steps, by how far you swipe), and it slides back by itself a few seconds after you leave it. Moving it while muted turns the sound back on, as Windows' own slider does. It isn't a replacement for Windows' volume popup.
 
 <p align="center">
   <img src="docs/crest-dashboard.png" width="799" alt="The open dashboard: the music on the left, Claude Code's sessions on the right, the lower edge lit white because Claude Code is working">
@@ -76,7 +76,8 @@ The core also decides visibility, with rules in one small pure function (`pill_v
 - something **lingering** (music paused) → hidden after 30 seconds; a new track shows it again first;
 - **nothing** (the player closed) → hidden after 3 seconds;
 - the pointer **rests against the top edge** where the hidden pill hangs (0.4 s, no click) → shown open until the pointer leaves it, then hidden again unless something came on meanwhile (never over a fullscreen app);
-- a **fullscreen app** covers the pill's monitor → hidden at once, without an animation, and back when it leaves. Crest learns this from the Windows shell, the same signal that hides the taskbar (`fullscreen_detection/`).
+- a **fullscreen app** covers the pill's monitor → hidden at once, without an animation, and back when it leaves. Crest learns this from the Windows shell, the same signal that hides the taskbar (`fullscreen_detection/`);
+- **Keep the closed pill hidden** switched on → music and Claude Code no longer keep it on screen; only a permission request brings it down (hidden again once answered), and the top-edge rest still opens it.
 
 `pill_visibility_controller.rs` runs those countdowns and tells the frontend, which plays a short fade/shrink animation and then asks Rust to hide the native window (or shows the window first, then animates the pill in). A hide never happens while the mouse is over the pill.
 
@@ -218,7 +219,12 @@ Crest/
 │  │  ├─ launchAtLoginSettingRow.ts  "Start with Windows" switch
 │  │  ├─ pillDisplaySettingRow.ts    "Show the pill on" monitor list
 │  │  ├─ allowedPlayersSettingCard.ts  "Show every player", the player list, adding open players
-│  │  ├─ claudeCodeIntegrationSettingCard.ts  the Claude Code switches + exactly what they add to Claude Code's settings
+│  │  ├─ closedPillKeptHiddenSettingRow.ts  "Keep the closed pill hidden" switch
+│  │  ├─ claudeCodeIntegrationSettingCard.ts  the Claude Code switches; a flip writes only after the panel is confirmed
+│  │  ├─ claudeCodeSwitchChangeTypes.ts  what the card and Rust exchange (the preview, the outcome, the copies)
+│  │  ├─ claudeCodeSwitchChangePanel.ts  before a flip writes: what changes in Claude Code's settings, what stays, the exact lines folded, Cancel / Switch
+│  │  ├─ claudeCodeHooksDiffLinesElement.ts  those exact lines with "+" / "-" marks, as plain text
+│  │  ├─ claudeCodeSettingsCopiesRow.ts  "Copies of Claude Code's settings": how many, the newest one's time, "Show the copies"
 │  │  └─ crestBuildDescriptionLine.ts  the About card: which Crest is running
 │  └─ styles/
 │     ├─ designTokens.css       every color, spacing, duration, the glide curve and the light's colours (pill and settings)
@@ -247,6 +253,8 @@ Crest/
       ├─ ipc_channel_names.rs   event, activity-kind and action names shared with the frontend
       ├─ user_settings_store.rs settings.json: loads it, keeps the current settings, saves safely (unit-tested)
       ├─ text_file_atomic_replacement.rs  writes a temporary file, then renames it over the real one
+      ├─ text_line_diff.rs      two texts compared line by line, like `diff -u`, long unchanged runs cut (unit-tested)
+      ├─ utc_file_name_timestamp.rs  a time as `2026-11-03_09-15-07-UTC` for file names, so they sort by time (unit-tested)
       ├─ launch_at_login/
       │  ├─ mod.rs
       │  ├─ launch_at_login_switch.rs       "Start with Windows" on/off through tauri-plugin-autostart
@@ -264,7 +272,7 @@ Crest/
       │  ├─ activity_action_command.rs    command: a button press for some activity kind
       │  ├─ pill_arrangement_command.rs   lets the frontend ask for the current layout
       │  ├─ focus_activity_command.rs     command: the companion was clicked (ongoing → main; news → seen)
-      │  ├─ pill_visibility_policy.rs     the show/hide rules as a pure function (unit-tested)
+      │  ├─ pill_visibility_policy.rs     the show/hide rules as a pure function, "keep the closed pill hidden" included (unit-tested)
       │  ├─ pill_visibility_controller.rs runs the hide countdowns, adds the fullscreen rule and the top-edge opening, reports changes
       │  ├─ pill_visibility_command.rs    lets the frontend ask whether the pill is visible
       │  └─ pill_top_edge_opening_command.rs  the pill opened from the top edge closed: hide it again unless something is on
@@ -300,10 +308,13 @@ Crest/
       │  │  ├─ claude_code_usage_limit_wait.rs    a session stopped by a usage limit stays listed until the reset
       │  │  ├─ claude_code_session_list.rs        the sessions the pill lists: order, how many, "+N" (pure, unit-tested)
       │  │  ├─ claude_code_tool_summary.rs        "Editing notes.md", "Running cargo test", "Subagent: Explore" (unit-tested)
-│  │  ├─ claude_code_turn_steps.rs          the latest turn's tool calls and subagents: running, done, failed, stopped; 12 at most (unit-tested)
-│  │  ├─ claude_code_turn_prompt_line.rs    the prompt's first line for an unfolded row, cut at a word (unit-tested)
+      │  │  ├─ claude_code_turn_steps.rs          the latest turn's tool calls and subagents: running, done, failed, stopped; 12 at most (unit-tested)
+      │  │  ├─ claude_code_turn_prompt_line.rs    the prompt's first line for an unfolded row, cut at a word (unit-tested)
       │  │  ├─ claude_code_hook_registration.rs   adds/removes Crest's hooks in Claude Code's settings, nothing else (unit-tested)
-      │  │  ├─ claude_code_settings_file.rs       reads and writes ~/.claude/settings.json, with a backup
+      │  │  ├─ claude_code_settings_file.rs       finds, reads and replaces ~/.claude/settings.json; never overwrites a file it can't read
+      │  │  ├─ claude_code_settings_change.rs     a switch's change: previewed without writing, written only if the file is still the one previewed (unit-tested)
+      │  │  ├─ claude_code_hooks_change_preview.rs  what the change does to the hooks: a summary and the changed lines; your own hooks shown only as a placeholder (unit-tested)
+      │  │  ├─ claude_code_settings_backups.rs    a dated copy of the file before each change, in Crest's folder, the newest 10 kept (unit-tested)
       │  │  ├─ claude_code_integration_switch.rs  hooks and listening always switch on and off together
       │  │  ├─ claude_code_status_message.rs      what wakes the status thread (event, transcript change, answer, stop)
       │  │  ├─ claude_code_transcript_watch.rs    while a session is busy: watches its transcript for an interrupt, a deny, stopped subagents or a new title
@@ -343,6 +354,7 @@ Crest/
       │  ├─ mod.rs
       │  ├─ claude_code_hook_channel_trait.rs  trait: carry a hook event to Crest and the answer back, no network
       │  ├─ claude_code_hook_process.rs        what `crest.exe --claude-code-hook` does
+      │  ├─ claude_code_hook_deadline.rs       a status event's hook gives up after 2 s, so a stuck Crest leaves no hooks running; a permission request waits (unit-tested)
       │  ├─ length_prefixed_message.rs         the message format on the channel (unit-tested)
       │  ├─ pending_hook_reply.rs              trait: a hook's answer sent later (a permission request waits for a click)
       │  └─ windows_named_pipe/
@@ -356,6 +368,10 @@ Crest/
       │  ├─ mod.rs
       │  ├─ folder_change_watch.rs         trait: tell me when a file in this folder is written
       │  └─ windows_change_notification.rs Windows: FindFirstChangeNotificationW, one sleeping thread (tested for real)
+      ├─ folder_revealing/
+      │  ├─ mod.rs
+      │  ├─ folder_reveal.rs               trait: show this folder in the system's file manager
+      │  └─ windows_explorer_folder_reveal.rs  Windows: starts File Explorer on the folder, without waiting
       ├─ fullscreen_detection/
       │  ├─ mod.rs
       │  ├─ fullscreen_app_watcher.rs     trait: tell me when a fullscreen app comes and goes; "check again" after the pill moves
@@ -413,7 +429,8 @@ Crest/
          ├─ mod.rs
          ├─ settings_window_opener.rs    opens the window or brings it to the front (tray, second launch)
          ├─ settings_window_commands.rs  the commands the settings page calls
-         ├─ claude_code_integration_commands.rs  the Claude Code switches and their preview
+         ├─ claude_code_integration_commands.rs  the Claude Code switches (each with the previewed file's fingerprint) and "Show the copies"
+         ├─ claude_code_switch_change_preview.rs  what a flip would change, and the waiting requests it would hand back to Claude Code
          ├─ crest_build_description.rs   version, release/dev, build time and path for the About card
          └─ allowed_player_options.rs    what the player card shows (unit-tested)
 ```
@@ -438,7 +455,8 @@ Open them from the tray icon (**Settings…**) or by starting Crest again while 
 
 - **Start with Windows**: Crest starts in the background when you sign in. Off by default. Crest remembers your choice: Windows' installer removes the start-up entry when an update uninstalls the old version first, and Crest puts it back the next time it starts.
 - **Show the pill on**: the main display, or a specific monitor. If that monitor is unplugged, the pill goes to the main display at once.
-- **Claude Code**: shows what your Claude Code sessions are doing (see [Claude Code](#claude-code)). Off by default.
+- **Keep the closed pill hidden** (under Display): music and Claude Code no longer keep the pill on screen, so it doesn't sit over a maximized window's tabs. Rest the pointer at the top edge to open it; permission requests still come down, and it hides again once you've answered. Off by default.
+- **Claude Code**: shows what your Claude Code sessions are doing (see [Claude Code](#claude-code)). Off by default. Flipping it (or the next switch) first shows exactly what changes in Claude Code's settings, and writes only once you confirm.
 - **Answer permission requests in the pill**: Allow / Deny right in the pill while Claude Code is on. On by default; off, the pill only shows the status.
 - **Allowed players**: which players the pill shows. A new install shows **every player**; switch that off to show only the list (it starts with YouTube Music), and add any player while it's open (a video in a normal browser tab counts as one player per browser, e.g. "Brave tabs"). With an empty list and the switch off, the pill shows no music.
 
@@ -453,7 +471,8 @@ Changes apply at once and are saved in `%APPDATA%\dev.crest.pill\settings.json`,
   "shouldLaunchAtLogin": false,
   "pillDisplayName": null,
   "isClaudeCodeIntegrationOn": false,
-  "isClaudeCodePermissionAnsweringOn": true
+  "isClaudeCodePermissionAnsweringOn": true,
+  "isClosedPillKeptHidden": false
 }
 ```
 
@@ -476,7 +495,7 @@ Since 0.4.0, off by default. Switched on in the settings, the pill shows what yo
 
 Claude Code's own deny and ask rules still apply after an Allow from the pill. Claude's questions to you (AskUserQuestion) and plan approval stay in Claude Code: the pill only says the session needs you.
 
-**What it changes.** Switching on adds hook entries to Claude Code's user settings (`~/.claude/settings.json`); the settings window shows exactly which before you switch, keeps a copy of the file first, and switching off (or uninstalling Crest) removes only Crest's entries. Each hook runs `crest.exe --claude-code-hook`, which hands the event to the running Crest through a named pipe that only your Windows user can open (the hook also checks the pipe belongs to your user) and exits. Nothing leaves your PC: no network, no account. For the line under a session, Crest reads the last answer Claude Code hands its hooks, and for the steps, the prompt you sent and each tool's input (of the prompt, it keeps only its first line); for titles, interrupts and a usage limit's reset time, it reads the session's transcript on your disk. It keeps what it reads only in memory. A Claude Code session keeps the hooks it read when it started, so after switching on (or changing the second switch) restart the sessions that are already running.
+**What it changes.** Switching on adds hook entries to Claude Code's user settings (`~/.claude/settings.json`), and switching off (or uninstalling Crest) removes only Crest's entries. Flipping either Claude Code switch first opens a panel in the settings window: what changes in that file, what stays (your other settings and your own hooks, which it counts but never shows), any waiting permission requests that go back to Claude Code's own question, and the exact lines, folded. Nothing is written until you confirm, and if Claude Code rewrote the file in the meantime, you get the new preview first. Before each change, Crest keeps a dated copy of the file as it was in `%APPDATA%\dev.crest.pill\claude-code-settings-backups\` (the newest 10); the card shows how many there are and when the newest is from, and **Show the copies** opens the folder. Running sessions pick up the change by themselves. Each hook runs `crest.exe --claude-code-hook`, which hands the event to the running Crest through a named pipe that only your Windows user can open (the hook also checks the pipe belongs to your user) and exits. Nothing leaves your PC: no network, no account. For the line under a session, Crest reads the last answer Claude Code hands its hooks, and for the steps, the prompt you sent and each tool's input (of the prompt, it keeps only its first line); for titles, interrupts and a usage limit's reset time, it reads the session's transcript on your disk. It keeps what it reads only in memory.
 
 ## Known limits
 
@@ -484,6 +503,7 @@ Claude Code's own deny and ask rules still apply after an Allow from the pill. C
 - A terminal closed hard (without ending Claude Code) stays in the session list for up to 10 minutes.
 - A single tool that runs longer than 10 minutes (a long build or test run) sends no events meanwhile, so its session leaves the pill until the tool finishes.
 - While a fullscreen app covers the pill's monitor, the pill (and a permission alert) is hidden: answer in Claude Code.
+- If `crest.exe` goes missing while the Claude Code integration is on (moved, or removed without its uninstaller, which takes the hooks out), Claude Code shows a hook error on every event until you switch the integration off, or start Crest from its new place, which points the hooks at it.
 
 ## License
 
