@@ -10,7 +10,7 @@ A small black notch hanging from the top center of the screen. It shows what's p
 
 Built with [Tauri 2](https://v2.tauri.app/): a Rust backend and a TypeScript + Vite frontend drawn with plain CSS/SVG. Everything stays on your machine: no telemetry, and no network calls unless you switch on an integration that needs them (none does yet: the Claude Code integration stays on your PC).
 
-> Status: 0.5.0 is published ([download](../../releases/latest)). New in 0.5.0: a new look (a notch with sloped sides whose lit edge tells you what's going on, the song's progress as a ring around its cover, a wide and shallow dashboard, a wider permission alert); a speaker button and slider in the music tile for the system volume; the closed notch lets your clicks through to whatever is under it and opens when you rest the pointer on it; with nothing playing, resting the pointer against the top edge brings it down with the time, the date and the volume; an MCP tool's input in the permission alert; and fixes for fullscreen games across two monitors and for the notch's place after login or a resolution or monitor change. Since 0.4.0, off until you switch it on: [Claude Code](#claude-code) sessions in the notch, with Allow / Deny for their permission requests. See [What it looks like](#what-it-looks-like).
+> Status: 0.6.0 is published ([download](../../releases/latest)). New in 0.6.0, in the [Claude Code](#claude-code) integration (off until you switch it on): running subagents counted, a usage limit with when it resets, cancelled, denied and API-error states; a line from Claude's last answer under a finished session; sessions named after their folder and title; a click on a session unfolds it to its latest steps; any session can be dismissed with ×; and each switch shows exactly what it changes in Claude Code's settings, writes only once you confirm, and keeps a dated copy of the file first. Two fixes from feedback: **Keep the closed pill hidden** (Settings → Display), and the volume wheel stepping per notch, so a touchpad no longer races. 0.5.0 brought the current look, the system volume slider, the click-through closed notch and the top-edge opening. See [What it looks like](#what-it-looks-like).
 
 Crest's tray icon (notification area, possibly behind the ^ arrow) has **Settings…** and **Quit Crest**. Starting Crest again while it runs also opens the settings.
 
@@ -437,7 +437,7 @@ Crest/
 
 ## Installing
 
-Download `Crest_<version>_x64-setup.exe` from the [Releases](../../releases) page and run it (Windows 10/11, 64-bit). The installer isn't code-signed, so SmartScreen will warn: **More info → Run anyway**.
+Download `Crest_<version>_x64-setup.exe` from the [Releases](../../releases) page and run it (Windows 10/11, 64-bit). The installer isn't code-signed, so SmartScreen will warn: **More info → Run anyway**. If Windows' **Smart App Control** is on (Windows Security → App & browser control), it will most likely block Crest outright: Microsoft describes it as blocking unsigned apps it doesn't know, with no way to allow a single app (not tried with Crest yet).
 
 ## Running it from source
 
